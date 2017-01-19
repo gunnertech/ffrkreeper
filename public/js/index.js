@@ -88,12 +88,6 @@
 
         /// FAUX ROUTES
         socket.on("/drops/" + sessionId, function (message) {
-
-            if ($('#attach-point').is(':empty')) {
-
-                console.log('its empty')
-            }
-
             if ($('#attach-point').is(':empty') || !message.duplicate) {
                 $('#attach-point').prepend(renderDrops(message));
             }

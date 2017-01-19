@@ -206,12 +206,6 @@ schema.methods.checkForDrops = function () {
                 self.save().then(() => reject(proxiedError));
                 return;
             } else if (self.inBattle) {
-                // const proxiedError = new Error();
-                //  proxiedError.message = "Already Recorded this drop";
-                //  proxiedError.name = 'Duplicate Error';
-                // proxiedError.notify = false;
-                //reject(proxiedError);
-
                 message.drops = buildDrops(json)
                 message.duplicate = true;
 
