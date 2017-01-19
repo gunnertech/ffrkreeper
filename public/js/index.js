@@ -36,6 +36,9 @@
         } else if (message.drops == 0) {
             html += '<tr class="table-warning"><td colspan="2"><strong>Nope!</strong> There ain\'t nothing dropping.</td></tr>';
         } else {
+
+            $('#leftSide').hide() //hide instructions if we have at least one successful drop
+
             $.each(message.drops, function (i, drop) {
                 var rarity = parseInt(drop.rarity);
 
