@@ -1,4 +1,4 @@
-(function () {
+﻿(function () {
     var socket = io();
     var LOOP_FREQUENCY = 6000;
     var statusTimer = setTimeout(function () {
@@ -88,7 +88,15 @@
 
         /// FAUX ROUTES
         socket.on("/drops/" + sessionId, function (message) {
-            $('#attach-point').prepend(renderDrops(message));
+
+            if ($('#attach-point').is(':empty')) {
+
+                console.log('its empty')
+            }
+
+            if ($('#attach-point').is(':empty') || !message.duplicate) {
+                $('#attach-point').prepend(renderDrops(message));
+            }
         });
     }
 

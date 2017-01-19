@@ -142,6 +142,26 @@ schema.methods.sendSms = function (message) {
     });
 };
 
+function buildDrops(json) {
+    var drops = []
+
+    json.battle.rounds.forEach(function (round) {
+        round.drop_item_list.forEach(function (drop) {
+            drops.push(getDropInfo(drop));
+        });
+
+        round.enemy.forEach(function (enemy) {
+            enemy.children.forEach(function (child) {
+                child.drop_item_list.forEach(function (drop) {
+                    drops.push(getDropInfo(drop));
+                });
+            });
+        });
+    });
+
+    return drops;
+}
+
 schema.methods.checkForDrops = function () {
     var self = this;
 
@@ -186,31 +206,24 @@ schema.methods.checkForDrops = function () {
                 self.save().then(() => reject(proxiedError));
                 return;
             } else if (self.inBattle) {
-                const proxiedError = new Error();
-                proxiedError.message = "Already Recorded this drop";
-                proxiedError.name = 'Duplicate Error';
-                proxiedError.notify = true;
+                // const proxiedError = new Error();
+                //  proxiedError.message = "Already Recorded this drop";
+                //  proxiedError.name = 'Duplicate Error';
+                // proxiedError.notify = false;
+                //reject(proxiedError);
 
-                reject(proxiedError);
+                message.drops = buildDrops(json)
+                message.duplicate = true;
+
+                resolve(message);
+
                 return;
             }
 
             self.inBattle = true;
             self.save()
                 .then(function () {
-                    json.battle.rounds.forEach(function (round) {
-                        round.drop_item_list.forEach(function (drop) {
-                            drops.push(getDropInfo(drop));
-                        });
-
-                        round.enemy.forEach(function (enemy) {
-                            enemy.children.forEach(function (child) {
-                                child.drop_item_list.forEach(function (drop) {
-                                    drops.push(getDropInfo(drop));
-                                });
-                            });
-                        });
-                    });
+                    drops = buildDrops(json)
 
                     Battle.findOne({ denaBattleId: json.battle.battle_id })
                         .then(function (battle) {
