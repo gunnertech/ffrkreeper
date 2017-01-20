@@ -1,0 +1,11 @@
+﻿<div class="container-fluid">
+    <div class="row">
+        <div id="left-side" class="col-sm">
+            <ul class="list-group">
+                {{#each dungeons}}
+                <li class="list-group-item"><a href="/dungeon/{{_id}}/battles">Dungeon: {{_id}} {{dungeonName}}</a></li>
+                {{/each}}
+            </ul>
+        </div>
+    </div>
+</div>

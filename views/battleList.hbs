@@ -1,0 +1,18 @@
+﻿<div class="container-fluid">
+    <div class="row">
+        <div id="left-side" class="col-sm">
+            <ul class="list-group">
+                {{#each battles}}
+                <li class="list-group-item">Battle: {{_id}} {{dungeonName}}</li>
+
+                <ul class="list-group">
+                    {{#each itemsFound}}
+                    <li class="list-group-item"><img src='{{dropImg}}' />{{dropName}}</li>
+                    {{/each}}
+                </ul>
+
+                {{/each}}
+            </ul>
+        </div>
+    </div>
+</div>

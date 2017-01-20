@@ -44,8 +44,19 @@ const server = express()
 	.set('view options', { layout: 'layout' })
 	.engine('hbs', engine.__express)
 	.set('view engine', 'hbs')
+
+	.get('/dungeons', function(req, res) {
+		Battle.getDungeonList(function(err, data) {
+			res.render('dungeonList', { title: 'Dungeon List', dungeons: data });
+		})
+  })
+	.get('/dungeon/:dungeonId/battles', function(req, res) {
+		Battle.getBattleList(req.params.dungeonId, function(err, data) {
+			res.render('battleList', { title: 'Battle List', battles: data });
+		})
+  })
   .get('/', function(req, res) {
-    res.render('index');
+    res.render('index', { title: 'Home' });
   })
   .post('/tick', function(req, res) {
     res.send('GET request to the homepage');
