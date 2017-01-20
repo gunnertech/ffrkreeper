@@ -53,7 +53,7 @@ function getUniqueItemsFromDungeon(dungeon) {
 schema.statics.getDungeonList = function(cb) {
 	//todo: add paging, this will get huge
 	mongoose.model('Battle', schema).aggregate([
-		{ '$sort': { 'denaDungeonId': -1 } },  //this will display the newest events first?
+		{ '$sort': { 'denaDungeonId': 1 } },  //this will display the newest events first?
 		{
 			$group: {
 				_id: '$denaDungeonId',
