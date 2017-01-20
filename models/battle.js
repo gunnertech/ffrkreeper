@@ -26,7 +26,32 @@ function GetDropImg(itemId) {
 	}
 }
 
+function getUniqueItemsFromDungeon(dungeon) {
+	var itemsFound = []
+
+	_.each(dungeon.dropRates, function(drop) {
+		_.each(drop, function(info, itemId) {
+			if(!_.includes(itemsFound, itemId)) {
+				var dropImg = GetDropImg(itemId);
+				if(dropImg === 'https://placeholdit.imgix.net/~text?txtsize=50&txt=%3F&w=112&h=112&txttrack=0') return;//don't display default image here
+
+				itemsFound.push({
+					itemId: itemId,
+					dropImg: dropImg,
+					dropName: dropData[itemId],
+					rarity: info.rarity
+				})
+			}
+		})
+	})
+
+	//itemsFound = _.sortBy(itemsFound, [function(o) { return -o.rarity; }]); //will take extra db calls to get rarity :(
+
+	return itemsFound;
+}
+
 schema.statics.getDungeonList = function(cb) {
+	//todo: add paging, this will get huge
 	mongoose.model('Battle', schema).aggregate([
 		{ '$sort': { 'denaDungeonId': -1 } },  //this will display the newest events first?
 		{
@@ -34,11 +59,14 @@ schema.statics.getDungeonList = function(cb) {
 				_id: '$denaDungeonId',
 				dungeonName: { $first: '$dungeonName' },
 				eventType: { $first: '$eventType' },
-				//denaBattleIds: { $first: '$denaBattleId' },
-				//dropRates: { $push: '$dropRates' }
+				dropRates: { $push: '$dropRates' }
 			}
 		}
 	], function(err, result) {
+		_.each(result, function(dungeon) {
+			dungeon.itemsFound = getUniqueItemsFromDungeon(dungeon);
+		})
+
 		cb(err, result)
 	});
 }
@@ -66,7 +94,6 @@ schema.statics.getBattleList = function(denaDungeonId, cb) {
 					_.each(drop, function(info, itemId) {
 						battle.itemsFound.push({
 							itemId: itemId,
-							//	dropImg: 'https://ffrk.static.denagames.com/dff/static/lang/ww/compile/en/image/ability_material/' + itemId + '/' + itemId + '_112.png',
 							dropImg: GetDropImg(itemId),
 							dropName: dropData[itemId],
 							dropRate: 'Drop Rate: ' + Math.round(info.rate * 100) + '% - ' + (info.hits) + ' out of ' + (info.total) + ' drops for this battle have been for this item'

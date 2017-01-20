@@ -3,7 +3,12 @@
         <div id="left-side" class="col-sm">
             <ul class="list-group">
                 {{#each dungeons}}
-                <li class="list-group-item"><a href="/dungeon/{{_id}}/battles">Dungeon: {{_id}} {{dungeonName}}</a></li>
+                <li class="list-group-item">
+                    <a href="/dungeon/{{_id}}/battles">Dungeon: {{_id}} {{dungeonName}}</a>
+                    {{#each itemsFound}}
+                    <img class="dungeonDropImg" src="{{dropImg}}" title="{{dropName}}" />
+                    {{/each}}
+                </li>
                 {{/each}}
             </ul>
         </div>
