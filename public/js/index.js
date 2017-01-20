@@ -32,24 +32,20 @@
     createCookie(name,"",-1);
   }
 
-  var hasLeftBattleSinceLastMessage = true;
-  var lastHtml = "";
-  var messageCount = 0;
+  var messages = [];
   function renderDrops(message) {
-    hasLeftBattleSinceLastMessage = (message.name == "Out of Battle Error");
+    var showDrop = (messages.length === 0 || (message.name && message.name != messages[messages.length-1].name) || (!message.name && messages[messages.length-1].name));
+    var html = '<table class="table table-striped"><thead class="thead-inverse"><tr><th colspan="2">Your Loot</th></tr></thead><tbody>';
 
-    /// IF THE USER HASN'T LEFT BATTLE YET, AND THIS ISN'T THE FIRST CHECK
-    if(!hasLeftBattleSinceLastMessage && messageCount > 0) {
-      messageCount = 0;
+    if(!showDrop) {
       return "";
     }
-    messageCount++;
+
+    messages.push(message);
 
     if(message.name == "Session Error") {
       signout();
     }
-
-    var html = '<table class="table table-striped"><thead class="thead-inverse"><tr><th colspan="2">Your Loot</th></tr></thead><tbody>';
 
     if (message.message) {
       html += '<tr class="table-danger"><td colspan="2"><strong>' + message.message + '</td></tr>';
@@ -86,12 +82,6 @@
 
     html += '</tbody></table>';
 
-    if(lastHtml == html) {
-      return "";
-    }
-
-    lastHtml = html;
-
     return html;
   }
 
@@ -99,7 +89,6 @@
     $("#btn-signin").hide();
     $("#btn-signout").show();
     $("form").hide();
-    $('#left-side').show();
 
     var sessionId = $('#session-id').val();
     var phone = $('#phone').val();
@@ -114,21 +103,22 @@
     socket.emit('/signin', {
       sessionId: sessionId,
       phone: phone,
-      email: email
-    }, function (data) {
-      console.log("Signed In!");
+      email: email,
+      alertLevel: alertLevel
+    }, function (user) {
+      socket.on("/drops/" + user.dena.sessionId, function (message) {
+        $('#attach-point').prepend(renderDrops(message));
+      });  
     });
 
-    /// FAUX ROUTES
-    socket.on("/drops/" + sessionId, function (message) {
-      $('#attach-point').prepend(renderDrops(message));
-    });
+    
   }
 
   function signout() {
     $("#btn-signin").show();
     $("#btn-signout").hide();
     $("form").show();
+    $('#left-side').show();
 
     var sessionId = $('#session-id').val();
     var phone = $('#phone').val();

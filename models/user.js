@@ -113,11 +113,11 @@ schema.statics.doDropCheck = (io) => {
                 notificationMessage = `Your drops: ${notificationMessage}`;
 
                 if (user.email) {
-                  user.sendEmail(message);
+                  user.sendEmail(notificationMessage);
                 };
 
                 if (user.phone) {
-                  user.sendSms(message);
+                  user.sendSms(notificationMessage);
                 }
               }
             }
@@ -159,6 +159,7 @@ schema.methods.sendEmail = function (message) {
   return new Promise((resolve, reject) => {
     sg.API(request, (error, response) => {
       if (error) {
+        error.name = "Email Error";
         reject(error);
       } else {
         resolve(response);
@@ -179,6 +180,7 @@ schema.methods.sendSms = function (message) {
       if (!err) {
         resolve(responseData)
       } else {
+        err.name = "SMS Error";
         reject(err);
       }
     });
@@ -257,6 +259,7 @@ schema.methods.checkForDrops = function () {
             /// But we still need to keep going to build the drop rate
             return Promise.resolve(null);
           }
+          console.log("Let's record this drop!");
           self.inBattle = true;
 
           return self.save().return(

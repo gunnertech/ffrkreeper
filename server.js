@@ -59,7 +59,7 @@ io.on('connection', (socket) => {
   });
 
   ///FAUX routing
-  socket.on('/signin', (data, fn) => {
+  socket.on('/signin', (data, fn) => { ////ALLOW THEM TO SIGN IN WITH EITHER A SESSIONID, PHONE OR EMAIL
     var query = {};
 
     if(data.sessionId) {
@@ -84,10 +84,9 @@ io.on('connection', (socket) => {
       })
       .then((user) => {
         if(data.phone) { user.phone = data.phone; }
-        if(user.email) { user.email = data.email; }
-        if(user.sessionId) { user.sessionId = data.sessionId; }
-        
-        user.alertLevel = data.alertLevel || 0;
+        if(data.email) { user.email = data.email; }
+        if(data.sessionId) { user.dena.sessionId = data.sessionId; }
+        user.alertLevel = parseInt(data.alertLevel) || 0;
 
         return user.save().return(user);
       })
