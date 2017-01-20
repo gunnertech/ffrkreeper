@@ -28,6 +28,7 @@ function GetDropImg(itemId) {
 
 schema.statics.getDungeonList = function(cb) {
 	mongoose.model('Battle', schema).aggregate([
+		{ '$sort': { 'denaDungeonId': -1 } },  //this will display the newest events first?
 		{
 			$group: {
 				_id: '$denaDungeonId',
