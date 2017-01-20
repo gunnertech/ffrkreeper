@@ -67,7 +67,8 @@ schema.statics.getBattleList = function(denaDungeonId, cb) {
 							itemId: itemId,
 							//	dropImg: 'https://ffrk.static.denagames.com/dff/static/lang/ww/compile/en/image/ability_material/' + itemId + '/' + itemId + '_112.png',
 							dropImg: GetDropImg(itemId),
-							dropName: dropData[itemId]
+							dropName: dropData[itemId],
+							dropRate: 'Drop Rate: ' + Math.round(info.rate * 100) + '% - ' + (info.hits) + ' out of ' + (info.total) + ' drops for this battle have been for this item'
 						})
 					})
 				})
