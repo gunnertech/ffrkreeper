@@ -22,7 +22,25 @@ const Battle = require('./battle.js');
 
 const getDropInfo = require('../drops.js');
 
-// Drop.find({ denaItemId: { $eq: null } }).remove().exec();
+function buildDrops(json) {
+    var drops = []
+
+    json.battle.rounds.forEach(function (round) {
+        round.drop_item_list.forEach(function (drop) {
+            drops.push(getDropInfo(drop));
+        });
+
+        round.enemy.forEach(function (enemy) {
+            enemy.children.forEach(function (child) {
+                child.drop_item_list.forEach(function (drop) {
+                    drops.push(getDropInfo(drop));
+                });
+            });
+        });
+    });
+
+    return drops;
+}
 
 const schema = new mongoose.Schema({
   email: String,
@@ -212,19 +230,7 @@ schema.methods.checkForDrops = function () {
         return;
       }
 
-      json.battle.rounds.forEach(function (round) {
-        round.drop_item_list.forEach(function (drop) {
-          drops.push(getDropInfo(drop));
-        });
-
-        round.enemy.forEach(function (enemy) {
-          enemy.children.forEach(function (child) {
-            child.drop_item_list.forEach(function (drop) {
-              drops.push(getDropInfo(drop));
-            });
-          });
-        });
-      });
+      drops = buildDrops(json);
 
 
       Battle.findOne({ denaBattleId: json.battle.battle_id })
@@ -244,9 +250,12 @@ schema.methods.checkForDrops = function () {
         .then(function (battle) {
 
           message.notify = !self.inBattle; ////// DON'T KEEPY SENDING ALERTS
+          message.duplicate = self.inBattle;
 
           if(self.inBattle) {
-            return Promise.resolve(null); //// DON'T RECORD THE SAME DROPS AGAIN
+            //// DON'T RECORD THE SAME DROPS AGAIN
+            /// But we still need to keep going to build the drop rate
+            return Promise.resolve(null);
           }
           self.inBattle = true;
 

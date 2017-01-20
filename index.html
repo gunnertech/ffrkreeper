@@ -16,11 +16,8 @@
     </nav>
 
     <div class="container-fluid">
-      <div class="alert alert-danger">
-        <strong>Update:</strong> The app will now tell you when your session id has expired. Please see the instructions for more info.
-      </div>
       <div class="row">
-        <div class="col-sm">
+        <div id="left-side" class="col-sm">
           <p></p>
           <form>
             <div class="form-group">
@@ -38,7 +35,6 @@
           </form>
 
           <a class="btn btn-block btn-primary" id="btn-signin" href="#">Sign In</a>
-          <a class="btn btn-block btn-primary" id="btn-signout" href="#" style="display: none;">Sign Out</a>
 
           <a class="btn btn-block btn-primary" id="btn-instructions" href="#">Show Instructions</a>
 
@@ -103,6 +99,8 @@
           <!-- <small>Sanity Check: <span id='server-time'></span></small> -->
         </div>
         <div class="col-sm">
+          <p></p>
+          <a class="btn btn-block btn-primary" id="btn-signout" href="#" style="display: none;">Sign Out</a>
           <div id="attach-point"></div>
         </div>
       </div>
@@ -130,7 +128,7 @@
     </footer>
     
     <script src="/socket.io/socket.io.js"></script>
-    <script src="js/index.js?version=1.3"></script>
+    <script src="js/index.js?version=1.5"></script>
     
   </body>
 </html>
