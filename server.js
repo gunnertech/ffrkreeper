@@ -2,14 +2,16 @@
 
 try {
   require('dotenv').config();
-} catch (e) {
+} catch(e) {
   // ignore it
 }
 
+const PORT = process.env.PORT || 3000;
 const express = require('express');
 const socketIO = require('socket.io');
 const path = require('path');
 const bodyParser = require('body-parser');
+const fs = require('fs');
 const http = require('http');
 const request = require('request');
 const util = require('util');
@@ -18,21 +20,19 @@ const mongoose = require('mongoose');
 const Promise = require('bluebird');
 const lodash = require('lodash');
 
+const hbs = require('hbs');
+const handlebars = require('handlebars');
+const engine = hbs.create(handlebars.create());
+
+hbs.registerPartials(__dirname + '/views/partials');
+
 require('./config/mongoose.js').setup(mongoose);
 
 const automation = require('./automation.js');
+// automation.begin();
 const User = require('./models/user.js');
 const Drop = require('./models/drop.js');
 const Battle = require('./models/battle.js');
-
-// automation.begin();
-
-const PORT = process.env.PORT || 3000;
-const INDEX = path.join(__dirname, 'index.html');
-
-const CURRENT_PATH = '/dff/event/challenge/90/get_battle_init_data';
-//const CURRENT_PATH = '/dff/event/suppress/2025/single/get_battle_init_data';
-
 
 const server = express()
   .use(bodyParser.json())
@@ -40,10 +40,14 @@ const server = express()
   .use(express.static(path.join(__dirname, 'public'), {
     maxAge: process.env.NODE_ENV === 'production' ? 86400000 : 0
   }))
-  .get('/', function (req, res) {
-    res.sendFile(INDEX);
+	.set('views', path.join(__dirname, 'views'))
+	.set('view options', { layout: 'layout' })
+	.engine('hbs', engine.__express)
+	.set('view engine', 'hbs')
+  .get('/', function(req, res) {
+    res.render('index');
   })
-  .post('/tick', function (req, res) {
+  .post('/tick', function(req, res) {
     res.send('GET request to the homepage');
   })
   .listen(PORT, () => console.log(`Listening on ${PORT}`));
@@ -52,7 +56,6 @@ const io = socketIO(server);
 
 io.on('connection', (socket) => {
   console.log('Client connected');
-
 
   socket.on('disconnect', () => {
     console.log('Client disconnected');
@@ -74,9 +77,9 @@ io.on('connection', (socket) => {
       query['phone'] = User.normalizePhone(data.phone);
     }
 
-    User.findOne({ $or: [ query ] })
+    User.findOne({ $or: [query] })
       .then((user) => {
-        if (user) {
+        if(user) {
           return Promise.resolve(user);
         } else {
           return User.create({ 'dena.sessionId': data.sessionId });
@@ -110,7 +113,7 @@ io.on('connection', (socket) => {
       query['phone'] = User.normalizePhone(data.phone);
     }
 
-    User.findOne({ $or: [ query ] })
+    User.findOne({ $or: [query] })
       .then((user) => {
         if(!user) {
           return Promise.resolve(null);

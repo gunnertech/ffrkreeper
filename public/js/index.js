@@ -1,7 +1,7 @@
-(function () {
+(function() {
   var socket = io();
   var LOOP_FREQUENCY = 6000;
-  var statusTimer = setTimeout(function () {
+  var statusTimer = setTimeout(function() {
     $('.badge-default').hide();
     $('.badge-success').hide();
     $('.badge-danger').show();
@@ -9,7 +9,7 @@
 
   function createCookie(name, value, days) {
     var expires = "";
-    if (days) {
+    if(days) {
       var date = new Date();
       date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
       expires = "; expires=" + date.toUTCString();
@@ -20,21 +20,21 @@
   function readCookie(name) {
     var nameEQ = name + "=";
     var ca = document.cookie.split(';');
-    for (var i = 0; i < ca.length; i++) {
+    for(var i = 0; i < ca.length; i++) {
       var c = ca[i];
-      while (c.charAt(0) == ' ') c = c.substring(1, c.length);
-      if (c.indexOf(nameEQ) == 0) return c.substring(nameEQ.length, c.length);
+      while(c.charAt(0) == ' ') c = c.substring(1, c.length);
+      if(c.indexOf(nameEQ) == 0) return c.substring(nameEQ.length, c.length);
     }
     return null;
   }
 
   function eraseCookie(name) {
-    createCookie(name,"",-1);
+    createCookie(name, "", -1);
   }
 
   var messages = [];
   function renderDrops(message) {
-    var showDrop = (messages.length === 0 || (message.name && message.name != messages[messages.length-1].name) || (!message.name && messages[messages.length-1].name));
+    var showDrop = (messages.length === 0 || (message.name && message.name != messages[messages.length - 1].name) || (!message.name && messages[messages.length - 1].name));
     var html = '<table class="table table-striped"><thead class="thead-inverse"><tr><th colspan="2">Your Loot</th></tr></thead><tbody>';
 
     if(!showDrop) {
@@ -47,15 +47,14 @@
       signout();
     }
 
-    if (message.message) {
+    if(message.message) {
       html += '<tr class="table-danger"><td colspan="2"><strong>' + message.message + '</td></tr>';
-    } else if (message.drops == 0) {
+    } else if(message.drops == 0) {
       html += '<tr class="table-warning"><td colspan="2"><strong>Nope!</strong> There ain\'t nothing dropping.</td></tr>';
     } else {
-      
       $('#left-side').hide() //hide instructions if we have at least one successful drop
 
-      $.each(message.drops, function (i, drop) {
+      $.each(message.drops, function(i, drop) {
         var rarity = parseInt(drop.rarity);
 
         html += '<tr class="table-' + (rarity > 4 ? 'success' : 'info') + '">';
@@ -64,10 +63,10 @@
         html += '</td>';
         html += '<td>';
         html += (drop.name + ' x' + drop.num);
-        if (drop.round) {
+        if(drop.round) {
           html += ' - Round ' + drop.round;
         }
-        if (drop.dropRate) {
+        if(drop.dropRate) {
           // We have to increase the server value by one, because the client actually tells the server if it was a new drop
           drop.dropRate.hits++;
           drop.dropRate.total++;
@@ -105,13 +104,11 @@
       phone: phone,
       email: email,
       alertLevel: alertLevel
-    }, function (user) {
-      socket.on("/drops/" + user.dena.sessionId, function (message) {
+    }, function(user) {
+      socket.on("/drops/" + user.dena.sessionId, function(message) {
         $('#attach-point').prepend(renderDrops(message));
-      });  
+      });
     });
-
-    
   }
 
   function signout() {
@@ -133,7 +130,7 @@
       sessionId: sessionId,
       phone: phone,
       email: email
-    }, function (data) {
+    }, function(data) {
       console.log("Signed Out!");
     });
   }
@@ -151,7 +148,7 @@
     signin();
   }
 
-  $('#btn-instructions').click(function (event) {
+  $('#btn-instructions').click(function(event) {
     event.preventDefault();
     $('#instructions').toggle();
   });
@@ -159,9 +156,9 @@
   $("#btn-signin").click(signin);
   $("#btn-signout").click(signout);
 
-  socket.on('time', function (timeString) {
+  socket.on('time', function(timeString) {
     clearTimeout(statusTimer);
-    statusTimer = setTimeout(function () {
+    statusTimer = setTimeout(function() {
       $('.badge-default').hide();
       $('.badge-success').hide();
       $('.badge-danger').show();
