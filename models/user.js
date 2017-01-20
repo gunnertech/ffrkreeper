@@ -104,7 +104,7 @@ schema.statics.doDropCheck = (io) => {
               message.drops.forEach((drop) => {
                 const userAlertLevel = user.alertLevel || 1000; /// set it to a high number that rarity won't reach
 
-                if(drop.rarity && parseInt(drop.rarity) > userAlertLevel) {
+                if(drop.rarity && parseInt(drop.rarity) >= userAlertLevel) {
                   notificationMessage = ` ${notificationMessage}${drop.name} x${drop.num}`;
                 }
               });
