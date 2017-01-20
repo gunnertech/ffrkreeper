@@ -9,6 +9,10 @@
                     {{#each itemsFound}}
                     <li class="list-group-item"><img src='{{dropImg}}' />{{dropName}} - {{{dropRate}}}</li>
                     {{/each}}
+
+                    {{#unless itemsFound}}
+                    <li class="list-group-item"><img src='https://placeholdit.imgix.net/~text?txtsize=50&txt=%3F&w=112&h=112&txttrack=0' />No drops recorded for this battle</li>
+                    {{/unless}}
                 </ul>
 
                 {{/each}}
