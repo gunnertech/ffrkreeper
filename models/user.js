@@ -40,22 +40,37 @@ const schema = new mongoose.Schema({
     type: Boolean,
     default: true
   },
+  alertLevel: { 
+    type: Number, 
+    min: 0,
+    max: 6,
+    default: 0
+  },
   drops: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Drop' }]
 });
 
 schema.pre('save', function (next) {
-  if (this.phone) {
-    ///Strip out any non numeric characters
-    this.phone = this.phone.toString().replace(/\D/g, '');
+  this.phone = mongoose.model('User', schema).normalizePhone(this.phone);
 
-    if (this.phone.length >= 11 && this.phone.indexOf('+') == -1) {
-      this.phone = `+${this.phone}`;
-    } else if (this.phone.length < 11) {
-      this.phone = `+1${this.phone}`; //ASSUME IT'S A US NUMBER
-    }
-  }
   next();
 });
+
+schema.statics.normalizePhone = (phone) => {
+  if (phone) {
+    ///Strip out any non numeric characters
+    phone = phone.toString().replace(/\D/g, '');
+
+    if (phone.length >= 11 && phone.indexOf('+') == -1) {
+      phone = `+${phone}`;
+    } else if (phone.length < 11) {
+      phone = `+1${phone}`; //ASSUME IT'S A US NUMBER
+    }
+
+    
+  }
+
+  return phone;
+}
 
 schema.statics.doDropCheck = (io) => {
   return mongoose.model('User', schema).find({ 'dena.sessionId': { $ne: null }, hasValidSessionId: true })
@@ -64,37 +79,47 @@ schema.statics.doDropCheck = (io) => {
         return user.checkForDrops()
           .then((message) => {
             io.emit(`/drops/${user.dena.sessionId}`, message); /// Send it to the browser
+            
+            if(message.notify) {
+              var notificationMessage = "";
 
-            message.drops.forEach((drop) => {
-              let message = `Your drop: ${drop.name} x${drop.num}`;
-              if (user.email) {
-                user.sendEmail(message);
-              };
+              message.drops.forEach((drop) => {
+                const userAlertLevel = user.alertLevel || 1000; /// set it to a high number that rarity won't reach
 
-              if (user.phone) {
-                user.sendSms(message);
-              }
-            });
-          })
-          .catch((error) => {
-            if (error.notify) {
-              io.emit(`/drops/${user.dena.sessionId}`, error); /// Send it to the browser
-
-              if (error.name == "Session Error") { // tell the user their session died
-                if (user.email) {
-                  user.sendEmail(error.message)
+                if(drop.rarity && parseInt(drop.rarity) > userAlertLevel) {
+                  notificationMessage = ` ${notificationMessage}${drop.name} x${drop.num}`;
                 }
+              });
+
+              if(notificationMessage) {
+                notificationMessage = `Your drops: ${notificationMessage}`;
+
+                if (user.email) {
+                  user.sendEmail(message);
+                };
 
                 if (user.phone) {
-                  user.sendSms(error.message)
+                  user.sendSms(message);
                 }
+              }
+            }
+          })
+          .catch((error) => {
+            io.emit(`/drops/${user.dena.sessionId}`, error); /// Send it to the browser
+            if (error.notify) {
+              if (user.email) {
+                user.sendEmail(error.message)
+              }
+
+              if (user.phone) {
+                user.sendSms(error.message)
               }
             }
           })
       }).return(users);
     })
     .then((users) => {
-      console.log(`notifications sent to ${users.length} users!`)
+      console.log(`Polled for ${users.length} users!`)
     });
 }
 
@@ -153,10 +178,11 @@ schema.methods.checkForDrops = function () {
     }
   };
 
+
   return new Promise((resolve, reject) => {
-    // var req = http.get(options, function (resp) {
     request.get(options, function (e, r, data) {
-      if (e) return reject(e)
+      if (e) return reject(e);
+
       var message = {};
       var json = {};
       var drops = [];
@@ -165,7 +191,6 @@ schema.methods.checkForDrops = function () {
         json = JSON.parse(data);
       } catch (e) { }
 
-      // self.inBattle = false;
 
       if (data && data.length === 0) {
         const proxiedError = new Error();
@@ -180,82 +205,78 @@ schema.methods.checkForDrops = function () {
         const proxiedError = new Error();
         proxiedError.message = "Not in Battle: Go join a battle to see your drops!";
         proxiedError.name = 'Out of Battle Error';
-        proxiedError.notify = self.inBattle; /// we don't want to keep notifying them.
+        proxiedError.notify = false; /// Not important enough to send an alert
 
         self.inBattle = false;
         self.save().then(() => reject(proxiedError));
         return;
-      } else if (self.inBattle) {
-        const proxiedError = new Error();
-        proxiedError.message = "Already Recorded this drop";
-        proxiedError.name = 'Duplicate Error';
-        proxiedError.notify = true;
-
-        reject(proxiedError);
-        return;
       }
 
-      self.inBattle = true;
-      self.save()
-        .then(function () {
-          json.battle.rounds.forEach(function (round) {
-            round.drop_item_list.forEach(function (drop) {
+      json.battle.rounds.forEach(function (round) {
+        round.drop_item_list.forEach(function (drop) {
+          drops.push(getDropInfo(drop));
+        });
+
+        round.enemy.forEach(function (enemy) {
+          enemy.children.forEach(function (child) {
+            child.drop_item_list.forEach(function (drop) {
               drops.push(getDropInfo(drop));
             });
-
-            round.enemy.forEach(function (enemy) {
-              enemy.children.forEach(function (child) {
-                child.drop_item_list.forEach(function (drop) {
-                  drops.push(getDropInfo(drop));
-                });
-              });
-            });
           });
+        });
+      });
 
-          Battle.findOne({ denaBattleId: json.battle.battle_id })
-            .then(function (battle) {
-              if (battle) {
-                return Promise.resolve(battle);
-              } else {
-                return Battle.create({
-                  denaBattleId: json.battle.battle_id,
-                  denaDungeonId: json.battle.dungeon.dungeon_id,
-                  eventId: json.battle.event.event_id,
-                  eventType: json.battle.event.event_type,
-                  dropRates: {}
-                });
-              }
-            })
-            .then(function (battle) {
-              return Promise.each(drops, (d) => {
-                if (d.item_id) {
-                  return Drop.create({
-                    battle: battle._id,
-                    user: self._id,
-                    denaItemId: d.item_id,
-                    qty: d.num,
-                    rarity: d.rarity
-                  })
-                }
 
-                return Promise.resolve(null);
-              });
-            })
-            .then(() => {
-              return Battle.findOne({ denaBattleId: json.battle.battle_id }); /// the battle will now have the drops, let's get the drop rate;
-            })
-            .then((battle) => {
-              message.notify = false;
-
-              drops.forEach((d) => {
-                if (d.item_id && battle.dropRates && battle.dropRates[d.item_id]) {
-                  d.dropRate = battle.dropRates[d.item_id];
-                  message.notify = true;
-                }
-              });
-              message.drops = drops;
-              resolve(message);
+      Battle.findOne({ denaBattleId: json.battle.battle_id })
+        .then(function (battle) {
+          if (battle) {
+            return Promise.resolve(battle);
+          } else {
+            return Battle.create({
+              denaBattleId: json.battle.battle_id,
+              denaDungeonId: json.battle.dungeon.dungeon_id,
+              eventId: json.battle.event.event_id,
+              eventType: json.battle.event.event_type,
+              dropRates: {}
             });
+          }
+        })
+        .then(function (battle) {
+
+          message.notify = !self.inBattle; ////// DON'T KEEPY SENDING ALERTS
+
+          if(self.inBattle) {
+            return Promise.resolve(null); //// DON'T RECORD THE SAME DROPS AGAIN
+          }
+          self.inBattle = true;
+
+          return self.save().return(
+            Promise.each(drops, (d) => {
+              if (d.item_id) {
+                return Drop.create({
+                  battle: battle._id,
+                  user: self._id,
+                  denaItemId: d.item_id,
+                  qty: d.num,
+                  rarity: d.rarity
+                })
+              }
+
+              return Promise.resolve(null);
+            })
+          );
+        })
+        .then(() => {
+          return Battle.findOne({ denaBattleId: json.battle.battle_id }); /// the battle will now have the drops, let's get the drop rate;
+        })
+        .then((battle) => {
+          drops.forEach((d) => {
+            if (d.item_id && battle.dropRates && battle.dropRates[d.item_id]) {
+              d.dropRate = battle.dropRates[d.item_id];
+            }
+          });
+          message.drops = drops;
+          resolve(message);
         });
     });
   });

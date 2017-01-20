@@ -28,7 +28,27 @@
     return null;
   }
 
+  function eraseCookie(name) {
+    createCookie(name,"",-1);
+  }
+
+  var hasLeftBattleSinceLastMessage = true;
+  var lastHtml = "";
+  var messageCount = 0;
   function renderDrops(message) {
+    hasLeftBattleSinceLastMessage = (message.name == "Out of Battle Error");
+
+    /// IF THE USER HASN'T LEFT BATTLE YET, AND THIS ISN'T THE FIRST CHECK
+    if(!hasLeftBattleSinceLastMessage && messageCount > 0) {
+      messageCount = 0;
+      return "";
+    }
+    messageCount++;
+
+    if(message.name == "Session Error") {
+      signout();
+    }
+
     var html = '<table class="table table-striped"><thead class="thead-inverse"><tr><th colspan="2">Your Loot</th></tr></thead><tbody>';
 
     if (message.message) {
@@ -63,27 +83,36 @@
 
     html += '</tbody></table>';
 
+    if(lastHtml == html) {
+      return "";
+    }
+
+    lastHtml = html;
+
     return html;
   }
 
-  function crankItUp() {
+  function signin() {
     $("#btn-signin").hide();
+    $("#btn-signout").show();
     $("form").hide();
 
     var sessionId = $('#session-id').val();
     var phone = $('#phone').val();
     var email = $('#email').val();
+    var alertLevel = $('#alert-level').val();
 
     createCookie('denaSessionId', sessionId, 365);
     createCookie('phone', phone, 365);
     createCookie('email', email, 365);
+    createCookie('alertLevel', alertLevel, 365);
 
     socket.emit('/signin', {
       sessionId: sessionId,
       phone: phone,
       email: email
     }, function (data) {
-      console.log(data);
+      console.log("Signed In!");
     });
 
     /// FAUX ROUTES
@@ -92,16 +121,49 @@
     });
   }
 
+  function signout() {
+    $("#btn-signin").show();
+    $("#btn-signout").hide();
+    $("form").show();
+
+    var sessionId = $('#session-id').val();
+    var phone = $('#phone').val();
+    var email = $('#email').val();
+
+    eraseCookie('denaSessionId');
+    eraseCookie('phone');
+    eraseCookie('email');
+    eraseCookie('alertLevel');
+
+    socket.emit('/signout', {
+      sessionId: sessionId,
+      phone: phone,
+      email: email
+    }, function (data) {
+      console.log("Signed Out!");
+    });
+  }
+
   $('#session-id').val(readCookie('denaSessionId'));
   $('#phone').val(readCookie('phone'));
   $('#email').val(readCookie('email'));
+  $('#alert-level').val(readCookie('alertLevel'));
+
+  if(
+    $('#session-id').val() ||
+    $('#phone').val() ||
+    $('#email').val()
+  ) {
+    signin();
+  }
 
   $('#btn-instructions').click(function (event) {
     event.preventDefault();
     $('#instructions').toggle();
   });
 
-  $("#btn-signin").click(crankItUp);
+  $("#btn-signin").click(signin);
+  $("#btn-signout").click(signout);
 
   socket.on('time', function (timeString) {
     clearTimeout(statusTimer);

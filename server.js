@@ -60,7 +60,21 @@ io.on('connection', (socket) => {
 
   ///FAUX routing
   socket.on('/signin', (data, fn) => {
-    User.findOne({ 'dena.sessionId': data.sessionId })
+    var query = {};
+
+    if(data.sessionId) {
+      query['dena.sessionId'] = data.sessionId;
+    }
+
+    if(data.email) {
+      query['email'] = data.email;
+    }
+
+    if(data.phone) {
+      query['phone'] = User.normalizePhone(data.phone);
+    }
+
+    User.findOne({ $or: [ query ] })
       .then((user) => {
         if (user) {
           return Promise.resolve(user);
@@ -69,8 +83,47 @@ io.on('connection', (socket) => {
         }
       })
       .then((user) => {
-        return User.update({ 'dena.sessionId': data.sessionId }, { phone: data.phone, email: data.email });
+        if(data.phone) { user.phone = data.phone; }
+        if(user.email) { user.email = data.email; }
+        if(user.sessionId) { user.sessionId = data.sessionId; }
+        
+        user.alertLevel = data.alertLevel || 0;
+
+        return user.save().return(user);
       })
+      .then((user) => {
+        fn(user);
+      });
+  });
+
+  socket.on('/signout', (data, fn) => {
+    var query = {};
+
+    if(data.sessionId) {
+      query['dena.sessionId'] = data.sessionId;
+    }
+
+    if(data.email) {
+      query['email'] = data.email;
+    }
+
+    if(data.phone) {
+      query['phone'] = User.normalizePhone(data.phone);
+    }
+
+    User.findOne({ $or: [ query ] })
+      .then((user) => {
+        if(!user) {
+          return Promise.resolve(null);
+        }
+
+        user.alertLevel = 0;
+
+        return user.save().return(user);
+      })
+      .then((user) => {
+        fn(user);
+      });
   });
 
   // socket.on('/battle', (data, fn) => { });
@@ -80,4 +133,4 @@ io.on('connection', (socket) => {
 });
 
 setInterval(() => io.emit('time', new Date().toTimeString()), 1000);
-setInterval(() => { User.schema.statics.doDropCheck(io) }, 3000);
+setInterval(() => { User.schema.statics.doDropCheck(io) }, 6000);
