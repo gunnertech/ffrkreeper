@@ -232,6 +232,9 @@ schema.methods.checkForDrops = function () {
         return;
       }
 
+      //// COMMENT THIS IN TO SEE THE FULL JSON FOR THE BATTLE
+      // console.log(util.inspect(json, false, null));
+
       drops = buildDrops(json);
 
 

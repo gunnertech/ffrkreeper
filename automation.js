@@ -1,5 +1,16 @@
 'use strict';
 
+
+
+/************ NOTES *************
+
+series = i.e. FF IX, XIII, etc
+world = basically an event banner - ie "The Green Hunt"
+dungeons = a difficulty level within a world - ie "The Green Gunt - Heroic"
+
+
+********************************/
+
 try {
   require('dotenv').config()
 } catch(e) {
@@ -15,6 +26,11 @@ const util = require('util');
 
 function getSessionId(userId, accessToken) {
   return new Promise(function(resolve, reject) {
+
+    if(process.env.DENA_SESSION_ID) {
+      resolve(process.env.DENA_SESSION_ID);
+      return;
+    }
 
     var post_data = querystring.stringify({
       userId: userId,
@@ -65,12 +81,80 @@ function getBrowserData(sessionId) {
       res.on('data', (chunk) => { data += chunk; });
 
       res.on("end", () => {
-        var csrfToken = data.match(/FFEnv\.csrfToken="([^"]+)";/)[1];
+        var matchData = data.match(/FFEnv\.csrfToken="([^"]+)";/);
+
+        if(!matchData) {
+          reject({
+            message: "invalid session id",
+            name: "Authorization Error"
+          });
+
+          return;
+        }
+
+        var csrfToken = matchData[1];
         var beginBattleToken = data.match(/"begin_battle_token":"([^"]+)"/)[1];
         resolve({
           csrfToken: csrfToken,
           beginBattleToken: beginBattleToken
         });
+      });
+
+    });
+
+    req.end();
+  });
+}
+
+function scrapeSplashScreen() {
+  return new Promise(function(resolve, reject) {
+
+    var req = http.request({
+        host: 'ffrk.denagames.com',
+        port: 80,
+        path: "/dff/splash",
+        method: 'GET'
+    }, function(res) {
+      res.setEncoding('utf8');
+
+      var data = "";
+
+      res.on('data', (chunk) => { data += chunk; });
+
+      res.on("end", () => {
+        resolve(data);
+      });
+
+    });
+
+    req.end();
+  });
+}
+
+function scrapeIndexScreen(sessionId) {
+  sessionId = sessionId || _g.sessionId;
+
+  return new Promise(function(resolve, reject) {
+    console.log("~~~~~~~LOOOK~~~~~~~~")
+    console.log(sessionId);
+
+    var req = http.request({
+        host: 'ffrk.denagames.com',
+        port: 80,
+        path: "/dff/",
+        method: 'GET',
+        headers: {
+          'Cookie': 'http_session_sid='+sessionId
+        }
+    }, function(res) {
+      res.setEncoding('utf8');
+
+      var data = "";
+
+      res.on('data', (chunk) => { data += chunk; });
+
+      res.on("end", () => {
+        resolve(data);
       });
 
     });
@@ -148,9 +232,19 @@ function doSimplePost(path, json, userSessionKey, sessionId, csrfToken) {
   });
 }
 
-function doSimpleGet(path, userSessionKey, sessionId) {
-  sessionId = sessionId || _g.sessionId;
-  userSessionKey = userSessionKey || _g.userSessionKey;
+function doSimpleGet(path, options) {
+  options = options || {}
+  var sessionId = options.sessionId || _g.sessionId;
+  var userSessionKey = options.userSessionKey || _g.userSessionKey;
+
+  var headers =  {
+    'Content-Type': 'application/json',
+    'Cookie': 'http_session_sid='+sessionId
+  }
+
+  if(userSessionKey) {
+    headers['User-Session'] = userSessionKey;
+  }
 
   return new Promise(function(resolve, reject) {
     var req = http.request({
@@ -158,11 +252,7 @@ function doSimpleGet(path, userSessionKey, sessionId) {
         port: 80,
         path: path,
         method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'User-Session': userSessionKey,
-          'Cookie': 'http_session_sid='+sessionId
-        }
+        headers: headers
     }, function(res) {
       var data = "";
 
@@ -190,10 +280,12 @@ function doBeginBattle(challengeId, battleId) {
   })
 }
 
+//// GET ANNOUNCMENTS SEEN ON HOME SCREEN WHEN YOU LOGIN
 function getRootData() {
   return doSimpleGet("/dff/get_root_data");
 }
 
+/// FROM WHAT I CAN TELL THIS ONLY SHOWS INFO ABOUT THE CURRENT BATTLE YOU'RE IN. A BIT MORE DETAILED THOUGH.
 function getWorldBattles() {
   return doSimpleGet("/dff/world/battles");
 }
@@ -222,6 +314,7 @@ function getBattleInitDataForSuppressId(suppressId) {
   return doSimpleGet("/dff/event/suppress/"+suppressId+"/single/get_battle_init_data");  
 }
 
+/// ALL THE INFORMATION ON THE DAILIES AND WHAT'S IN THE GYSAHL GREEN STORE
 function getWdayDataForEvent(id) {
   return doSimpleGet("/dff/event/wday/"+id+"/get_data");  
 }
@@ -244,9 +337,11 @@ function begin(userId, accessToken) {
     (accessToken || process.env.DENA_ACCESS_TOKEN)
   )
   .then((sessionId) => {
+    console.log(sessionId);
     return [sessionId, getBrowserData(sessionId)];
   })
   .spread((sessionId, browserData) => {
+    console.log(browserData);
     return [sessionId, browserData, getUserSessionKey(sessionId, browserData.csrfToken)];
   })
   .spread((sessionId, browserData, userSessionKey) => {
@@ -257,7 +352,10 @@ function begin(userId, accessToken) {
 
     return [
       //getBattleInitDataForSuppressId(2028),
-      getBattleInitDataForEventId(92),
+      // getBattleInitDataForEventId(92),
+      // getWdayDataForEvent(518)
+      // scrapeSplashScreen()
+      scrapeIndexScreen()
       // getRootData(),
       // getFriendFollowModalInfo(),
       // getChallengeData(92),
@@ -272,7 +370,7 @@ function begin(userId, accessToken) {
     ];
   })
   .spread(function() {
-    console.log(util.inspect(arguments[0].battle.battle_id, false, null));
+    console.log(util.inspect(arguments[0], false, null));
   })
   // .spread((battleData) => {
   //   console.log("~~~~~~ SUPPORTER ~~~~~~~~")

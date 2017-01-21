@@ -29,7 +29,7 @@ hbs.registerPartials(__dirname + '/views/partials');
 require('./config/mongoose.js').setup(mongoose);
 
 const automation = require('./automation.js');
-// automation.begin();
+
 const User = require('./models/user.js');
 const Drop = require('./models/drop.js');
 const Battle = require('./models/battle.js');
@@ -64,6 +64,8 @@ const server = express()
   .listen(PORT, () => console.log(`Listening on ${PORT}`));
 
 const io = socketIO(server);
+
+automation.begin();
 
 io.on('connection', (socket) => {
   console.log('Client connected');
