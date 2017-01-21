@@ -51,9 +51,12 @@ const server = express()
 		})
   })
 	.get('/dungeon/:dungeonId/battles', function(req, res) {
-		Battle.getBattleList(req.params.dungeonId, function(err, data) {
-			res.render('battleList', { title: 'Battle List', battles: data });
-		})
+		Battle.getBattleList(req.params.dungeonId).then((battles) => {
+      return res.render('battleList', { title: 'Battle List', battles: battles });
+    }).catch((err) => {
+      console.log(err);
+      return res.status(500).send(err);
+    })
   })
   .get('/', function(req, res) {
     res.render('index', { title: 'Home' });
@@ -153,6 +156,40 @@ io.on('connection', (socket) => {
 //   console.log(lodash.map(users,'phone'))
 //   console.log(lodash.map(users,'email'))
 // })
+
+//// Fix battle drop rates
+Battle.find().populate('drops')
+.then((battles) => {
+  // console.log(battles)
+  return Promise.each(battles, (battle) => {
+    var itemIds = [];
+
+    for (var i in battle.dropRates) {
+      if (i) {
+        itemIds.push(i)
+      }
+    }
+
+    itemIds.forEach((i) => {
+      battle.dropRates[i].rate = ((battle.dropRates[i].hits * 1.0) / (battle.dropRates[i].total * 1.0) || 0.0);
+    })
+
+    return Battle.update({_id: battle._id}, {dropRates: battle.dropRates})
+    .then(() => {
+      return Battle.find({denaBattleId: "1090930135"}).then((battles) => { console.log(battles[0].dropRates); return battles;})
+    });
+
+  });
+});
+
+// Drop.find()
+// .then((drops) => {
+//   console.log(drops.length);
+//   return Promise.each(drops, (drop) => {
+//     return drop.save();
+//   })
+// })
+
 
 setInterval(() => io.emit('time', new Date().toTimeString()), 1000);
 setInterval(() => { User.schema.statics.doDropCheck(io) }, 6000);

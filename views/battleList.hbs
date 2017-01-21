@@ -3,16 +3,12 @@
         <div id="left-side" class="col-sm">
             <ul class="list-group">
                 {{#each battles}}
-                <li class="list-group-item">Battle: {{_id}} {{dungeonName}}</li>
+                <li class="list-group-item">Battle: {{denaBattleId}}</li>
 
                 <ul class="list-group">
-                    {{#each itemsFound}}
+                    {{#each uniqueDrops}}
 
-                    <!--dropRate: Math.round(info.rate * 100),
-                    hits: info.hits,
-                    total: info.total-->
-
-                    <li class="list-group-item"><img src='{{dropImg}}' />{{dropName}} - Drop Rate: {{dropRate}}% - {{hits}} out of {{total}} drops for this battle have been for this item</li>
+                    <li class="list-group-item"><img src='{{imgUrl}}' />{{name}} - Drop Rate: {{rate}}% - {{hits}} out of {{total}} drops for this battle have been for this item</li>
                     {{/each}}
 
                     {{#unless itemsFound}}

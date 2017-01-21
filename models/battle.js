@@ -71,43 +71,26 @@ schema.statics.getDungeonList = function(cb) {
 	});
 }
 
-schema.statics.getBattleList = function(denaDungeonId, cb) {
-	mongoose.model('Battle', schema)
-		.aggregate([
-			{ '$sort': { 'denaBattleId': -1 } },
-			{
-				$match: { 'denaDungeonId': denaDungeonId }
-			},
-			{
-				$group: {
-					_id: '$denaBattleId',
-					dungeonName: { $first: '$dungeonName' },
-					battleName: { $first: '$battleName' },
-					eventType: { $first: '$eventType' },
-					dropRates: { $push: '$dropRates' }
-				}
-			}
-		], function(err, result) {
-			_.each(result, function(battle) {
-				battle.itemsFound = []
+schema.statics.getBattleList = function(denaDungeonId) {
+  return mongoose.model('Battle').find({ denaDungeonId: denaDungeonId }).sort([['denaDungeonId', 'descending']]).populate("drops")
+  .then((battles) => {
+    battles.forEach((battle) => {
+      battle.uniqueDrops = _.uniqBy(battle.drops, (drop) => { return drop.denaItemId; });
 
-				_.each(battle.dropRates, function(drop) {
-					_.each(drop, function(info, itemId) {
-						battle.itemsFound.push({
-							itemId: itemId,
-							dropImg: GetDropImg(itemId),
-							dropName: dropData[itemId],
-							dropRate: Math.round(info.rate * 100),
-							hits: info.hits,
-							total: info.total
-							//dropRate: 'Drop Rate: ' + Math.round(info.rate * 100) + '% - ' + (info.hits) + ' out of ' + (info.total) + ' drops for this battle have been for this item'
-						})
-					})
-				})
-			})
+      battle.uniqueDrops.forEach((drop) => {
+        drop.imgUrl = GetDropImg(drop.denaItemId);
+        drop.name = dropData[drop.denaItemId];
+        drop.hits = battle.dropRates[drop.denaItemId].hits;
+        drop.total = battle.dropRates[drop.denaItemId].total;
+        drop.rate = battle.dropRates[drop.denaItemId].rate ? Math.round(battle.dropRates[drop.denaItemId].rate * 100) : 0;
+      });
 
-			cb(err, result)
-		});
+      battle.itemsFound = battle.uniqueDrops.length > 0;
+    });
+
+    return battles;
+
+  });
 }
 
 module.exports = mongoose.model('Battle', schema);

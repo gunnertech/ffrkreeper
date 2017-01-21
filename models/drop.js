@@ -14,14 +14,14 @@ const schema = new mongoose.Schema({
 schema.pre('save', function (next) {
   Battle
     .update({ _id: this.battle }, { $addToSet: { drops: this._id } })
-    .then(((battles) => { next(); }))
+    .then(((battles) => { next(); return battles; }))
     .error(((err) => next(err)));
 });
 
 schema.pre('save', function (next) {
   mongoose.model('User')
     .update({ _id: this.user }, { $addToSet: { drops: this._id } })
-    .then(((users) => { next(); }))
+    .then(((users) => { next(); return users; }))
     .error(((err) => next(err)));
 });
 
@@ -33,6 +33,8 @@ schema.post('save', function (drop) {
     })
     .spread(function (drops, battle) {
       ///TODO: totally not transactionally safe
+      if(!battle) { console.log("no battle for drop?"); return Promise.resolve([]); }
+
       battle.dropRates = battle.dropRates || {};
       battle.dropRates[drop.denaItemId] = battle.dropRates[drop.denaItemId] || {};
       for (var i in battle.dropRates) {
@@ -45,7 +47,9 @@ schema.post('save', function (drop) {
 
       }
 
-      battle.dropRates[drop.denaItemId].rate = (battle.dropRates[drop.denaItemId].hits * 1.0) / (battle.dropRates[drop.denaItemId].total * 1.0);
+      battle.dropRates[drop.denaItemId].rate = (battle.dropRates[drop.denaItemId].hits * 1.0) / (battle.dropRates[drop.denaItemId].total * 1.0) || 0.0;
+
+      console.log(battle.dropRates[drop.denaItemId].rate);
 
       return Battle.update({ _id: drop.battle }, { dropRates: battle.dropRates });
     });

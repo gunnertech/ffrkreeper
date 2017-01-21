@@ -259,7 +259,7 @@ schema.methods.checkForDrops = function () {
           battle.eventType = json.battle.event.event_type;
           battle.dropRates = battle.dropRates || {};
 
-          return battle.save().return(battle);
+          return Battle.update({ _id: battle._id }, battle).then((battle) => { return battle; });
         })
         .then(function (battle) {
 
