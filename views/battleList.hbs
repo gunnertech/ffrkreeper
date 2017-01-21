@@ -7,7 +7,12 @@
 
                 <ul class="list-group">
                     {{#each itemsFound}}
-                    <li class="list-group-item"><img src='{{dropImg}}' />{{dropName}} - {{{dropRate}}}</li>
+
+                    <!--dropRate: Math.round(info.rate * 100),
+                    hits: info.hits,
+                    total: info.total-->
+
+                    <li class="list-group-item"><img src='{{dropImg}}' />{{dropName}} - Drop Rate: {{dropRate}}% - {{hits}} out of {{total}} drops for this battle have been for this item</li>
                     {{/each}}
 
                     {{#unless itemsFound}}

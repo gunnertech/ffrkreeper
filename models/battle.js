@@ -74,6 +74,7 @@ schema.statics.getDungeonList = function(cb) {
 schema.statics.getBattleList = function(denaDungeonId, cb) {
 	mongoose.model('Battle', schema)
 		.aggregate([
+			{ '$sort': { 'denaBattleId': -1 } },
 			{
 				$match: { 'denaDungeonId': denaDungeonId }
 			},
@@ -96,7 +97,10 @@ schema.statics.getBattleList = function(denaDungeonId, cb) {
 							itemId: itemId,
 							dropImg: GetDropImg(itemId),
 							dropName: dropData[itemId],
-							dropRate: 'Drop Rate: ' + Math.round(info.rate * 100) + '% - ' + (info.hits) + ' out of ' + (info.total) + ' drops for this battle have been for this item'
+							dropRate: Math.round(info.rate * 100),
+							hits: info.hits,
+							total: info.total
+							//dropRate: 'Drop Rate: ' + Math.round(info.rate * 100) + '% - ' + (info.hits) + ' out of ' + (info.total) + ' drops for this battle have been for this item'
 						})
 					})
 				})
