@@ -65,7 +65,7 @@ const server = express()
 
 const io = socketIO(server);
 
-automation.begin();
+// automation.begin();
 
 io.on('connection', (socket) => {
   console.log('Client connected');
