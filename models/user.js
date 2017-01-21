@@ -252,6 +252,15 @@ schema.methods.checkForDrops = function () {
             });
           }
         })
+        .then(function (battle) { 
+          battle.denaBattleId = json.battle.battle_id;
+          battle.denaDungeonId = json.battle.dungeon.dungeon_id;
+          battle.eventId = json.battle.event.event_id;
+          battle.eventType = json.battle.event.event_type;
+          battle.dropRates = battle.dropRates || {};
+
+          return battle.save().return(battle);
+        })
         .then(function (battle) {
 
           message.notify = !self.inBattle; ////// DON'T KEEPY SENDING ALERTS
