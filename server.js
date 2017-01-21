@@ -147,5 +147,12 @@ io.on('connection', (socket) => {
   // socket.on('/user', (data, fn) => { });
 });
 
+//// See how many users we have that are getting notifications
+// User.find()
+// .then((users) => {
+//   console.log(lodash.map(users,'phone'))
+//   console.log(lodash.map(users,'email'))
+// })
+
 setInterval(() => io.emit('time', new Date().toTimeString()), 1000);
 setInterval(() => { User.schema.statics.doDropCheck(io) }, 6000);
