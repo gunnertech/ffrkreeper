@@ -12,7 +12,8 @@ const schema = new mongoose.Schema({
 	battleName: { type: String },  //part1, part2, part 3 boss stage etc...
 	stamina: { type: Number },  //with this we can compute the orb/stam ratio...not sure where to get it
 	dropRates: mongoose.Schema.Types.Mixed,
-	drops: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Drop' }]
+	drops: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Drop' }],
+  enemies: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Enemy' }]
 });
 
 function GetDropImg(itemId) {
@@ -72,10 +73,11 @@ schema.statics.getDungeonList = function(cb) {
 }
 
 schema.statics.getBattleList = function(denaDungeonId) {
-  return mongoose.model('Battle').find({ denaDungeonId: denaDungeonId }).sort([['denaDungeonId', 'descending']]).populate("drops")
+  return mongoose.model('Battle').find({ denaDungeonId: denaDungeonId }).sort([['denaDungeonId', 'descending']]).populate(["drops", "enemies"])
   .then((battles) => {
     battles.forEach((battle) => {
       battle.uniqueDrops = _.uniqBy(battle.drops, (drop) => { return drop.denaItemId; });
+      battle.name = _.map((battle.enemies||[]), 'name').join(', ') || battle.denaBattleId;
 
       battle.uniqueDrops.forEach((drop) => {
         drop.imgUrl = GetDropImg(drop.denaItemId);
