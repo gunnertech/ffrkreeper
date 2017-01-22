@@ -72,7 +72,7 @@
           drop.dropRate.total++;
           drop.dropRate.rate = (drop.dropRate.hits * 1.0) / (drop.dropRate.total * 1.0);
 
-          html += '<p>Drop Rate: ' + Math.round(drop.dropRate.rate * 100) + '% - ' + (drop.dropRate.hits) + ' out of ' + (drop.dropRate.total) + ' drops for this battle have been for this item.</p>';
+          html += '<p>Drop Rate: ' + Math.round(drop.dropRate.rate * 100) + '% - ' + (drop.dropRate.hits) + ' out of ' + (drop.dropRate.total) + ' drops for <a href="/dungeon/'+drop.denaDungeonId+'/battles">this battle</a> have been for this item.</p>';
         }
         html += '</td>';
         html += '</tr>';

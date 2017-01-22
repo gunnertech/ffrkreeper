@@ -313,6 +313,7 @@ schema.methods.checkForDrops = function () {
       drops.forEach((d) => {
       if (d.item_id && battle.dropRates && battle.dropRates[d.item_id]) {
         d.dropRate = battle.dropRates[d.item_id];
+        d.denaDungeonId = battle.denaDungeonId;
       }
       });
       message.drops = drops;
