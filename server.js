@@ -158,29 +158,29 @@ io.on('connection', (socket) => {
 // })
 
 //// Fix battle drop rates
-Battle.find().populate('drops')
-.then((battles) => {
-  // console.log(battles)
-  return Promise.each(battles, (battle) => {
-    var itemIds = [];
+// Battle.find().populate('drops')
+// .then((battles) => {
+//   // console.log(battles)
+//   return Promise.each(battles, (battle) => {
+//     var itemIds = [];
 
-    for (var i in battle.dropRates) {
-      if (i) {
-        itemIds.push(i)
-      }
-    }
+//     for (var i in battle.dropRates) {
+//       if (i) {
+//         itemIds.push(i)
+//       }
+//     }
 
-    itemIds.forEach((i) => {
-      battle.dropRates[i].rate = ((battle.dropRates[i].hits * 1.0) / (battle.dropRates[i].total * 1.0) || 0.0);
-    })
+//     itemIds.forEach((i) => {
+//       battle.dropRates[i].rate = ((battle.dropRates[i].hits * 1.0) / (battle.dropRates[i].total * 1.0) || 0.0);
+//     })
 
-    return Battle.update({_id: battle._id}, {dropRates: battle.dropRates})
-    .then(() => {
-      return Battle.find({denaBattleId: "1090930135"}).then((battles) => { console.log(battles[0].dropRates); return battles;})
-    });
+//     return Battle.update({_id: battle._id}, {dropRates: battle.dropRates})
+//     .then(() => {
+//       return Battle.find({denaBattleId: "1090930135"}).then((battles) => { console.log(battles[0].dropRates); return battles;})
+//     });
 
-  });
-});
+//   });
+// });
 
 // Drop.find()
 // .then((drops) => {
