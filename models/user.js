@@ -209,7 +209,7 @@ schema.methods.checkForDrops = function () {
 
   var options = {
     url: 'http://ffrk.denagames.com/' + CURRENT_PATH,
-    // proxy: process.env.PROXY_URL,
+    proxy: process.env.PROXY_URL,
     headers: {
       'Content-Type': 'application/json',
       'Cookie': 'http_session_sid=' + this.dena.sessionId
