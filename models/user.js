@@ -300,14 +300,6 @@ schema.methods.checkForDrops = function () {
         return self.save().return(
           Promise.map(drops, (d) => {
             if (d.item_id) {
-              console.log("OK, create it")
-              console.log({
-                battle: battle._id,
-                user: self._id,
-                denaItemId: d.item_id,
-                qty: d.num,
-                rarity: d.rarity
-              })
               return Drop.create({
                 battle: battle._id,
                 user: self._id,
