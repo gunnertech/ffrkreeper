@@ -109,7 +109,7 @@ schema.statics.normalizePhone = (phone) => {
 schema.statics.doDropCheck = (io) => {
   return mongoose.model('User', schema).find({ 'dena.sessionId': { $ne: null }, hasValidSessionId: true })
   .then((users) => {
-    return Promise.each(users, (user) => {
+    return Promise.map(users, (user) => {
       return user.checkForDrops()
       .then((message) => {
         io.emit(`/drops/${user.dena.sessionId}`, message); /// Send it to the browser
@@ -225,7 +225,7 @@ schema.methods.checkForDrops = function () {
       var message = {};
       var json = {};
       var drops = [];
-      console.log(data)
+
       try {
         json = JSON.parse(data);
       } catch (e) { 
