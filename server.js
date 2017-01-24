@@ -48,11 +48,11 @@ const server = express()
 	.engine('hbs', engine.__express)
 	.set('view engine', 'hbs')
 
-	.get('/dungeons', function(req, res) {
-		Battle.getDungeonList(function(err, data) {
-			res.render('dungeonList', { title: 'Dungeon List', dungeons: data });
-		})
-  })
+	// .get('/dungeons', function(req, res) {
+	// 	Battle.getDungeonList(function(err, data) {
+	// 		res.render('dungeonList', { title: 'Dungeon List', dungeons: data });
+	// 	})
+ //  })
   .get('/users', function(req, res) {
     User.index()
     .then((users) => {
@@ -73,8 +73,8 @@ const server = express()
     let nextPage = page+1;
     Image.find().skip(skip).limit(limit).sort('url')
     .then((images) => {
-      res.render('images/index', { title: "FFRK Images", images: images, page: page, nextPage: nextPage, prevPage: prevPage });
-    });
+      return res.render('images/index', { title: "FFRK Images", images: images, page: page, nextPage: nextPage, prevPage: prevPage });
+    })
   })
   .get('/audio-files', function(req, res) {
     AudioFile.find()
@@ -85,9 +85,6 @@ const server = express()
 	.get('/dungeon/:dungeonId/battles', function(req, res) {
 		Battle.getBattleList(req.params.dungeonId).then((battles) => {
       return res.render('battleList', { title: 'Battle List', battles: battles });
-    }).catch((err) => {
-      console.log(err);
-      return res.status(500).send(err);
     })
   })
   .get('/', function(req, res) {
