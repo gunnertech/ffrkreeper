@@ -343,10 +343,10 @@ schema.methods.checkForDrops = function () {
       //// COMMENT THIS IN TO SEE THE FULL JSON FOR THE BATTLE
       // console.log(util.inspect(json, false, null));
 
-      drops = mongoose.model('User', schema).buildDrops(json);
+      drops = mongoose.model('User').buildDrops(json);
 
 
-      Battle.findOne({ denaBattleId: json.battle.battle_id })
+      Battle.findOne({ denaBattleId: json.battle.battle_id }).select('-drops')
       .then(function (battle) {
         if (battle) {
           return Promise.resolve(battle);
@@ -399,7 +399,7 @@ schema.methods.checkForDrops = function () {
         );
       })
       .then(() => {
-        return Battle.findOne({ denaBattleId: json.battle.battle_id }); /// the battle will now have the drops, let's get the drop rate;
+        return Battle.findOne({ denaBattleId: json.battle.battle_id }).select('-drops'); /// the battle will now have the drops, let's get the drop rate;
       })
       .then((battle) => {
         drops.forEach((d) => {
