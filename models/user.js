@@ -7,7 +7,7 @@ try {
 }
 
 const http = require('http');
-const util = require('util');
+//const util = require('util');
 const twilio = require('twilio')(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
 const mongoose = require('mongoose');
 const Promise = require('bluebird');

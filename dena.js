@@ -35,7 +35,7 @@ const querystring = require('querystring');
 const http = require('http');
 const rp = require('request-promise');
 const Promise = require('bluebird');
-const util = require('util');
+const util = require('util');  
 
 function getSessionId(userId, accessToken, sessionId) {
   return new Promise(function(resolve, reject) {
@@ -482,7 +482,7 @@ function begin(userId, accessToken, sessionId) {
     ];
   })
   .spread(function() {
-    console.log(util.inspect(arguments, false, null));
+   // console.log(util.inspect(arguments, false, null));
   })
   .catch(console.log)
 }
