@@ -66,9 +66,14 @@ const server = express()
     });
   })
   .get('/images', function(req, res) {
-    Image.find()
+    let limit = 100;
+    let page = parseInt(req.query.page || 0);
+    let skip = page * limit;
+    let prevPage = page > 0 ? page - 1 : null;
+    let nextPage = page+1;
+    Image.find().skip(skip).limit(limit)
     .then((images) => {
-      res.render('images/index', { title: "FFRK Images", images: images });
+      res.render('images/index', { title: "FFRK Images", images: images, page: page, nextPage: nextPage, prevPage: prevPage });
     });
   })
   .get('/audio-files', function(req, res) {
