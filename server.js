@@ -12,28 +12,24 @@ const socketIO = require('socket.io');
 const path = require('path');
 const bodyParser = require('body-parser');
 const fs = require('fs');
-const http = require('http');
-const request = require('request');
-const util = require('util');
-const twilio = require('twilio')(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
 const mongoose = require('mongoose');
 const Promise = require('bluebird');
-const lodash = require('lodash');
-
 const hbs = require('hbs');
 const handlebars = require('handlebars');
 const engine = hbs.create(handlebars.create());
 
-hbs.registerPartials(__dirname + '/views/partials');
+//load all template partials
+fs.readdirSync(path.join(__dirname, 'views/partials')).forEach(function(file) {
+  if(~file.indexOf('.hbs')) engine.handlebars.registerPartial(file.replace('.hbs', ''), fs.readFileSync(__dirname + '/views/partials/' + file, 'utf8'));
+})
 
 require('./config/mongoose.js').setup(mongoose);
 
-const dena = require('./dena.js');
-
+//const dena = require('./dena.js');
 const User = require('./models/user.js');
-const Drop = require('./models/drop.js');
+//const Drop = require('./models/drop.js');
 const Battle = require('./models/battle.js');
-const Enemy = require('./models/enemy.js');
+//const Enemy = require('./models/enemy.js');
 const Image = require('./models/image.js');
 const AudioFile = require('./models/audioFile.js');
 
@@ -45,26 +41,32 @@ const server = express()
   }))
 	.set('views', path.join(__dirname, 'views'))
 	.set('view options', { layout: 'layout' })
+
 	.engine('hbs', engine.__express)
 	.set('view engine', 'hbs')
+	.get('/dungeons/:pageNumber?', function(req, res) {
+		if(!req.params.pageNumber) req.params.pageNumber = 0;
+		Battle.getDungeonList(req.params.pageNumber, function(err, data) {
+			if(req.params.pageNumber === 0) {
+				res.render('dungeonList', { title: 'Dungeon List', dungeons: data });
+			} else {
+				res.render('partials/dungeons', { layout: false, dungeons: data });
+			}			
+		})
+  })
+  .get('/users', function(req, res) {
+    User.index()
+    .then((users) => {
+      res.render('users/index', { title: 'FFRKreeper Users', users: users });
+    });
+  })
+  .get('/users/:userId', function(req, res) {
+    User.findById(req.params.userId).populate('drops')
+    .then((user) => {
+      res.render('users/show', { title: user.dena.name, user: user });
+    });
+  })
 
-	// .get('/dungeons', function(req, res) {
-	// 	Battle.getDungeonList(function(err, data) {
-	// 		res.render('dungeonList', { title: 'Dungeon List', dungeons: data });
-	// 	})
- //  })
-  // .get('/users', function(req, res) {
-  //   User.index()
-  //   .then((users) => {
-  //     res.render('users/index', { title: 'FFRKreeper Users', users: users });
-  //   });
-  // })
-  // .get('/users/:userId', function(req, res) {
-  //   User.findById(req.params.userId).populate('drops')
-  //   .then((user) => {
-  //     res.render('users/show', { title: user.dena.name, user: user });
-  //   });
-  // })
   .get('/images', function(req, res) {
     let limit = 100;
     let page = parseInt(req.query.page || 1);

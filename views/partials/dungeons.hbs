@@ -1,0 +1,10 @@
+﻿{{#each dungeons}}
+<li class="list-group-item">
+    <a href="/dungeon/{{_id}}/battles">
+        Dungeon: {{_id}} {{dungeonName}}
+        {{#each itemsFound}}
+        <img class="dungeonDropImg" src="{{dropImg}}" title="{{dropName}}" />
+        {{/each}}
+    </a>
+</li>
+{{/each}}

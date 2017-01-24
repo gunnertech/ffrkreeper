@@ -44,7 +44,7 @@ function setup(mongoose) {
   // Connect to our MongoDB database using the MongoDB
   // connection URI from our predefined environment variable
   console.log(process.env.MONGO_URI);
-  mongoose.connect(process.env.MONGO_URI, (error) => {
+  mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/ffrkrepper', (error) => {
 
     if (error)
       throw error;
