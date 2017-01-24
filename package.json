@@ -22,7 +22,7 @@
     "hbs": "^4.0.1",
     "lodash": "^4.17.4",
     "moment": "^2.17.1",
-    "mongoose": "^4.7.7",
+    "mongoose": "^4.7.8",
     "nodemon": "^1.11.0",
     "request": "^2.79.0",
     "request-promise": "^4.1.1",

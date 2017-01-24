@@ -2,6 +2,8 @@ const _ = require('lodash');
 const mongoose = require('mongoose');
 const dropData = require('../dropData.js');
 
+const dungeonsPerPage = 12;
+
 const schema = new mongoose.Schema({
 	denaBattleId: { type: String },
 	denaDungeonId: { type: String },
@@ -51,10 +53,8 @@ function getUniqueItemsFromDungeon(dungeon) {
 	return itemsFound;
 }
 
-schema.statics.getDungeonList = function(cb) {
-	//todo: add paging, this will get huge
-	mongoose.model('Battle', schema).aggregate([
-		{ '$sort': { 'denaDungeonId': 1 } },  //this will display the newest events first?
+schema.statics.getDungeonList = function(pageNumber, cb) {
+	mongoose.model('Battle', schema).aggregate([	
 		{
 			$group: {
 				_id: '$denaDungeonId',
@@ -62,7 +62,10 @@ schema.statics.getDungeonList = function(cb) {
 				eventType: { $first: '$eventType' },
 				dropRates: { $push: '$dropRates' }
 			}
-		}
+		},
+		{ $sort: { 'denaDungeonId': 1 } }, 
+	  { $skip: dungeonsPerPage * pageNumber },
+		{ $limit: dungeonsPerPage }
 	], function(err, result) {
 		_.each(result, function(dungeon) {
 			dungeon.itemsFound = getUniqueItemsFromDungeon(dungeon);
