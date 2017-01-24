@@ -189,58 +189,6 @@ io.on('connection', (socket) => {
   // socket.on('/user', (data, fn) => { });
 });
 
-// dena.api.authData({sessionId: process.env.DENA_SESSION_ID})
-// .spread((sessionId, browserData, userSessionKey) => {
-//   console.log(userSessionKey);
-//   // return dena.api.getWorldDungeonData(110094, {sessionId: sessionId, userSessionKey: userSessionKey});
-//   return dena.api.getRootData({sessionId: sessionId, userSessionKey: userSessionKey});
-//   // return dena.api.getWorldBattles({sessionId: sessionId, userSessionKey: userSessionKey});
-// })
-// .then(console.log)
-
-// dena.api.getWorldDungeonData(113092, {
-//   sessionId: process.env.DENA_SESSION_ID, 
-//   userSessionKey: process.env.DENA_USER_SESSION_KEY
-// })
-// .then(console.log)
-
-// User.find()
-// .then((users) => {
-//   users.forEach(user => user.cacheAudioFiles())
-// })
-
-User.find({email: { $nin: [null,""] }})
-.then((users) => {
-  return Promise.map(users, (user) => { 
-    return User.count({email: user.email})
-    .then((count) => {
-      if(count > 1) {
-        return user.email;
-      }
-
-      return null;
-    })
-  })
-})
-.then((emails) => {
-  console.log(lodash.compact(emails));
-  lodash.uniq(lodash.compact(emails)).forEach((email) => {
-    User.find({email: email}).
-    then((users) => {
-      var userToDelete = null;
-      users.forEach((user) => {
-        if(!userToDelete || user.drops.length <= userToDelete.drops.length) {
-          userToDelete = user;
-        }
-      });
-      User.remove({_id: userToDelete._id}).then(function() {
-        // console.log(arguments);
-        return null;
-      })
-    })
-  })
-  return emails;
-})
 
 ///// Start background tasks
 // setInterval(() => io.emit('time', new Date().toTimeString()), 1000); //// every second
