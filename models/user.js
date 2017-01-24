@@ -22,7 +22,7 @@ const Battle = require('./battle.js');
 const Enemy = require('./enemy.js');
 
 const getDropInfo = require('../drops.js');
-const dena = require('../automation.js');
+const dena = require('../dena.js');
 
 const schema = new mongoose.Schema({
   email: String,

@@ -286,28 +286,28 @@ function doBeginBattle(challengeId, battleId) {
   })
 }
 
-function getRootData() {
-  return doSimpleGet("/dff/get_root_data");
+function getRootData(options) {
+  return doSimpleGet("/dff/get_root_data", options);
 }
 
 function getWorldBattles(options) {
   return doSimpleGet("/dff/world/battles", options);
 }
 
-function getFriendFollowModalInfo() {
-  return doSimpleGet("/dff/mo/multi/world/get_friend_follow_modal_info");
+function getFriendFollowModalInfo(options) {
+  return doSimpleGet("/dff/mo/multi/world/get_friend_follow_modal_info", options);
 }
 
-function getChallengeData(challengeId) {
-  return doSimpleGet("/dff/event/challenge/"+challengeId+"/get_data");
+function getChallengeData(challengeId, options) {
+  return doSimpleGet("/dff/event/challenge/"+challengeId+"/get_data", options);
 }
 
-function getWorldDungeonData(worldId) {
-  return doSimpleGet("/dff/world/dungeons?world_id="+worldId); 
+function getWorldDungeonData(worldId, options) {
+  return doSimpleGet("/dff/world/dungeons?world_id="+worldId, options); 
 }
 
-function getDetailedFellowListing() {
-  return doSimpleGet("/dff/relation/detailed_fellow_listing"); 
+function getDetailedFellowListing(options) {
+  return doSimpleGet("/dff/relation/detailed_fellow_listing", options); 
 }
 
 function getBattleInitDataForEventId(eventId) {
@@ -393,14 +393,28 @@ function begin(userId, accessToken, sessionId) {
       
       //// GET ANNOUNCMENTS SEEN ON HOME SCREEN WHEN YOU LOGIN
       // getRootData(),
+
+
+
+      //// NO IDEA
       // getFriendFollowModalInfo(),
+
+
+
+      ///USELESS. RETURNS NOTHING
       // getChallengeData(92),
+
+
+      // HAS USER DATA AND A TON OF DATA ABOUT THE DUNGEONS FOR THE WORLD ID PASSED.
+      // WORLD IS BASICALLY AN EVENT BANNER AND YOU CAN GET THE ID FROM getWorldBattles
       // getWorldDungeonData(113092),
+      
+      ////// THIS SEEMS TO ONLY WORK IF YOU'RE IN THE SCREEN TO CHOOSE YOUR ROAMING WARRIOR
       // getDetailedFellowListing(),
 
       /// FROM WHAT I CAN TELL THIS ONLY SHOWS INFO ABOUT THE CURRENT BATTLE YOU'RE IN. A BIT MORE DETAILED THOUGH.
       /// ONLY WORKS IF YOU'RE IN A DUNGEON
-      /// json.user_dungeon.name has name of dungeon json.user_dungeon.id
+      /// json.user_dungeon.name has name of dungeon json.user_dungeon.id json.user_dungeon.world_id
       /// json.battles[].name has name of battle
       /// json.user has a ton of user info
       getWorldBattles()
@@ -417,6 +431,11 @@ module.exports = {
   begin: begin,
   api: {
     authData: authData,
-    getWorldBattles: getWorldBattles
+    getWorldBattles: getWorldBattles,
+    getDetailedFellowListing: getDetailedFellowListing,
+    getWorldDungeonData: getWorldDungeonData,
+    getChallengeData: getChallengeData,
+    getFriendFollowModalInfo: getFriendFollowModalInfo,
+    getRootData: getRootData
   }
 };

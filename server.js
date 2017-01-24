@@ -28,7 +28,7 @@ hbs.registerPartials(__dirname + '/views/partials');
 
 require('./config/mongoose.js').setup(mongoose);
 
-const automation = require('./automation.js');
+const dena = require('./dena.js');
 
 const User = require('./models/user.js');
 const Drop = require('./models/drop.js');
@@ -162,6 +162,21 @@ io.on('connection', (socket) => {
   // socket.on('/world', (data, fn) => { });
   // socket.on('/user', (data, fn) => { });
 });
+
+// dena.api.authData({sessionId: process.env.DENA_SESSION_ID})
+// .spread((sessionId, browserData, userSessionKey) => {
+//   console.log(userSessionKey);
+//   // return dena.api.getWorldDungeonData(110094, {sessionId: sessionId, userSessionKey: userSessionKey});
+//   return dena.api.getRootData({sessionId: sessionId, userSessionKey: userSessionKey});
+//   // return dena.api.getWorldBattles({sessionId: sessionId, userSessionKey: userSessionKey});
+// })
+// .then(console.log)
+
+// dena.api.getWorldDungeonData(113092, {
+//   sessionId: process.env.DENA_SESSION_ID, 
+//   userSessionKey: process.env.DENA_USER_SESSION_KEY
+// })
+// .then(console.log)
 
 
 ///// Start background tasks
