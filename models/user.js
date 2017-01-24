@@ -124,19 +124,9 @@ schema.statics.updateData = () => {
   });
 }
 
-schema.statics.doDropCheck = (io, options) => {
-  options = options || {};
-
-  var baseQuery = { 'dena.sessionId': { $ne: null }, hasValidSessionId: true };
-
-  if(options.backgroundOnly) {
-    baseQuery.phone = { $ne: null };
-  }
-
-  if(options.query) {
-    baseQuery = options.query;
-    baseQuery.hasValidSessionId = true;
-  }
+schema.statics.doDropCheck = (io, queryOptions) => {
+  queryOptions.hasValidSessionId = true;
+  queryOptions['dena.sessionId'] = queryOptions['dena.sessionId'] || { $ne: null };
 
   return mongoose.model('User').find(baseQuery).select('-dena.json -drops')
   .then((users) => {
