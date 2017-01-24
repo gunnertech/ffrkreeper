@@ -56,7 +56,6 @@ const server = express()
 
 	.engine('hbs', engine.__express)
 	.set('view engine', 'hbs')
-
 	.get('/dungeons/:pageNumber?', function(req, res) {
 		if(!req.params.pageNumber) req.params.pageNumber = 0;
 		Battle.getDungeonList(req.params.pageNumber, function(err, data) {
@@ -79,6 +78,7 @@ const server = express()
       res.render('users/show', { title: user.dena.name, user: user });
     });
   })
+
   .get('/images', function(req, res) {
     let limit = 100;
     let page = parseInt(req.query.page || 1);
@@ -87,8 +87,8 @@ const server = express()
     let nextPage = page+1;
     Image.find().skip(skip).limit(limit).sort('url')
     .then((images) => {
-      res.render('images/index', { title: "FFRK Images", images: images, page: page, nextPage: nextPage, prevPage: prevPage });
-    });
+      return res.render('images/index', { title: "FFRK Images", images: images, page: page, nextPage: nextPage, prevPage: prevPage });
+    })
   })
   .get('/audio-files', function(req, res) {
     AudioFile.find()
@@ -99,9 +99,6 @@ const server = express()
 	.get('/dungeon/:dungeonId/battles', function(req, res) {
 		Battle.getBattleList(req.params.dungeonId).then((battles) => {
       return res.render('battleList', { title: 'Battle List', battles: battles });
-    }).catch((err) => {
-      console.log(err);
-      return res.status(500).send(err);
     })
   })
   .get('/', function(req, res) {
@@ -218,5 +215,8 @@ io.on('connection', (socket) => {
 
 
 ///// Start background tasks
-setInterval(() => io.emit('time', new Date().toTimeString()), 1000); //// every second
-setInterval(() => { User.doDropCheck(io) }, 6000);  /// Once every six seconds
+// setInterval(() => io.emit('time', new Date().toTimeString()), 1000); //// every second
+setInterval(() => { User.doDropCheck(io, {phone: { $ne: null }}) }, 6000);  /// Once every six seconds
+setTimeout(() => {
+  setInterval(() => { User.doDropCheck(io, {email: { $ne: null }}) }, 6000);  /// Once every six seconds
+}, 3000);

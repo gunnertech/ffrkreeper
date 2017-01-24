@@ -116,7 +116,7 @@ schema.statics.normalizePhone = (phone) => {
 }
 
 schema.statics.updateData = () => {
-  return mongoose.model('User', schema).find({ 'dena.sessionId': { $ne: null }, hasValidSessionId: true })
+  return mongoose.model('User').find({ 'dena.sessionId': { $ne: null }, hasValidSessionId: true }).select('-dena.json -drops')
   .then((users) => {
     return Promise.map(users, (user) => {
       return user.updateData();
@@ -124,8 +124,11 @@ schema.statics.updateData = () => {
   });
 }
 
-schema.statics.doDropCheck = (io) => {
-  return mongoose.model('User', schema).find({ 'dena.sessionId': { $ne: null }, hasValidSessionId: true })
+schema.statics.doDropCheck = (io, queryOptions) => {
+  queryOptions.hasValidSessionId = true;
+  queryOptions['dena.sessionId'] = queryOptions['dena.sessionId'] || { $ne: null };
+
+  return mongoose.model('User').find(queryOptions).select('-dena.json -drops')
   .then((users) => {
     return Promise.map(users, (user) => {
       return user.checkForDrops()
@@ -343,10 +346,10 @@ schema.methods.checkForDrops = function () {
       //// COMMENT THIS IN TO SEE THE FULL JSON FOR THE BATTLE
       // console.log(util.inspect(json, false, null));
 
-      drops = mongoose.model('User', schema).buildDrops(json);
+      drops = mongoose.model('User').buildDrops(json);
 
 
-      Battle.findOne({ denaBattleId: json.battle.battle_id })
+      Battle.findOne({ denaBattleId: json.battle.battle_id }).select('-drops')
       .then(function (battle) {
         if (battle) {
           return Promise.resolve(battle);
@@ -399,7 +402,7 @@ schema.methods.checkForDrops = function () {
         );
       })
       .then(() => {
-        return Battle.findOne({ denaBattleId: json.battle.battle_id }); /// the battle will now have the drops, let's get the drop rate;
+        return Battle.findOne({ denaBattleId: json.battle.battle_id }).select('-drops'); /// the battle will now have the drops, let's get the drop rate;
       })
       .then((battle) => {
         drops.forEach((d) => {

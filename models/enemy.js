@@ -23,7 +23,7 @@ schema.pre('save', function (next) {
     if(count) {
       return next();
     } else {
-      return mongoose.model('Battle').findOne({denaBattleId: self.dena.json.battle_id})
+      return mongoose.model('Battle').findOne({denaBattleId: self.dena.json.battle_id}).select('-drops')
       .then((battle) => {
         self.battle = battle;
         self.dena.json.params.forEach((param) => {
