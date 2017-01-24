@@ -33,6 +33,7 @@ const schema = new mongoose.Schema({
     accessToken: String,
     name: String,
     id: String,
+    updatedAt: Date,
     json: mongoose.Schema.Types.Mixed
   },
   hasValidSessionId: {
@@ -188,6 +189,7 @@ schema.methods.updateData = function() {
       self.dena.json = json.user;
       self.dena.id = json.user.id;
       self.dena.name = json.user.name;
+      self.dena.updatedAt = new Date();
       
 
       return self.save();  
@@ -335,12 +337,12 @@ schema.methods.checkForDrops = function () {
           /// But we still need to keep going to build the drop rate
           return Promise.resolve(null);
         }
-        console.log("Let's record this drop!");
         self.inBattle = true;
 
         return self.save().return(
           Promise.map(drops, (d) => {
             if (d.item_id) {
+              console.log("Let's record this drop!");
               return Drop.create({
                 battle: battle._id,
                 user: self._id,

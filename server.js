@@ -163,15 +163,7 @@ io.on('connection', (socket) => {
   // socket.on('/user', (data, fn) => { });
 });
 
-//// See how many users we have that are getting notifications
-// User.find()
-// .then((users) => {
-//   console.log(lodash.map(users,'phone'))
-//   console.log(lodash.map(users,'email'))
-// })
 
-
-
+///// Start background tasks
 setInterval(() => io.emit('time', new Date().toTimeString()), 1000); //// every second
 setInterval(() => { User.doDropCheck(io) }, 6000);  /// Once every six seconds
-setInterval(() => { User.updateData() }, 86400000); /// Once a day

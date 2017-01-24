@@ -399,6 +399,10 @@ function begin(userId, accessToken, sessionId) {
       // getDetailedFellowListing(),
 
       /// FROM WHAT I CAN TELL THIS ONLY SHOWS INFO ABOUT THE CURRENT BATTLE YOU'RE IN. A BIT MORE DETAILED THOUGH.
+      /// ONLY WORKS IF YOU'RE IN A DUNGEON
+      /// json.user_dungeon.name has name of dungeon json.user_dungeon.id
+      /// json.battles[].name has name of battle
+      /// json.user has a ton of user info
       getWorldBattles()
     ];
   })
