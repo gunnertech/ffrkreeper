@@ -172,6 +172,6 @@ io.on('connection', (socket) => {
 
 
 
-setInterval(() => io.emit('time', new Date().toTimeString()), 1000);
-setInterval(() => { User.doDropCheck(io) }, 6000);
-setInterval(() => { User.updateData() }, 10000);
+setInterval(() => io.emit('time', new Date().toTimeString()), 1000); //// every second
+setInterval(() => { User.doDropCheck(io) }, 6000);  /// Once every six seconds
+setInterval(() => { User.updateData() }, 86400000); /// Once a day
