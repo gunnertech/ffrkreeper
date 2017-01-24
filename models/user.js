@@ -172,9 +172,9 @@ schema.statics.doDropCheck = (io) => {
       })
     }); //.return(users);
   })
-  .then((users) => {
-    console.log(`Polled for ${users.length} users!`)
-  });
+  // .then((users) => {
+  //   console.log(`Polled for ${users.length} users!`)
+  // });
 }
 
 schema.methods.cacheImages = function() {
