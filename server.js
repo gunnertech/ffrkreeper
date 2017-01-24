@@ -65,23 +65,23 @@ const server = express()
   //     res.render('users/show', { title: user.dena.name, user: user });
   //   });
   // })
-  // .get('/images', function(req, res) {
-  //   let limit = 100;
-  //   let page = parseInt(req.query.page || 1);
-  //   let skip = (page-1) * limit;
-  //   let prevPage = page > 1 ? (page-1) : null;
-  //   let nextPage = page+1;
-  //   Image.find().skip(skip).limit(limit).sort('url')
-  //   .then((images) => {
-  //     return res.render('images/index', { title: "FFRK Images", images: images, page: page, nextPage: nextPage, prevPage: prevPage });
-  //   })
-  // })
-  // .get('/audio-files', function(req, res) {
-  //   AudioFile.find()
-  //   .then((audioFiles) => {
-  //     res.render('audio-files/index', { title: "FFRK Audio Files", audioFiles: audioFiles });
-  //   });
-  // })
+  .get('/images', function(req, res) {
+    let limit = 100;
+    let page = parseInt(req.query.page || 1);
+    let skip = (page-1) * limit;
+    let prevPage = page > 1 ? (page-1) : null;
+    let nextPage = page+1;
+    Image.find().skip(skip).limit(limit).sort('url')
+    .then((images) => {
+      return res.render('images/index', { title: "FFRK Images", images: images, page: page, nextPage: nextPage, prevPage: prevPage });
+    })
+  })
+  .get('/audio-files', function(req, res) {
+    AudioFile.find()
+    .then((audioFiles) => {
+      res.render('audio-files/index', { title: "FFRK Audio Files", audioFiles: audioFiles });
+    });
+  })
 	.get('/dungeon/:dungeonId/battles', function(req, res) {
 		Battle.getBattleList(req.params.dungeonId).then((battles) => {
       return res.render('battleList', { title: 'Battle List', battles: battles });
