@@ -1,6 +1,6 @@
 ﻿(function() {
 	var isLoading = false;
-	var pageNumber = 1;
+	var pageNumber = 0;
 	var triggerPoint = 2000; // px from the bottom
 	var appendPoint = $('.appendPoint')
 	$(window).on("scroll", _.debounce(watchScroll, 300));

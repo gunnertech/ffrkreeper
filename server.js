@@ -12,36 +12,24 @@ const socketIO = require('socket.io');
 const path = require('path');
 const bodyParser = require('body-parser');
 const fs = require('fs');
-const http = require('http');
-const request = require('request');
-const util = require('util');
-const twilio = require('twilio')(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
 const mongoose = require('mongoose');
 const Promise = require('bluebird');
-const lodash = require('lodash');
-
 const hbs = require('hbs');
 const handlebars = require('handlebars');
-//hbs.registerPartials(__dirname + '/views/partials');
-
 const engine = hbs.create(handlebars.create());
-//engine.handlebars.registerPartials(path.join(__dirname, 'views/partials'));
-//engine.handlebars.registerPartial('dungeons', fs.readFileSync(__dirname + '/views/partials/dungeons.hbs', 'utf8'));
 
 //load all template partials
 fs.readdirSync(path.join(__dirname, 'views/partials')).forEach(function(file) {
   if(~file.indexOf('.hbs')) engine.handlebars.registerPartial(file.replace('.hbs', ''), fs.readFileSync(__dirname + '/views/partials/' + file, 'utf8'));
 })
 
-
 require('./config/mongoose.js').setup(mongoose);
 
-const dena = require('./dena.js');
- 
+//const dena = require('./dena.js');
 const User = require('./models/user.js');
-const Drop = require('./models/drop.js');
+//const Drop = require('./models/drop.js');
 const Battle = require('./models/battle.js');
-const Enemy = require('./models/enemy.js');
+//const Enemy = require('./models/enemy.js');
 const Image = require('./models/image.js');
 const AudioFile = require('./models/audioFile.js');
 
