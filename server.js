@@ -67,9 +67,9 @@ const server = express()
   })
   .get('/images', function(req, res) {
     let limit = 100;
-    let page = parseInt(req.query.page || 0);
-    let skip = page * limit;
-    let prevPage = page > 0 ? page - 1 : null;
+    let page = parseInt(req.query.page || 1);
+    let skip = (page-1) * limit;
+    let prevPage = page > 1 ? (page-1) : null;
     let nextPage = page+1;
     Image.find().skip(skip).limit(limit)
     .then((images) => {
