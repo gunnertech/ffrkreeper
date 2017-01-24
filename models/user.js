@@ -22,8 +22,47 @@ const Battle = require('./battle.js');
 const Enemy = require('./enemy.js');
 
 const getDropInfo = require('../drops.js');
+const dena = require('../automation.js');
 
-function buildDrops(json) {
+const schema = new mongoose.Schema({
+  email: String,
+  phone: String,
+  dena: {
+    sessionId: String,
+    userId: String,
+    accessToken: String,
+    name: String,
+    id: String,
+    json: mongoose.Schema.Types.Mixed
+  },
+  hasValidSessionId: {
+    type: Boolean,
+    default: true
+  },
+  inBattle: {
+    type: Boolean,
+    default: true
+  },
+  alertLevel: { 
+    type: Number, 
+    min: 0,
+    max: 6,
+    default: 0
+  },
+  drops: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Drop' }]
+});
+
+schema.pre('save', function (next) {
+  this.phone = mongoose.model('User', schema).normalizePhone(this.phone);
+
+  next();
+});
+
+schema.statics.index = () => {
+  return mongoose.model('User', schema).find({ 'dena.name': { $ne: null } })
+}
+
+schema.statics.buildDrops = (json) => {
   var drops = [];
 
   json.battle.rounds.forEach(function (round) {
@@ -58,37 +97,6 @@ function buildDrops(json) {
   return drops;
 }
 
-const schema = new mongoose.Schema({
-  email: String,
-  phone: String,
-  dena: {
-    sessionId: String,
-    userId: String,
-    accessToken: String
-  },
-  hasValidSessionId: {
-    type: Boolean,
-    default: true
-  },
-  inBattle: {
-    type: Boolean,
-    default: true
-  },
-  alertLevel: { 
-    type: Number, 
-    min: 0,
-    max: 6,
-    default: 0
-  },
-  drops: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Drop' }]
-});
-
-schema.pre('save', function (next) {
-  this.phone = mongoose.model('User', schema).normalizePhone(this.phone);
-
-  next();
-});
-
 schema.statics.normalizePhone = (phone) => {
   if (phone) {
   ///Strip out any non numeric characters
@@ -104,6 +112,15 @@ schema.statics.normalizePhone = (phone) => {
   }
 
   return phone;
+}
+
+schema.statics.updateData = () => {
+  return mongoose.model('User', schema).find({ 'dena.sessionId': { $ne: null }, hasValidSessionId: true })
+  .then((users) => {
+    return Promise.map(users, (user) => {
+      return user.updateData();
+    });
+  });
 }
 
 schema.statics.doDropCheck = (io) => {
@@ -156,6 +173,24 @@ schema.statics.doDropCheck = (io) => {
   .then((users) => {
     console.log(`Polled for ${users.length} users!`)
   });
+}
+
+schema.methods.updateData = function() {
+  var self = this;
+
+  return dena.api.authData({sessionId: this.dena.sessionId})
+  .spread((sessionId, browserData, userSessionKey) => {
+    return dena.api.getWorldBattles({sessionId: sessionId, userSessionKey: userSessionKey});
+  })
+  .then((json) => {
+
+    self.dena.json = json.user;
+    self.dena.id = json.user.id;
+    self.dena.name = json.user.name;
+    
+
+    return self.save();
+  })
 }
 
 schema.methods.sendEmail = function (message) {
@@ -258,7 +293,7 @@ schema.methods.checkForDrops = function () {
       //// COMMENT THIS IN TO SEE THE FULL JSON FOR THE BATTLE
       // console.log(util.inspect(json, false, null));
 
-      drops = buildDrops(json);
+      drops = mongoose.model('User', schema).buildDrops(json);
 
 
       Battle.findOne({ denaBattleId: json.battle.battle_id })

@@ -51,6 +51,18 @@ const server = express()
 			res.render('dungeonList', { title: 'Dungeon List', dungeons: data });
 		})
   })
+  .get('/users', function(req, res) {
+    User.index()
+    .then((users) => {
+      res.render('users/index', { title: 'FFRKreeper Users', users: users });
+    });
+  })
+  .get('/users/:userId', function(req, res) {
+    User.findById(req.params.userId).populate('drops')
+    .then((user) => {
+      res.render('users/show', { title: user.dena.name, user: user });
+    });
+  })
 	.get('/dungeon/:dungeonId/battles', function(req, res) {
 		Battle.getBattleList(req.params.dungeonId).then((battles) => {
       return res.render('battleList', { title: 'Battle List', battles: battles });
@@ -161,4 +173,5 @@ io.on('connection', (socket) => {
 
 
 setInterval(() => io.emit('time', new Date().toTimeString()), 1000);
-setInterval(() => { User.schema.statics.doDropCheck(io) }, 6000);
+setInterval(() => { User.doDropCheck(io) }, 6000);
+setInterval(() => { User.updateData() }, 10000);

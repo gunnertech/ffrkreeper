@@ -24,11 +24,11 @@ const rp = require('request-promise');
 const Promise = require('bluebird');
 const util = require('util');
 
-function getSessionId(userId, accessToken) {
+function getSessionId(userId, accessToken, sessionId) {
   return new Promise(function(resolve, reject) {
 
-    if(process.env.DENA_SESSION_ID) {
-      resolve(process.env.DENA_SESSION_ID);
+    if(sessionId) {
+      resolve(sessionId);
       return;
     }
 
@@ -135,8 +135,6 @@ function scrapeIndexScreen(sessionId) {
   sessionId = sessionId || _g.sessionId;
 
   return new Promise(function(resolve, reject) {
-    console.log("~~~~~~~LOOOK~~~~~~~~")
-    console.log(sessionId);
 
     var req = http.request({
         host: 'ffrk.denagames.com',
@@ -259,7 +257,15 @@ function doSimpleGet(path, options) {
       res.on('data', (chunk) => { data += chunk; });
 
       res.on("end", () => {
-        var json = JSON.parse(data); 
+        try {
+          var json = JSON.parse(data);   
+        } catch(e) {
+          reject({
+            message: "invalid session id",
+            name: "Authorization Error"
+          });
+        }
+        
 
         resolve(json);
       });
@@ -280,14 +286,12 @@ function doBeginBattle(challengeId, battleId) {
   })
 }
 
-//// GET ANNOUNCMENTS SEEN ON HOME SCREEN WHEN YOU LOGIN
 function getRootData() {
   return doSimpleGet("/dff/get_root_data");
 }
 
-/// FROM WHAT I CAN TELL THIS ONLY SHOWS INFO ABOUT THE CURRENT BATTLE YOU'RE IN. A BIT MORE DETAILED THOUGH.
-function getWorldBattles() {
-  return doSimpleGet("/dff/world/battles");
+function getWorldBattles(options) {
+  return doSimpleGet("/dff/world/battles", options);
 }
 
 function getFriendFollowModalInfo() {
@@ -319,6 +323,21 @@ function getWdayDataForEvent(id) {
   return doSimpleGet("/dff/event/wday/"+id+"/get_data");  
 }
 
+function authData(options) {
+  options = options || {}
+  return getSessionId(
+    (options.userId || process.env.DENA_USER_ID),
+    (options.accessToken || process.env.DENA_ACCESS_TOKEN),
+    (options.sessionId || process.env.DENA_SESSION_ID)
+  )
+  .then((sessionId) => {
+    return [sessionId, getBrowserData(sessionId)];
+  })
+  .spread((sessionId, browserData) => {
+    return [sessionId, browserData, getUserSessionKey(sessionId, browserData.csrfToken)];
+  });
+}
+
 var _g = {
   sessionId: null,
   userSessionKey: null,
@@ -326,24 +345,30 @@ var _g = {
   beginBattleToken: null
 }
 
-function begin(userId, accessToken) {
-  // getWdayDataForEvent(518)
-  // .then(function() {
-  //   console.log(util.inspect(arguments, false, null));
-  // });
+function begin(userId, accessToken, sessionId) {
+  
+  /// BEGIN endpoints that require only session id
+  // getSessionId(
+  //   (userId || process.env.DENA_USER_ID),
+  //   (accessToken || process.env.DENA_ACCESS_TOKEN),
+  //   (sessionId || process.env.DENA_SESSION_ID)
+  // )
+  // .then((sessionId) => {
+  //   _g.sessionId = sessionId;
+    
+  //   return [
 
-  getSessionId(
-    (userId || process.env.DENA_USER_ID),
-    (accessToken || process.env.DENA_ACCESS_TOKEN)
-  )
-  .then((sessionId) => {
-    console.log(sessionId);
-    return [sessionId, getBrowserData(sessionId)];
-  })
-  .spread((sessionId, browserData) => {
-    console.log(browserData);
-    return [sessionId, browserData, getUserSessionKey(sessionId, browserData.csrfToken)];
-  })
+  //   ]
+  // })
+  // .spread(function() {
+  //   console.log(util.inspect(arguments, false, null));
+  // })
+  // .catch(console.log);
+
+  // if(true) { return; }
+
+  /// BEGIN endpoints that require user session key and session id 
+  authData()
   .spread((sessionId, browserData, userSessionKey) => {
     _g.sessionId = sessionId;
     _g.csrfToken = browserData.csrfToken;
@@ -351,37 +376,43 @@ function begin(userId, accessToken) {
     _g.userSessionKey = userSessionKey;
 
     return [
-      //getBattleInitDataForSuppressId(2028),
-      // getBattleInitDataForEventId(92),
-      // getWdayDataForEvent(518)
-      // scrapeSplashScreen()
-      scrapeIndexScreen()
-      // getRootData(),
-      // getFriendFollowModalInfo(),
-      // getChallengeData(92),
-      // getWorldDungeonData(113092),
-      // getDetailedFellowListing(),
-      // getWorldBattles()
       // doBeginBattle(92, 1130920135)
       // doEnterDungeon(92, { 
       //   dungeon_id: 11309214,
       //   fellow_user_id: null
       // })
+
+
+      // getBattleInitDataForSuppressId(2028),
+      
+
+      // getBattleInitDataForEventId(94),
+      // getWdayDataForEvent(518)
+      // scrapeSplashScreen()
+      // scrapeIndexScreen()
+      
+      //// GET ANNOUNCMENTS SEEN ON HOME SCREEN WHEN YOU LOGIN
+      // getRootData(),
+      // getFriendFollowModalInfo(),
+      // getChallengeData(92),
+      // getWorldDungeonData(113092),
+      // getDetailedFellowListing(),
+
+      /// FROM WHAT I CAN TELL THIS ONLY SHOWS INFO ABOUT THE CURRENT BATTLE YOU'RE IN. A BIT MORE DETAILED THOUGH.
+      getWorldBattles()
     ];
   })
   .spread(function() {
-    console.log(util.inspect(arguments[0], false, null));
+    console.log(util.inspect(arguments, false, null));
   })
-  // .spread((battleData) => {
-  //   console.log("~~~~~~ SUPPORTER ~~~~~~~~")
-  //   console.log(battleData.battle.supporter)
-  //   console.log("~~~~~~ BUDDY ~~~~~~~~")
-  //   console.log(battleData.battle.buddy)
-  // })
   .catch(console.log)
 }
 
 
 module.exports = {
-  begin: begin
+  begin: begin,
+  api: {
+    authData: authData,
+    getWorldBattles: getWorldBattles
+  }
 };

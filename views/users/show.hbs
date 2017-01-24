@@ -1,0 +1,28 @@
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-sm">
+      <h1>{{user.dena.name}}</h1>    
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="col-sm">
+      <table class="table table-striped">
+        <thead>
+          <tr>
+            <th>Drop</th>
+            <th>Battle</th>
+          </tr>
+        </thead>
+        <tbody>
+          {{#each user.drops}}
+            <tr>
+              <td>{{denaItemId}}</td>
+              <td>{{battle}}</td>
+            </tr>
+          {{/each}}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
