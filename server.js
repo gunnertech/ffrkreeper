@@ -35,6 +35,7 @@ const Drop = require('./models/drop.js');
 const Battle = require('./models/battle.js');
 const Enemy = require('./models/enemy.js');
 const Image = require('./models/image.js');
+const AudioFile = require('./models/audioFile.js');
 
 const server = express()
   .use(bodyParser.json())
@@ -69,7 +70,12 @@ const server = express()
     .then((images) => {
       res.render('images/index', { title: "FFRK Images", images: images });
     });
-
+  })
+  .get('/audio-files', function(req, res) {
+    AudioFile.find()
+    .then((audioFiles) => {
+      res.render('audio-files/index', { title: "FFRK Audio Files", audioFiles: audioFiles });
+    });
   })
 	.get('/dungeon/:dungeonId/battles', function(req, res) {
 		Battle.getBattleList(req.params.dungeonId).then((battles) => {
@@ -186,10 +192,10 @@ io.on('connection', (socket) => {
 // })
 // .then(console.log)
 
-User.find()
-.then((users) => {
-  users.forEach(user => user.cacheImages())
-})
+// User.find()
+// .then((users) => {
+//   users.forEach(user => user.cacheAudioFiles())
+// })
 
 
 ///// Start background tasks

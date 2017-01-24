@@ -184,13 +184,31 @@ schema.methods.cacheImages = function() {
   ])
   .then( (data) => {
     var existingImages = lodash.map(data[0], 'url');
-    console.log(existingImages.length)
     var remoteImages = lodash.map(data[1], 'url');
     var newImages = lodash.map(lodash.uniq(lodash.differenceWith(remoteImages, existingImages, lodash.isEqual)), (img) => { return {url: img}; });
-    console.log(newImages.length)
 
     newImages.forEach((image) => {
       mongoose.model("Image").create(image).catch((err) => { } )
+    });
+
+  });
+
+}
+
+
+schema.methods.cacheAudioFiles = function() {
+  var self = this;
+  Promise.all([
+    mongoose.model("AudioFile").find(),
+    dena.api.getAudioFiles(self.dena.sessionId)  
+  ])
+  .then( (data) => {
+    var existingImages = lodash.map(data[0], 'url');
+    var remoteImages = lodash.map(data[1], 'url');
+    var newImages = lodash.map(lodash.uniq(lodash.differenceWith(remoteImages, existingImages, lodash.isEqual)), (img) => { return {url: img}; });
+
+    newImages.forEach((image) => {
+      mongoose.model("AudioFile").create(image).catch((err) => { } )
     });
 
   });
@@ -214,7 +232,7 @@ schema.methods.updateData = function() {
 
       /// let this run in the background
       self.cacheImages();
-
+      self.cacheAudioFiles();
       
       return self.save();  
     } else {

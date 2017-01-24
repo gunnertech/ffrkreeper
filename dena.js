@@ -197,6 +197,31 @@ function getImages(sessionId) {
   })
 }
 
+function getAudioFiles(sessionId) {
+  return scrapeIndexScreen(sessionId)
+  .then((data) => {
+    var images = [];
+
+    var embeddedJsonBlobs = /<script data\-app\-init\-data type="application\/json">(.+)<\/script>/g.execAll(data);
+    
+    embeddedJsonBlobs.forEach((blob) => {
+
+      var imgStrings = /"[^"]+(\.m4a)"/g.execAll(blob[1]);
+
+      imgStrings.forEach((imgString) => {
+
+        var url = 'https://ffrk.static.denagames.com' + imgString[0].replace(/Content/,'dff/static').replace(/\\/g,"").replace(/"/g,"");
+
+        console.log(url);
+
+        images.push({url: url});
+      });
+    });
+
+    return images;
+  })
+}
+
 function getUserSessionKey(sessionId, csrfToken) {
   return new Promise(function(resolve, reject) {
 
@@ -473,6 +498,7 @@ module.exports = {
     getChallengeData: getChallengeData,
     getFriendFollowModalInfo: getFriendFollowModalInfo,
     getRootData: getRootData,
-    getImages: getImages
+    getImages: getImages,
+    getAudioFiles: getAudioFiles
   }
 };
