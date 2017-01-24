@@ -116,7 +116,7 @@ schema.statics.normalizePhone = (phone) => {
 }
 
 schema.statics.updateData = () => {
-  return mongoose.model('User', schema).find({ 'dena.sessionId': { $ne: null }, hasValidSessionId: true })
+  return mongoose.model('User').find({ 'dena.sessionId': { $ne: null }, hasValidSessionId: true }).select('-dena.json -drops')
   .then((users) => {
     return Promise.map(users, (user) => {
       return user.updateData();
@@ -125,10 +125,11 @@ schema.statics.updateData = () => {
 }
 
 schema.statics.doDropCheck = (io) => {
-  return mongoose.model('User', schema).find({ 'dena.sessionId': { $ne: null }, hasValidSessionId: true }).select('-dena.json -drops')
+  return mongoose.model('User').find({ 'dena.sessionId': { $ne: null }, hasValidSessionId: true }).select('-dena.json -drops')
   .then((users) => {
-    return Promise.map(users, (user) => {
-      return user.checkForDrops()
+    // return Promise.map(users, (user) => {
+    users.forEach((user) => {
+      user.checkForDrops()
       .then((message) => {
         io.emit(`/drops/${user.dena.sessionId}`, message); /// Send it to the browser
         
