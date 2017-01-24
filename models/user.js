@@ -124,8 +124,21 @@ schema.statics.updateData = () => {
   });
 }
 
-schema.statics.doDropCheck = (io) => {
-  return mongoose.model('User').find({ 'dena.sessionId': { $ne: null }, hasValidSessionId: true }).select('-dena.json -drops')
+schema.statics.doDropCheck = (io, options) => {
+  options = options || {};
+
+  var baseQuery = { 'dena.sessionId': { $ne: null }, hasValidSessionId: true };
+
+  if(options.backgroundOnly) {
+    baseQuery.phone = { $ne: null };
+  }
+
+  if(options.query) {
+    baseQuery = options.query;
+    baseQuery.hasValidSessionId = true;
+  }
+
+  return mongoose.model('User').find(baseQuery).select('-dena.json -drops')
   .then((users) => {
     return Promise.map(users, (user) => {
       return user.checkForDrops()
