@@ -71,7 +71,7 @@ const server = express()
     let skip = (page-1) * limit;
     let prevPage = page > 1 ? (page-1) : null;
     let nextPage = page+1;
-    Image.find().skip(skip).limit(limit)
+    Image.find().skip(skip).limit(limit).sort('url')
     .then((images) => {
       res.render('images/index', { title: "FFRK Images", images: images, page: page, nextPage: nextPage, prevPage: prevPage });
     });
