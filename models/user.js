@@ -125,7 +125,7 @@ schema.statics.updateData = () => {
 }
 
 schema.statics.doDropCheck = (io) => {
-  return mongoose.model('User', schema).find({ 'dena.sessionId': { $ne: null }, hasValidSessionId: true })
+  return mongoose.model('User', schema).find({ 'dena.sessionId': { $ne: null }, hasValidSessionId: true }).select('-dena.json -drops')
   .then((users) => {
     return Promise.map(users, (user) => {
       return user.checkForDrops()
