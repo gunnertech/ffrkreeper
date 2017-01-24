@@ -182,14 +182,8 @@ function getImages(sessionId) {
     var embeddedJsonBlobs = /<script data\-app\-init\-data type="application\/json">(.+)<\/script>/g.execAll(data);
     
     embeddedJsonBlobs.forEach((blob) => {
-      // console.log(blob[1].match(/".+(\.png)"/g))
-      console.log("HIII")
-
-      var imgStrings = blob[1].match(/"[^"]+(\.png)"/g);
 
       var imgStrings = /"[^"]+(\.png)"/g.execAll(blob[1]);
-
-      console.log(imgStrings.length);
 
       imgStrings.forEach((imgString) => {
 

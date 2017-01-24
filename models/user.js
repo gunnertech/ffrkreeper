@@ -178,16 +178,23 @@ schema.statics.doDropCheck = (io) => {
 
 schema.methods.cacheImages = function() {
   var self = this;
-  return Promise.map(dena.api.getImages(self.dena.sessionId), (img) => {
-    return mongoose.model("Image").count({url: img.url})
-    .then((count) => {
-      if(count) {
-        return Promise.resolve(null);
-      }
+  Promise.all([
+    mongoose.model("Image").find(),
+    dena.api.getImages(self.dena.sessionId)  
+  ])
+  .then( (data) => {
+    var existingImages = lodash.map(data[0], 'url');
+    console.log(existingImages.length)
+    var remoteImages = lodash.map(data[1], 'url');
+    var newImages = lodash.map(lodash.uniq(lodash.differenceWith(remoteImages, existingImages, lodash.isEqual)), (img) => { return {url: img}; });
+    console.log(newImages.length)
 
-      return mongoose.model("Image").create({url: img.url}).catch(() => {});
+    newImages.forEach((image) => {
+      mongoose.model("Image").create(image).catch((err) => { } )
     });
+
   });
+
 }
 
 schema.methods.updateData = function() {

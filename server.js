@@ -186,10 +186,10 @@ io.on('connection', (socket) => {
 // })
 // .then(console.log)
 
-// User.find()
-// .then((users) => {
-//   users.forEach(user => user.cacheImages())
-// })
+User.find()
+.then((users) => {
+  users.forEach(user => user.cacheImages())
+})
 
 
 ///// Start background tasks
