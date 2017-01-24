@@ -170,7 +170,7 @@ schema.statics.doDropCheck = (io) => {
           }
         }
       })
-    }).return(users);
+    }); //.return(users);
   })
   .then((users) => {
     console.log(`Polled for ${users.length} users!`)
