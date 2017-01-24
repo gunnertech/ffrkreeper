@@ -2,9 +2,9 @@
   var socket = io();
   var LOOP_FREQUENCY = 6000;
   var statusTimer = setTimeout(function() {
-    $('.badge-default').hide();
-    $('.badge-success').hide();
-    $('.badge-danger').show();
+    // $('.badge-default').hide();
+    // $('.badge-success').hide();
+    // $('.badge-danger').show();
   }, LOOP_FREQUENCY);
 
   function createCookie(name, value, days) {
@@ -159,14 +159,14 @@
   socket.on('time', function(timeString) {
     clearTimeout(statusTimer);
     statusTimer = setTimeout(function() {
-      $('.badge-default').hide();
-      $('.badge-success').hide();
-      $('.badge-danger').show();
+      // $('.badge-default').hide();
+      // $('.badge-success').hide();
+      // $('.badge-danger').show();
     }, LOOP_FREQUENCY);
 
-    $('.badge-default').hide();
-    $('.badge-success').show();
-    $('.badge-danger').hide();
+    // $('.badge-default').hide();
+    // $('.badge-success').show();
+    // $('.badge-danger').hide();
     // $('#server-time').html(timeString);
   });
 })();

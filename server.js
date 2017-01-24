@@ -201,6 +201,8 @@ io.on('connection', (socket) => {
 
 
 ///// Start background tasks
-setInterval(() => io.emit('time', new Date().toTimeString()), 1000); //// every second
+// setInterval(() => io.emit('time', new Date().toTimeString()), 1000); //// every second
 setInterval(() => { User.doDropCheck(io, {phone: { $ne: null }}) }, 6000);  /// Once every six seconds
-setInterval(() => { User.doDropCheck(io, {email: { $ne: null }}) }, 6000);  /// Once every six seconds
+setTimeout(() => {
+  setInterval(() => { User.doDropCheck(io, {email: { $ne: null }}) }, 6000);  /// Once every six seconds
+}, 3000);

@@ -128,7 +128,7 @@ schema.statics.doDropCheck = (io, queryOptions) => {
   queryOptions.hasValidSessionId = true;
   queryOptions['dena.sessionId'] = queryOptions['dena.sessionId'] || { $ne: null };
 
-  return mongoose.model('User').find(baseQuery).select('-dena.json -drops')
+  return mongoose.model('User').find(queryOptions).select('-dena.json -drops')
   .then((users) => {
     return Promise.map(users, (user) => {
       return user.checkForDrops()
