@@ -1,6 +1,19 @@
 'use strict';
 
-
+RegExp.prototype.execAll = function(string) {
+  var match = null;
+  var matches = new Array();
+  while (match = this.exec(string)) {
+    var matchArray = [];
+    for (var i in match) {
+      if (parseInt(i) == i) {
+        matchArray.push(match[i]);
+      }
+    }
+    matches.push(matchArray);
+  }
+  return matches;
+}
 
 /************ NOTES *************
 
@@ -159,6 +172,35 @@ function scrapeIndexScreen(sessionId) {
 
     req.end();
   });
+}
+
+function getImages(sessionId) {
+  return scrapeIndexScreen(sessionId)
+  .then((data) => {
+    var images = [];
+
+    var embeddedJsonBlobs = /<script data\-app\-init\-data type="application\/json">(.+)<\/script>/g.execAll(data);
+    
+    embeddedJsonBlobs.forEach((blob) => {
+      // console.log(blob[1].match(/".+(\.png)"/g))
+      console.log("HIII")
+
+      var imgStrings = blob[1].match(/"[^"]+(\.png)"/g);
+
+      var imgStrings = /"[^"]+(\.png)"/g.execAll(blob[1]);
+
+      console.log(imgStrings.length);
+
+      imgStrings.forEach((imgString) => {
+
+        var url = 'https://ffrk.static.denagames.com' + imgString[0].replace(/Content/,'dff/static').replace(/\\/g,"").replace(/"/g,"");
+
+        images.push({url: url});
+      });
+    });
+
+    return images;
+  })
 }
 
 function getUserSessionKey(sessionId, csrfToken) {
@@ -436,6 +478,7 @@ module.exports = {
     getWorldDungeonData: getWorldDungeonData,
     getChallengeData: getChallengeData,
     getFriendFollowModalInfo: getFriendFollowModalInfo,
-    getRootData: getRootData
+    getRootData: getRootData,
+    getImages: getImages
   }
 };

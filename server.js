@@ -63,6 +63,13 @@ const server = express()
       res.render('users/show', { title: user.dena.name, user: user });
     });
   })
+  .get('/images', function(req, res) {
+    dena.api.getImages(process.env.DENA_SESSION_ID)
+    .then((images) => {
+      res.render('images/index', { title: "FFRK Images", images: images });
+    });
+
+  })
 	.get('/dungeon/:dungeonId/battles', function(req, res) {
 		Battle.getBattleList(req.params.dungeonId).then((battles) => {
       return res.render('battleList', { title: 'Battle List', battles: battles });
