@@ -4,7 +4,7 @@ const mongoose = require('mongoose');
 const schema = new mongoose.Schema({
   name: String,
   dena: {
-    enemyId: String,
+    enemyId: { type: String, index: { unique: true } },
     json: mongoose.Schema.Types.Mixed
   },
   battle: { type: mongoose.Schema.Types.ObjectId, ref: 'Battle' }

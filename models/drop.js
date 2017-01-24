@@ -6,7 +6,7 @@ const Battle = require('./battle.js');
 
 
 const schema = new mongoose.Schema({
-  denaItemId: { type: String },
+  denaItemId: { type: String, index: true },
   qty: { type: Number },
   rarity: { type: Number },
   battle: { type: mongoose.Schema.Types.ObjectId, ref: 'Battle' },

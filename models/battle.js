@@ -3,9 +3,9 @@ const mongoose = require('mongoose');
 const dropData = require('../dropData.js');
 
 const schema = new mongoose.Schema({
-	denaBattleId: { type: String },
-	denaDungeonId: { type: String },
-	eventId: { type: String },
+	denaBattleId: { type: String, index: true },
+	denaDungeonId: { type: String, index: true },
+	eventId: { type: String, index: true },
 	eventType: { type: String },
 	realm: { type: String },  //categorize the FF realm...aka ff1, ff5, ff13
 	dungeonName: { type: String },

@@ -173,6 +173,16 @@ io.on('connection', (socket) => {
       });
   });
 
+  socket.on('/drops', (sessionId, fn) => {
+    var query = {};
+
+    User.doDropCheck(io, {'dena.sessionId': sessionId})
+    .then(() => {
+      fn("Done");
+    });
+
+  })
+
   // socket.on('/battle', (data, fn) => { });
   // socket.on('/dungeon', (data, fn) => { });
   // socket.on('/world', (data, fn) => { });
@@ -199,10 +209,42 @@ io.on('connection', (socket) => {
 //   users.forEach(user => user.cacheAudioFiles())
 // })
 
+User.find({email: { $nin: [null,""] }})
+.then((users) => {
+  return Promise.map(users, (user) => { 
+    return User.count({email: user.email})
+    .then((count) => {
+      if(count > 1) {
+        return user.email;
+      }
+
+      return null;
+    })
+  })
+})
+.then((emails) => {
+  console.log(lodash.compact(emails));
+  lodash.uniq(lodash.compact(emails)).forEach((email) => {
+    User.find({email: email}).
+    then((users) => {
+      var userToDelete = null;
+      users.forEach((user) => {
+        if(!userToDelete || user.drops.length <= userToDelete.drops.length) {
+          userToDelete = user;
+        }
+      });
+      User.remove({_id: userToDelete._id}).then(function() {
+        // console.log(arguments);
+        return null;
+      })
+    })
+  })
+  return emails;
+})
 
 ///// Start background tasks
 // setInterval(() => io.emit('time', new Date().toTimeString()), 1000); //// every second
-setInterval(() => { User.doDropCheck(io, {phone: { $ne: null }}) }, 6000);  /// Once every six seconds
+setInterval(() => { User.doDropCheck(io, {phone: { $nin: [null,""] }}) }, 6000);  /// Once every six seconds
 setTimeout(() => {
-  setInterval(() => { User.doDropCheck(io, {email: { $ne: null }}) }, 6000);  /// Once every six seconds
+  setInterval(() => { User.doDropCheck(io, {email: { $nin: [null,""] }}) }, 6000);  /// Once every six seconds
 }, 3000);

@@ -1,6 +1,7 @@
 (function() {
   var socket = io();
   var LOOP_FREQUENCY = 6000;
+  var getDropsInterval = null;
   var statusTimer = setTimeout(function() {
     // $('.badge-default').hide();
     // $('.badge-success').hide();
@@ -106,8 +107,16 @@
       alertLevel: alertLevel
     }, function(user) {
       socket.on("/drops/" + user.dena.sessionId, function(message) {
+        console.log(message)
         $('#attach-point').prepend(renderDrops(message));
       });
+
+      getDropsInterval = setInterval(function() {
+        socket.emit('/drops', user.dena.sessionId, function(message) {
+          console.log(message);
+        });
+      }, LOOP_FREQUENCY);
+
     });
   }
 
@@ -132,6 +141,7 @@
       email: email
     }, function(data) {
       console.log("Signed Out!");
+      clearInterval(getDropsInterval);
     });
   }
 

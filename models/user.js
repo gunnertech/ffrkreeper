@@ -25,14 +25,14 @@ const getDropInfo = require('../drops.js');
 const dena = require('../dena.js');
 
 const schema = new mongoose.Schema({
-  email: String,
-  phone: String,
+  email: { type: String, index: { unique: true, sparse: true } },
+  phone: { type: String, index: { unique: true, sparse: true } },
   dena: {
-    sessionId: String,
-    userId: String,
+    sessionId: { type: String, index: { unique: true, sparse: true } },
+    userId: { type: String, index: true },
     accessToken: String,
     name: String,
-    id: String,
+    id: { type: String, index: true },
     updatedAt: Date,
     json: mongoose.Schema.Types.Mixed
   },
@@ -51,6 +51,24 @@ const schema = new mongoose.Schema({
     default: 0
   },
   drops: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Drop' }]
+});
+
+schema.pre('save', function (next) {
+  this.phone = mongoose.model('User', schema).normalizePhone(this.phone);
+
+  if(!this.phone) {
+    delete this.phone;
+  }
+
+  if(!this.email) {
+    delete this.email;
+  }
+
+  if(this.dena && !this.dena.sessionId) {
+    delete this.dena.sessionId;
+  }
+
+  next();
 });
 
 schema.pre('save', function (next) {
