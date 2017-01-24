@@ -126,10 +126,9 @@ schema.statics.updateData = () => {
 
 schema.statics.doDropCheck = (io) => {
   return mongoose.model('User').find({ 'dena.sessionId': { $ne: null }, hasValidSessionId: true }).select('-dena.json -drops')
-  .then((users) => { 
-    // return Promise.map(users, (user) => {
-    users.forEach((user) => {
-      user.checkForDrops()
+  .then((users) => {
+    return Promise.map(users, (user) => {
+      return user.checkForDrops()
       .then((message) => {
         io.emit(`/drops/${user.dena.sessionId}`, message); /// Send it to the browser
         
@@ -170,11 +169,11 @@ schema.statics.doDropCheck = (io) => {
           }
         }
       })
-    }); //.return(users);
+    }).return(users);
   })
-  // .then((users) => {
-  //   console.log(`Polled for ${users.length} users!`)
-  // });
+  .then((users) => {
+    console.log(`Polled for ${users.length} users!`)
+  });
 }
 
 schema.methods.cacheImages = function() {
