@@ -176,6 +176,20 @@ schema.statics.doDropCheck = (io) => {
   });
 }
 
+schema.methods.cacheImages = function() {
+  var self = this;
+  return Promise.map(dena.api.getImages(self.dena.sessionId), (img) => {
+    return mongoose.model("Image").count({url: img.url})
+    .then((count) => {
+      if(count) {
+        return Promise.resolve(null);
+      }
+
+      return mongoose.model("Image").create({url: img.url}).catch(() => {});
+    });
+  });
+}
+
 schema.methods.updateData = function() {
   var self = this;
 
@@ -190,8 +204,11 @@ schema.methods.updateData = function() {
       self.dena.id = json.user.id;
       self.dena.name = json.user.name;
       self.dena.updatedAt = new Date();
-      
 
+      /// let this run in the background
+      self.cacheImages();
+
+      
       return self.save();  
     } else {
       return Promise.resolve(null);

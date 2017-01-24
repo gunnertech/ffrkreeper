@@ -34,6 +34,7 @@ const User = require('./models/user.js');
 const Drop = require('./models/drop.js');
 const Battle = require('./models/battle.js');
 const Enemy = require('./models/enemy.js');
+const Image = require('./models/image.js');
 
 const server = express()
   .use(bodyParser.json())
@@ -64,7 +65,7 @@ const server = express()
     });
   })
   .get('/images', function(req, res) {
-    dena.api.getImages(process.env.DENA_SESSION_ID)
+    Image.find()
     .then((images) => {
       res.render('images/index', { title: "FFRK Images", images: images });
     });
@@ -184,6 +185,11 @@ io.on('connection', (socket) => {
 //   userSessionKey: process.env.DENA_USER_SESSION_KEY
 // })
 // .then(console.log)
+
+User.find()
+.then((users) => {
+  users.forEach(user => user.cacheImages())
+})
 
 
 ///// Start background tasks
