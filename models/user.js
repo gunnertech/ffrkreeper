@@ -184,13 +184,19 @@ schema.methods.updateData = function() {
   })
   .then((json) => {
 
-    self.dena.json = json.user;
-    self.dena.id = json.user.id;
-    self.dena.name = json.user.name;
-    
+    if(json.user) {
+      self.dena.json = json.user;
+      self.dena.id = json.user.id;
+      self.dena.name = json.user.name;
+      
 
-    return self.save();
+      return self.save();  
+    } else {
+      return Promise.resolve(null);
+    }
+    
   })
+  .catch(() => {});
 }
 
 schema.methods.sendEmail = function (message) {
