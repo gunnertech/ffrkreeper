@@ -250,17 +250,6 @@ setTimeout(() => {
         var user = arr[0];
         var message = arr[1];
         var hashedMessage = hash.digest(message);
-
-
-        if(user.phone.match(/860/)) {
-          console.log("\n\n")
-          console.log(user.lastMessage);
-          console.log(hashedMessage);
-          // console.log(arr[1].notificationMessage);  
-          console.log(message.notify);
-          console.log(message.notificationMessage);
-          console.log("\n\n")
-        }
         
         if(message.notify && hashedMessage != user.lastMessage) {
           return user.sendEmail(message.notificationMessage)
