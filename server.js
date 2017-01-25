@@ -211,7 +211,7 @@ setInterval(() => { User.findValidWithPhone().then((users) => {
     return Promise.map(arrs, (arr) => {
       var user = arr[0];
       var message = arr[1];
-      var hashedMessage = hash.digest(message);
+      var hashedMessage = hash.digest(message.notificationMessage);
 
 
       if(user.phone.match(/860/)) {
@@ -249,7 +249,7 @@ setTimeout(() => {
       return Promise.map(arrs, (arr) => {
         var user = arr[0];
         var message = arr[1];
-        var hashedMessage = hash.digest(message);
+        var hashedMessage = hash.digest(message.notificationMessage);
         
         if(message.notify && hashedMessage != user.lastMessage) {
           return user.sendEmail(message.notificationMessage)
