@@ -27,7 +27,7 @@ require('./config/mongoose.js').setup(mongoose);
 
 const dena = require('./dena.js');
 const User = require('./models/user.js');
-//const Drop = require('./models/drop.js');
+const Drop = require('./models/drop.js');
 const Battle = require('./models/battle.js');
 //const Enemy = require('./models/enemy.js');
 const Image = require('./models/image.js');
@@ -195,6 +195,10 @@ io.on('connection', (socket) => {
   // socket.on('/world', (data, fn) => { });
   // socket.on('/user', (data, fn) => { });
 });
+
+// Battle.findOne({denaDungeonId: "11009414"}).select("-drops").then(console.log)
+// Drop.find().then((drops) => { return drops.forEach((drop) => { console.log(drop); drop.save(); }); })
+
 
 // setInterval(() => io.emit('time', new Date().toTimeString()), 1000); //// every second
 
