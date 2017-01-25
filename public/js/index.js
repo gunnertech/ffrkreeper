@@ -104,17 +104,18 @@
     var email = $('#email').val();
     var alertLevel = $('#alert-level').val();
 
-    createCookie('denaSessionId', sessionId, 365);
-    createCookie('phone', phone, 365);
-    createCookie('email', email, 365);
-    createCookie('alertLevel', alertLevel, 365);
-
     socket.emit('/signin', {
       sessionId: sessionId,
       phone: phone,
       email: email,
       alertLevel: alertLevel
-    }, getDropMessageFor);
+    }, function(user) {
+      createCookie('denaSessionId', user.dena.sessionId, 365);
+      createCookie('phone', user.phone, 365);
+      createCookie('email', user.email, 365);
+      createCookie('alertLevel', user.alertLevel, 365);
+      getDropMessageFor(user);
+    });
   }
 
   function signout() {
