@@ -1,6 +1,7 @@
 const _ = require('lodash');
 const mongoose = require('mongoose');
 const dropData = require('../dropData.js');
+const Promise = require('bluebird');
 
 const dungeonsPerPage = 12;
 
@@ -78,25 +79,32 @@ schema.statics.getDungeonList = function(pageNumber, cb) {
 }
 
 schema.statics.getBattleList = function(denaDungeonId) {
-  return mongoose.model('Battle').find({ denaDungeonId: denaDungeonId }).sort([['denaDungeonId', 'descending']]).populate(["drops", "enemies"])
+  return mongoose.model('Battle').find({ denaDungeonId: denaDungeonId }).sort([['denaDungeonId', 'descending']]).populate(["enemies"]).select("-drops")
   .then((battles) => {
-    battles.forEach((battle) => {
-      battle.uniqueDrops = _.uniqBy(battle.drops, (drop) => { return drop.denaItemId; });
-      battle.name = _.map((battle.enemies||[]), 'name').join(', ') || battle.denaBattleId;
+    return Promise.map(battles, (battle) => {
+      return mongoose.model('Drop').find({battle: battle._id}).distinct('denaItemId')
+      .then((denaItemIds) => {
+        battle.uniqueDrops = [];
+        battle.name = _.map((battle.enemies||[]), 'name').join(', ') || battle.denaBattleId;
 
-      battle.uniqueDrops.forEach((drop) => {
-        drop.imgUrl = GetDropImg(drop.denaItemId);
-        drop.name = dropData[drop.denaItemId];
-        drop.hits = battle.dropRates[drop.denaItemId].hits;
-        drop.total = battle.dropRates[drop.denaItemId].total;
-        drop.rate = battle.dropRates[drop.denaItemId].rate ? Math.round(battle.dropRates[drop.denaItemId].rate * 100) : 0;
-      });
+        denaItemIds.forEach((denaItemId) => {
+          console.log(denaItemId)
+          console.log(battle.dropRates)
+          var drop = {};
+          drop.imgUrl = GetDropImg(denaItemId);
+          drop.name = dropData[denaItemId];
+          drop.hits = battle.dropRates[denaItemId] ? battle.dropRates[denaItemId].hits : 0;
+          drop.total = battle.dropRates[denaItemId] ? battle.dropRates[denaItemId].total : 0;
+          drop.rate = battle.dropRates[denaItemId] ? (battle.dropRates[denaItemId].rate ? Math.round(battle.dropRates[denaItemId].rate * 100) : 0) : 0;
+          battle.uniqueDrops.push(drop);
+        });
 
-      battle.itemsFound = battle.uniqueDrops.length > 0;
-    });
+        battle.itemsFound = battle.uniqueDrops.length > 0;
 
-    return battles;
-
+        return battle;
+      });  
+    })
+    .return(battles);
   });
 }
 
