@@ -114,6 +114,11 @@
       createCookie('phone', user.phone, 365);
       createCookie('email', user.email, 365);
       createCookie('alertLevel', user.alertLevel, 365);
+
+      // socket.on('/drops/' + user.dena.sessionId, function(message) {
+      //   $('#attach-point').prepend(renderDrops(message));
+      // });
+      
       getDropMessageFor(user);
     });
   }

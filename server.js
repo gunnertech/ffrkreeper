@@ -182,7 +182,7 @@ io.on('connection', (socket) => {
       return [user, user.getDropMessage()];
     })
     .spread((user, message) => {
-      io.sockets.in(`/${user.dena.sessionId}`).emit(`/drops/${user.dena.sessionId}`, message); /// Send it to the browser
+      // io.sockets.in(`/${user.dena.sessionId}`).emit(`/drops/${user.dena.sessionId}`, message); /// Send it to the browser
       fn(message);
 
       return user;
