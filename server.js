@@ -230,11 +230,17 @@ setInterval(() => { User.findValidWithPhone().then((users) => {
           user.lastMessage = hashedMessage;
 
           return user.save();
+        })
+        .catch(() => {
+          user.lastMessage = hashedMessage;
+          user.phone = "";
+
+          return user.save();
         });
       } else {
         user.lastMessage = hashedMessage;
 
-        return user.save();
+        return user.save().catch(console.log);
       }
     });
   });
