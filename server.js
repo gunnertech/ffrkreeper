@@ -25,7 +25,7 @@ fs.readdirSync(path.join(__dirname, 'views/partials')).forEach(function(file) {
 
 require('./config/mongoose.js').setup(mongoose);
 
-//const dena = require('./dena.js');
+const dena = require('./dena.js');
 const User = require('./models/user.js');
 //const Drop = require('./models/drop.js');
 const Battle = require('./models/battle.js');
@@ -176,14 +176,18 @@ io.on('connection', (socket) => {
   });
 
   socket.on('/drops', (sessionId, fn) => {
-    var query = {};
+    User.findOne({'dena.sessionId': sessionId})
+    .then((user) => {
+      return [user, user.getDropMessage()];
+    })
+    .spread((user, message) => {
+      io.emit(`/drops/${user.dena.sessionId}`, message); /// Send it to the browser
+      fn(message);
 
-    User.doDropCheck(io, {'dena.sessionId': sessionId})
-    .then(() => {
-      fn("Done");
+      return user;
     });
 
-  })
+  });
 
   // socket.on('/battle', (data, fn) => { });
   // socket.on('/dungeon', (data, fn) => { });
@@ -193,8 +197,35 @@ io.on('connection', (socket) => {
 
 
 ///// Start background tasks
-// setInterval(() => io.emit('time', new Date().toTimeString()), 1000); //// every second
-setInterval(() => { User.doDropCheck(io, {phone: { $nin: [null,""] }}) }, 6000);  /// Once every six seconds
+setInterval(() => { User.findValidWithPhone().then((users) => { 
+  return Promise.map(users, (user) => {
+    return user.getDropMessage().then((message) => { return [user,message]; });
+  })
+  .then((arrs) => {
+    return Promise.map(arrs, (arr) => {
+      if(!arr[1].notify) {
+        return Promise.resolve(null);
+      }
+      console.log(arr[0]);
+      console.log(arr[1].notificationMessage);
+      return arr[0].sendSms(arr[1].notificationMessage);
+    });
+  });
+}) }, 6000);  /// Once every six seconds
+
 setTimeout(() => {
-  setInterval(() => { User.doDropCheck(io, {email: { $nin: [null,""] }}) }, 6000);  /// Once every six seconds
+  setInterval(() => { User.findValidWithEmail().then((users) => { 
+    return Promise.map(users, (user) => {
+      return [user, user.getDropMessage()];
+    })
+    .then((arrs) => {
+      return Promise.map(arrs, (arr) => {
+        if(!arr[1].notify) {
+          return Promise.resolve(null);
+        }
+
+        return arr[0].sendEmail(arr[1].notificationMessage);
+      });
+    });
+  }) }, 6000);  /// Once every six seconds
 }, 3000);

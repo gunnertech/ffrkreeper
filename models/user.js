@@ -118,16 +118,16 @@ schema.statics.buildDrops = (json) => {
 
 schema.statics.normalizePhone = (phone) => {
   if (phone) {
-  ///Strip out any non numeric characters
-  phone = phone.toString().replace(/\D/g, '');
+    ///Strip out any non numeric characters
+    phone = phone.toString().replace(/\D/g, '');
 
-  if (phone.length >= 11 && phone.indexOf('+') == -1) {
-    phone = `+${phone}`;
-  } else if (phone.length < 11) {
-    phone = `+1${phone}`; //ASSUME IT'S A US NUMBER
-  }
+    if (phone.length >= 11 && phone.indexOf('+') == -1) {
+      phone = `+${phone}`;
+    } else if (phone.length < 11) {
+      phone = `+1${phone}`; //ASSUME IT'S A US NUMBER
+    }
 
-  
+    
   }
 
   return phone;
@@ -142,70 +142,34 @@ schema.statics.updateData = () => {
   });
 }
 
-schema.statics.doDropCheck = (io, queryOptions) => {
-  queryOptions.hasValidSessionId = true;
-  queryOptions['dena.sessionId'] = queryOptions['dena.sessionId'] || { $ne: null };
-
-  return mongoose.model('User').find(queryOptions).select('-dena.json -drops')
-  .then((users) => {
-    return Promise.map(users, (user) => {
-      return user.checkForDrops()
-      .then((message) => {
-        io.emit(`/drops/${user.dena.sessionId}`, message); /// Send it to the browser
-        
-        if(message.notify) {
-          var notificationMessage = "";
-
-          message.drops.forEach((drop) => {
-            const userAlertLevel = user.alertLevel || 1000; /// set it to a high number that rarity won't reach
-
-            if(drop.rarity && parseInt(drop.rarity) >= userAlertLevel) {
-              notificationMessage = ` ${notificationMessage}${drop.name} x${drop.num}`;
-            }
-          });
-
-          if(notificationMessage) {
-            notificationMessage = `Your drops: ${notificationMessage}`;
-
-            if (user.email) {
-              user.sendEmail(notificationMessage);
-            };
-
-            if (user.phone) {
-              user.sendSms(notificationMessage);
-            }
-          }
-        }
-      })
-      .catch((error) => {
-        io.emit(`/drops/${user.dena.sessionId}`, error); /// Send it to the browser
-      
-        if (error.notify) {
-          if (user.email) {
-            user.sendEmail(error.message);
-          }
-
-          if (user.phone) {
-            user.sendSms(error.message);
-          }
-        }
-      })
-    }).return(users);
-  })
-  .then((users) => {
-    console.log(`Polled for ${users.length} users!`)
-  });
+schema.statics.findValidWithPhone = () => {
+  var query = {
+    hasValidSessionId: true,
+    phone: { $nin: [null,""] }
+  }
+  return mongoose.model('User').find(query).select('-dena.json -drops')
 }
 
-schema.methods.cacheImages = function() {
+schema.statics.findValidWithEmail = () => {
+  var query = {
+    hasValidSessionId: true,
+    email: { $nin: [null,""] }
+  }
+  return mongoose.model('User').find(query).select('-dena.json -drops')
+}
+
+schema.methods.cacheImages = function(images) {
   var self = this;
-  Promise.all([
-    mongoose.model("Image").find(),
-    dena.api.getImages(self.dena.sessionId)  
-  ])
-  .then( (data) => {
-    var existingImages = lodash.map(data[0], 'url');
-    var remoteImages = lodash.map(data[1], 'url');
+  (
+    images ? Promise.resolve(images) : dena.api.getImages(self.dena.sessionId)
+  )
+  .then((images) => {
+    var remoteImages = lodash.map(images, 'url');
+    return [remoteImages, mongoose.model("Image").find({url: { $in: remoteImages }})];
+  })
+  .spread((remoteImages, images) => {
+    var existingImages = lodash.map(images, 'url');
+    
     var newImages = lodash.map(lodash.uniq(lodash.differenceWith(remoteImages, existingImages, lodash.isEqual)), (img) => { return {url: img}; });
 
     newImages.forEach((image) => {
@@ -217,19 +181,22 @@ schema.methods.cacheImages = function() {
 }
 
 
-schema.methods.cacheAudioFiles = function() {
+schema.methods.cacheAudioFiles = function(audioFiles) {
   var self = this;
-  Promise.all([
-    mongoose.model("AudioFile").find(),
-    dena.api.getAudioFiles(self.dena.sessionId)  
-  ])
-  .then( (data) => {
-    var existingImages = lodash.map(data[0], 'url');
-    var remoteImages = lodash.map(data[1], 'url');
-    var newImages = lodash.map(lodash.uniq(lodash.differenceWith(remoteImages, existingImages, lodash.isEqual)), (img) => { return {url: img}; });
+  (
+    audioFiles ? Promise.resolve(audioFiles) : dena.api.getAudioFiles(self.dena.sessionId)
+  )
+  .then((audioFiles) => {
+    var remoteAudioFiles = lodash.map(audioFiles, 'url');
+    return [remoteAudioFiles, mongoose.model("AudioFile").find({url: { $in: remoteAudioFiles }})];
+  })
+  .spread((remoteAudioFiles, audioFiles) => {
+    var existingAudioFiles = lodash.map(audioFiles, 'url');
+    
+    var newAudioFiles = lodash.map(lodash.uniq(lodash.differenceWith(remoteAudioFiles, existingAudioFiles, lodash.isEqual)), (img) => { return {url: img}; });
 
-    newImages.forEach((image) => {
-      mongoose.model("AudioFile").create(image).catch((err) => { } )
+    newAudioFiles.forEach((audioFile) => {
+      mongoose.model("AudioFile").create(audioFile).catch((err) => { } )
     });
 
   });
@@ -310,130 +277,127 @@ schema.methods.sendSms = function (message) {
   });
 };
 
-schema.methods.checkForDrops = function () {
-  var self = this;
+schema.methods.getDropMessage = function () {
+  let self = this;
 
-  var options = {
-    url: 'http://ffrk.denagames.com/' + CURRENT_PATH,
-    proxy: process.env.PROXY_URL,
-    headers: {
-      'Content-Type': 'application/json',
-      'Cookie': 'http_session_sid=' + this.dena.sessionId
-    }
+  var message = { 
+    notificationMessage: "",
+    notify: false
   };
 
-
-
-  return new Promise((resolve, reject) => {
-    request.get(options, function (e, r, data) {
-      if (e) return reject(e);
-
-      var message = {};
-      var json = {};
-      var drops = [];
-
-      try {
-        json = JSON.parse(data);
-      } catch (e) { 
-        data = "";
-      }
-
-
-
-
-      if (data && data.length === 0) {
-        const proxiedError = new Error();
-        proxiedError.message = "Session Id Expired: Your session id no longer valid! Please reset it.";
-        proxiedError.name = 'Session Error';
-        proxiedError.notify = true;
-
-        self.hasValidSessionId = false;
-        self.save().then(() => reject(proxiedError));
-        return;
-      } else if (!json.success) {
-        const proxiedError = new Error();
-        proxiedError.message = "Not in Battle: Go join a battle to see your drops!";
-        proxiedError.name = 'Out of Battle Error';
-        proxiedError.notify = false; /// Not important enough to send an alert
-
-        self.inBattle = false;
-        self.save().then(() => reject(proxiedError));
-        return;
-      }
-
-      //// COMMENT THIS IN TO SEE THE FULL JSON FOR THE BATTLE
-      // console.log(util.inspect(json, false, null));
-
-      drops = mongoose.model('User').buildDrops(json);
-
-
-      Battle.findOne({ denaBattleId: json.battle.battle_id }).select('-drops')
-      .then(function (battle) {
-        if (battle) {
-          return Promise.resolve(battle);
-        } else {
-        return Battle.create({
-          denaBattleId: json.battle.battle_id,
-          denaDungeonId: json.battle.dungeon.dungeon_id,
-          eventId: json.battle.event.event_id,
-          eventType: json.battle.event.event_type,
-          dropRates: {}
-        });
-        }
-      })
-      .then(function (battle) { 
-        battle.denaBattleId = json.battle.battle_id;
-        battle.denaDungeonId = json.battle.dungeon.dungeon_id;
-        battle.eventId = json.battle.event.event_id;
-        battle.eventType = json.battle.event.event_type;
-        battle.dropRates = battle.dropRates || {};
-
-        return Battle.update({ _id: battle._id }, battle).then(() => { return battle; });
-      })
-      .then(function (battle) {
-
-        message.notify = !self.inBattle; ////// DON'T KEEPY SENDING ALERTS
-        message.duplicate = self.inBattle;
-
-        if(self.inBattle) {
-          //// DON'T RECORD THE SAME DROPS AGAIN
-          /// But we still need to keep going to build the drop rate
-          return Promise.resolve(null);
-        }
-        self.inBattle = true;
-
-        return self.save().return(
-          Promise.map(drops, (d) => {
-            if (d.item_id) {
-              console.log("Let's record this drop!");
-              return Drop.create({
-                battle: battle._id,
-                user: self._id,
-                denaItemId: d.item_id,
-                qty: d.num,
-                rarity: d.rarity
-              });
-            }
-
-            return Promise.resolve(null);
-          })
-        );
-      })
-      .then(() => {
-        return Battle.findOne({ denaBattleId: json.battle.battle_id }).select('-drops'); /// the battle will now have the drops, let's get the drop rate;
-      })
-      .then((battle) => {
-        drops.forEach((d) => {
-          if (d.item_id && battle.dropRates && battle.dropRates[d.item_id]) {
-            d.dropRate = battle.dropRates[d.item_id];
-            d.denaDungeonId = battle.denaDungeonId;
-          }
-        });
-        message.drops = drops;
-        resolve(message);
+  return dena.api.getBattleInitDataForEventId((process.env.DENA_CURRENT_EVENT_ID||94), {sessionId: self.dena.sessionId})
+  .then(function(json) {
+    if(!json.success) {
+      return self.save().then(() => {
+        return {
+          error: true,
+          message: "Not in Battle: Go join a battle to see your drops!",
+          name: "Out of Battle Error",
+          notify: false
+        };
       });
+    }
+
+    let images = dena.api.extraFilesFromBlob('png',JSON.stringify(json));
+    let audioFiles = dena.api.extraFilesFromBlob('m4a',JSON.stringify(json));
+
+    self.cacheAudioFiles(audioFiles);
+    self.cacheImages(images);
+
+    var drops = mongoose.model('User').buildDrops(json);
+
+
+    return Battle.findOne({ denaBattleId: json.battle.battle_id }).select('-drops')
+    .then(function (battle) { //// FIND OR CRATE THE BATTLE
+      if (battle) {
+        return Promise.resolve(battle);
+      } else {
+      return Battle.create({
+        denaBattleId: json.battle.battle_id,
+        denaDungeonId: json.battle.dungeon.dungeon_id,
+        eventId: json.battle.event.event_id,
+        eventType: json.battle.event.event_type,
+        dropRates: {}
+      });
+      }
+    })
+    .then(function (battle) { ///// UPDATE THE BATTLE WITH THE MOST RECENT DATA
+      battle.denaBattleId = json.battle.battle_id;
+      battle.denaDungeonId = json.battle.dungeon.dungeon_id;
+      battle.eventId = json.battle.event.event_id;
+      battle.eventType = json.battle.event.event_type;
+      battle.dropRates = battle.dropRates || {};
+
+      return Battle.update({ _id: battle._id }, battle).then(() => { return battle; });
+    })
+    .then(function (battle) {
+
+      message.notify = !self.inBattle; ////// DON'T KEEP SENDING ALERTS
+
+      if(self.inBattle) {
+        //// DON'T RECORD THE SAME DROPS AGAIN
+        /// But we still need to keep going to build the drop rate
+        return Promise.resolve(null);
+      }
+      self.inBattle = true;
+
+      return self.save().return(
+        Promise.map(drops, (d) => { //IF IT HAS AN item_id, it's woth saving to the db
+          if (d.item_id) {
+            console.log("Let's record this drop!");
+            return Drop.create({
+              battle: battle._id,
+              user: self._id,
+              denaItemId: d.item_id,
+              qty: d.num,
+              rarity: d.rarity
+            });
+          }
+
+          return Promise.resolve(null);
+        })
+      );
+    })
+    .then(() => {
+      /// the battle will now have the drops, let's get the drop rate;
+      return Battle.findOne({ denaBattleId: json.battle.battle_id }).select('-drops');
+    })
+    .then((battle) => {
+      drops.forEach((d) => {
+        if (d.item_id && battle.dropRates && battle.dropRates[d.item_id]) {
+          d.dropRate = battle.dropRates[d.item_id];
+          d.denaDungeonId = battle.denaDungeonId;
+        }
+      });
+      message.drops = drops;
+
+      const userAlertLevel = self.alertLevel || 1000; /// If not set, default to a high number that rarity won't reach
+
+      message.drops.forEach((drop) => {
+        if(parseInt(drop.rarity||0) >= userAlertLevel) {
+          message.notificationMessage = ` ${message.notificationMessage}${drop.name} x${drop.num}`;
+        }
+      });
+
+      if(message.notificationMessage) {
+        message.notificationMessage = `Your Drops: ${message.notificationMessage}`;
+      }
+      
+      return message;
+    });
+  })
+  .catch(function(err) {
+    self.inBattle = false;
+    self.hasValidSessionId = false;
+    return self.save().then(() => {
+      return {
+        error: true,
+        message: "Session Id Expired: Your session id no longer valid! Please reset it.",
+        name: "Session Error",
+        notify: true
+      };
     });
   });
-};
+}
 
 module.exports = mongoose.model('User', schema);

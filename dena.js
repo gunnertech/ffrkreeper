@@ -36,6 +36,7 @@ const http = require('http');
 const rp = require('request-promise');
 const Promise = require('bluebird');
 const util = require('util');
+const lodash = require('lodash');
 
 function getSessionId(userId, accessToken, sessionId) {
   return new Promise(function(resolve, reject) {
@@ -174,52 +175,37 @@ function scrapeIndexScreen(sessionId) {
   });
 }
 
+function extraFilesFromBlob(fileType, blob) {
+  var regex = new RegExp('"[^"]+(\.'+fileType+')"', "g");
+  var matches = regex.execAll(blob);
+  var files = [];
+
+  matches.forEach((match) => {
+
+    var url = 'https://ffrk.static.denagames.com' + match[0].replace(/Content/,'dff/static').replace(/\\/g,"").replace(/"/g,"");
+
+    files.push({url: url});
+  });
+
+  return files;
+}
+
 function getImages(sessionId) {
   return scrapeIndexScreen(sessionId)
   .then((data) => {
-    var images = [];
-
     var embeddedJsonBlobs = /<script data\-app\-init\-data type="application\/json">(.+)<\/script>/g.execAll(data);
-    
-    embeddedJsonBlobs.forEach((blob) => {
 
-      var imgStrings = /"[^"]+(\.png)"/g.execAll(blob[1]);
-
-      imgStrings.forEach((imgString) => {
-
-        var url = 'https://ffrk.static.denagames.com' + imgString[0].replace(/Content/,'dff/static').replace(/\\/g,"").replace(/"/g,"");
-
-        images.push({url: url});
-      });
-    });
-
-    return images;
-  })
+    return lodash.flatten(lodash.map(embeddedJsonBlobs, (blob) => { return extraFilesFromBlob('png', blob); }));
+  });
 }
 
 function getAudioFiles(sessionId) {
   return scrapeIndexScreen(sessionId)
   .then((data) => {
-    var images = [];
-
     var embeddedJsonBlobs = /<script data\-app\-init\-data type="application\/json">(.+)<\/script>/g.execAll(data);
-    
-    embeddedJsonBlobs.forEach((blob) => {
 
-      var imgStrings = /"[^"]+(\.m4a)"/g.execAll(blob[1]);
-
-      imgStrings.forEach((imgString) => {
-
-        var url = 'https://ffrk.static.denagames.com' + imgString[0].replace(/Content/,'dff/static').replace(/\\/g,"").replace(/"/g,"");
-
-        console.log(url);
-
-        images.push({url: url});
-      });
-    });
-
-    return images;
-  })
+    return lodash.flatten(lodash.map(embeddedJsonBlobs, (blob) => { return extraFilesFromBlob('m4a', blob); }));
+  });
 }
 
 function getUserSessionKey(sessionId, csrfToken) {
@@ -371,8 +357,8 @@ function getDetailedFellowListing(options) {
   return doSimpleGet("/dff/relation/detailed_fellow_listing", options); 
 }
 
-function getBattleInitDataForEventId(eventId) {
-  return doSimpleGet("/dff/event/challenge/"+eventId+"/get_battle_init_data");  
+function getBattleInitDataForEventId(eventId, options) {
+  return doSimpleGet("/dff/event/challenge/"+eventId+"/get_battle_init_data", options);  
 }
 
 function getBattleInitDataForSuppressId(suppressId) {
@@ -499,6 +485,8 @@ module.exports = {
     getFriendFollowModalInfo: getFriendFollowModalInfo,
     getRootData: getRootData,
     getImages: getImages,
-    getAudioFiles: getAudioFiles
+    getAudioFiles: getAudioFiles,
+    getBattleInitDataForEventId: getBattleInitDataForEventId,
+    extraFilesFromBlob: extraFilesFromBlob
   }
 };

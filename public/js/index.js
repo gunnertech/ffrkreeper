@@ -33,6 +33,13 @@
     createCookie(name, "", -1);
   }
 
+  function getDropMessageFor(user) {
+    socket.emit('/drops', user.dena.sessionId, function(message) {
+      $('#attach-point').prepend(renderDrops(message));
+      setTimeout(function(){ getDropMessageFor(user) }, LOOP_FREQUENCY)
+    });
+  }
+
   var messages = [];
   function renderDrops(message) {
     var showDrop = (messages.length === 0 || (message.name && message.name != messages[messages.length - 1].name) || (!message.name && messages[messages.length - 1].name));
@@ -105,19 +112,7 @@
       phone: phone,
       email: email,
       alertLevel: alertLevel
-    }, function(user) {
-      socket.on("/drops/" + user.dena.sessionId, function(message) {
-        console.log(message)
-        $('#attach-point').prepend(renderDrops(message));
-      });
-
-      getDropsInterval = setInterval(function() {
-        socket.emit('/drops', user.dena.sessionId, function(message) {
-          console.log(message);
-        });
-      }, LOOP_FREQUENCY);
-
-    });
+    }, getDropMessageFor);
   }
 
   function signout() {
