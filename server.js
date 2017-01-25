@@ -212,15 +212,8 @@ setInterval(() => { User.findValidWithPhone().then((users) => {
       var user = arr[0];
       var message = arr[1];
       var hashedMessage = hash.digest(message);
-
-      if(user.phone.match(/860/)) {
-        console.log(user.lastMessage);
-        console.log(hashedMessage);
-        // console.log(arr[1].notificationMessage);  
-        console.log(message.notify);
-      }
       
-      if(user.notify && hashedMessage != user.lastMessage) {
+      if(message.notify && hashedMessage != user.lastMessage) {
         return user.sendSms(message.notificationMessage)
         .then(() => {
           user.lastMessage = hashedMessage;
@@ -240,12 +233,22 @@ setTimeout(() => {
       return [user, user.getDropMessage()];
     })
     .then((arrs) => {
-      return Promise.map(arrs, (arr) => {
-        if(arr[1].notify && hash.digest(arr[1]) != arr[0].lastMessage) {
-        return arr[0].sendEmail(arr[1].notificationMessage);
+    return Promise.map(arrs, (arr) => {
+      var user = arr[0];
+      var message = arr[1];
+      var hashedMessage = hash.digest(message);
+      
+      if(message.notify && hashedMessage != user.lastMessage) {
+        return user.sendEmail(message.notificationMessage)
+        .then(() => {
+          user.lastMessage = hashedMessage;
+
+          return user.save();
+        });
       }
+
       return Promise.resolve(null);
-      });
     });
+  });
   }) }, 6000);  /// Once every six seconds
 }, 3000);
