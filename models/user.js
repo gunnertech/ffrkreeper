@@ -232,6 +232,10 @@ schema.methods.updateData = function() {
 }
 
 schema.methods.sendEmail = function (message) {
+  if(!message) {
+    return Promise.resolve("");
+  }
+
   let helper = require('sendgrid').mail;
   let from_email = new helper.Email('no-reply@ffrk-creeper.herokuapp.com');
   let to_email = new helper.Email(this.email);
@@ -262,6 +266,10 @@ schema.methods.sendSms = function (message) {
   var self = this;
 
   return new Promise((resolve, reject) => {
+    if(!message) {
+      return resolve("");
+    }
+
     twilio.sendMessage({
       to: self.phone,
       from: process.env.TWILIO_PHONE_NUMBER,

@@ -34,10 +34,10 @@
   }
 
   function getDropMessageFor(user) {
-    socket.emit('/drops', user.dena.sessionId, function(message) {
-      $('#attach-point').prepend(renderDrops(message));
-      setTimeout(function(){ getDropMessageFor(user) }, LOOP_FREQUENCY)
-    });
+    // socket.emit('/drops', user.dena.sessionId, function(message) {
+    //   $('#attach-point').prepend(renderDrops(message));
+    //   setTimeout(function(){ getDropMessageFor(user) }, LOOP_FREQUENCY)
+    // });
   }
 
   var messages = [];
@@ -107,12 +107,12 @@
     createCookie('email', email, 365);
     createCookie('alertLevel', alertLevel, 365);
 
-    socket.emit('/signin', {
-      sessionId: sessionId,
-      phone: phone,
-      email: email,
-      alertLevel: alertLevel
-    }, getDropMessageFor);
+    // socket.emit('/signin', {
+    //   sessionId: sessionId,
+    //   phone: phone,
+    //   email: email,
+    //   alertLevel: alertLevel
+    // }, getDropMessageFor);
   }
 
   function signout() {
@@ -130,14 +130,14 @@
     eraseCookie('email');
     eraseCookie('alertLevel');
 
-    socket.emit('/signout', {
-      sessionId: sessionId,
-      phone: phone,
-      email: email
-    }, function(data) {
-      console.log("Signed Out!");
-      clearInterval(getDropsInterval);
-    });
+    // socket.emit('/signout', {
+    //   sessionId: sessionId,
+    //   phone: phone,
+    //   email: email
+    // }, function(data) {
+    //   console.log("Signed Out!");
+    //   clearInterval(getDropsInterval);
+    // });
   }
 
   $('#session-id').val(readCookie('denaSessionId'));
@@ -164,17 +164,17 @@
   $("#btn-signin").click(signin);
   $("#btn-signout").click(signout);
 
-  socket.on('time', function(timeString) {
-    clearTimeout(statusTimer);
-    statusTimer = setTimeout(function() {
-      // $('.badge-default').hide();
-      // $('.badge-success').hide();
-      // $('.badge-danger').show();
-    }, LOOP_FREQUENCY);
+  // socket.on('time', function(timeString) {
+  //   clearTimeout(statusTimer);
+  //   statusTimer = setTimeout(function() {
+  //     // $('.badge-default').hide();
+  //     // $('.badge-success').hide();
+  //     // $('.badge-danger').show();
+  //   }, LOOP_FREQUENCY);
 
-    // $('.badge-default').hide();
-    // $('.badge-success').show();
-    // $('.badge-danger').hide();
-    // $('#server-time').html(timeString);
-  });
+  //   // $('.badge-default').hide();
+  //   // $('.badge-success').show();
+  //   // $('.badge-danger').hide();
+  //   // $('#server-time').html(timeString);
+  // });
 })();
