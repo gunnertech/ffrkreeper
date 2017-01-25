@@ -52,14 +52,15 @@ schema.post('save', function (drop) {
     battle.dropRates[drop.denaItemId] = battle.dropRates[drop.denaItemId] || {};
     for (var i in battle.dropRates) {
       if (i) {
-        battle.dropRates[i] = {
-          total: drops.length,
-          hits: lodash.filter(drops, (d) => { return i.toString() == (d.denaItemId || "").toString() }).length
-        };
         battle.dropRates[i].rate = (battle.dropRates[i].hits * 1.0) / (battle.dropRates[i].total * 1.0) || 0.0;
       }
 
     }
+
+    battle.dropRates[drop.denaItemId] = {
+      total: drops.length,
+      hits: lodash.filter(drops, (d) => { return drop.denaItemId.toString() == (d.denaItemId || "").toString() }).length
+    };
 
     battle.dropRates[drop.denaItemId].rate = (battle.dropRates[drop.denaItemId].hits * 1.0) / (battle.dropRates[drop.denaItemId].total * 1.0) || 0.0;
 

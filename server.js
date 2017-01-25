@@ -211,15 +211,6 @@ setInterval(() => { User.findValidWithPhone().then((users) => {
       var message = arr[1];
       var hashedMessage = message.notificationMessage;
 
-      console.log(user.phone)
-
-      if(user.phone.match(/860/)) {
-        console.log("\n\n~~~~~~~~")
-        console.log(user.lastMessage)
-        console.log(hashedMessage)
-        console.log(message.notify)
-        console.log("~~~~~~~~\n\n")
-      }
       
       if(message.notify && hashedMessage != user.lastMessage) {
 
