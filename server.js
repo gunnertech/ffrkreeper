@@ -15,6 +15,7 @@ const fs = require('fs');
 const mongoose = require('mongoose');
 const Promise = require('bluebird');
 const hbs = require('hbs');
+const hash = require('json-hash');
 const handlebars = require('handlebars');
 const engine = hbs.create(handlebars.create());
 
@@ -27,9 +28,7 @@ require('./config/mongoose.js').setup(mongoose);
 
 const dena = require('./dena.js');
 const User = require('./models/user.js');
-const Drop = require('./models/drop.js');
 const Battle = require('./models/battle.js');
-//const Enemy = require('./models/enemy.js');
 const Image = require('./models/image.js');
 const AudioFile = require('./models/audioFile.js');
 
@@ -210,10 +209,12 @@ setInterval(() => { User.findValidWithPhone().then((users) => {
   })
   .then((arrs) => {
     return Promise.map(arrs, (arr) => {
-      if(!arr[1].notify) {
-        return Promise.resolve(null);
+      console.log(arr[0].phone);
+      console.log(arr[1]);
+      if(arr[1].notify && hash.digest(arr[1]) != arr[0].lastMessage) {
+        return arr[0].sendSms(arr[1].notificationMessage);
       }
-      return arr[0].sendSms(arr[1].notificationMessage);
+      return Promise.resolve(null);
     });
   });
 }) }, 6000);  /// Once every six seconds
@@ -225,11 +226,10 @@ setTimeout(() => {
     })
     .then((arrs) => {
       return Promise.map(arrs, (arr) => {
-        if(!arr[1].notify) {
-          return Promise.resolve(null);
-        }
-
+        if(arr[1].notify && hash.digest(arr[1]) != arr[0].lastMessage) {
         return arr[0].sendEmail(arr[1].notificationMessage);
+      }
+      return Promise.resolve(null);
       });
     });
   }) }, 6000);  /// Once every six seconds

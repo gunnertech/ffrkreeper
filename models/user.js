@@ -13,6 +13,7 @@ const mongoose = require('mongoose');
 const Promise = require('bluebird');
 const lodash = require('lodash');
 const request = require('request');
+const hash = require('json-hash');
 
 const CURRENT_PATH = '/dff/event/challenge/94/get_battle_init_data';
 //const CURRENT_PATH = '/dff/event/suppress/2025/single/get_battle_init_data';
@@ -50,6 +51,7 @@ const schema = new mongoose.Schema({
     max: 6,
     default: 0
   },
+  lastMessage: String,
   drops: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Drop' }]
 });
 
@@ -290,7 +292,7 @@ schema.methods.getDropMessage = function () {
 
   var message = { 
     notificationMessage: "",
-    notify: false
+    notify: true
   };
 
   return dena.api.getBattleInitDataForEventId((process.env.DENA_CURRENT_EVENT_ID||94), {sessionId: self.dena.sessionId})
@@ -300,6 +302,7 @@ schema.methods.getDropMessage = function () {
         return {
           error: true,
           message: "Not in Battle: Go join a battle to see your drops!",
+          notificationMessage: "Not in Battle: Go join a battle to see your drops!",
           name: "Out of Battle Error",
           notify: false
         };
@@ -340,7 +343,7 @@ schema.methods.getDropMessage = function () {
     })
     .then(function (battle) {
 
-      message.notify = !self.inBattle; ////// DON'T KEEP SENDING ALERTS
+      // message.notify = !self.inBattle; ////// DON'T KEEP SENDING ALERTS
 
       if(self.inBattle) {
         //// DON'T RECORD THE SAME DROPS AGAIN
@@ -395,9 +398,6 @@ schema.methods.getDropMessage = function () {
     });
   })
   .catch(function(err) {
-    console.log("\n\n");
-    console.log(err);
-    console.log("\n\n");
     self.inBattle = false;
     self.hasValidSessionId = false;
     return self.save().then(() => {
@@ -405,9 +405,14 @@ schema.methods.getDropMessage = function () {
         error: true,
         message: "Session Id Expired: Your session id no longer valid! Please reset it.",
         name: "Session Error",
+        notificationMessage: "Session Id Expired: Your session id no longer valid! Please reset it.",
         notify: true
       };
     });
+  })
+  .then(function(message) {
+    self.lastMessage = hash.digest(message);
+    return self.save().return(message);
   });
 }
 
