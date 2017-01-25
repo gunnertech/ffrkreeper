@@ -56,6 +56,12 @@ const schema = new mongoose.Schema({
 });
 
 schema.pre('save', function (next) {
+  if(this.email == "undefined") {
+    this.email = null;
+  }
+})
+
+schema.pre('save', function (next) {
   this.phone = mongoose.model('User', schema).normalizePhone(this.phone);
 
   if(!this.phone) {
@@ -291,7 +297,7 @@ schema.methods.getDropMessage = function () {
   let self = this;
 
   var message = { 
-    notificationMessage: "",
+    notificationMessage: "d",
     notify: true
   };
 

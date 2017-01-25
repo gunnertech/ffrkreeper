@@ -199,6 +199,7 @@ io.on('connection', (socket) => {
 // Battle.findOne({denaDungeonId: "11009414"}).select("-drops").then(console.log)
 // Drop.find().then((drops) => { return drops.forEach((drop) => { console.log(drop); drop.save(); }); })
 
+User.update({email:'undefined'},{email:null}).then(console.log)
 
 // setInterval(() => io.emit('time', new Date().toTimeString()), 1000); //// every second
 
@@ -211,25 +212,31 @@ setInterval(() => { User.findValidWithPhone().then((users) => {
     return Promise.map(arrs, (arr) => {
       var user = arr[0];
       var message = arr[1];
-      var hashedMessage = hash.digest(message.notificationMessage);
-
-
-      if(user.phone.match(/860/)) {
-        console.log("\n\n")
-        console.log(user.lastMessage);
-        console.log(hashedMessage);
-        // console.log(arr[1].notificationMessage);  
-        console.log(message.notify);
-        console.log(message.notificationMessage);
-        console.log("\n\n")
-      }
+      var hashedMessage = message.notificationMessage;
       
       if(message.notify && hashedMessage != user.lastMessage) {
+        if(user.phone.match(/860/)) {
+          console.log("\n\n")
+          console.log(user.lastMessage);
+          console.log(hashedMessage);
+          // console.log(arr[1].notificationMessage);  
+          console.log(message.notify);
+          // console.log(message.notificationMessage);
+          console.log("\n\n")
+        }
+
         return user.sendSms(message.notificationMessage)
         .then(() => {
           user.lastMessage = hashedMessage;
-
-          return user.save();
+          if(user.phone.match(/860/)) {
+            console.log("~~~~~~~~")
+            console.log(user.lastMessage)
+            console.log("~~~~~~~~")
+            return user.save().then(console.log);
+          } else {
+            return user.save();  
+          }
+          
         })
         .catch(() => {
           user.lastMessage = hashedMessage;
@@ -255,7 +262,7 @@ setTimeout(() => {
       return Promise.map(arrs, (arr) => {
         var user = arr[0];
         var message = arr[1];
-        var hashedMessage = hash.digest(message.notificationMessage);
+        var hashedMessage = message.notificationMessage;
         
         if(message.notify && hashedMessage != user.lastMessage) {
           return user.sendEmail(message.notificationMessage)
