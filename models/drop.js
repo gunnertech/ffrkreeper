@@ -27,17 +27,17 @@ schema.pre('save', function (next) {
     .error(((err) => next(err)));
 });
 
-schema.post('save', function(drop) {
-  mongoose.model('User').findById(drop.user)
-  .then((user) => {
-    //// If the dena hash has never been updated or it hasn't been updated in 5 hours, let's do it again.
-    if(!user.dena.updatedAt || moment(user.dena.updatedAt).add(5, 'hours').toDate() < moment(new Date()).toDate()) {
-      return user.updateData().return(user);
-    } else {
-      return Promise.resolve(user);
-    }
-  })
-});
+// schema.post('save', function(drop) {
+//   mongoose.model('User').findById(drop.user)
+//   .then((user) => {
+//     //// If the dena hash has never been updated or it hasn't been updated in 5 hours, let's do it again.
+//     if(!user.dena.updatedAt || moment(user.dena.updatedAt).add(5, 'hours').toDate() < moment(new Date()).toDate()) {
+//       return user.updateData().return(user);
+//     } else {
+//       return Promise.resolve(user);
+//     }
+//   })
+// });
 
 schema.post('save', function (drop) {
   mongoose.model('Drop').find({ battle: drop.battle })
