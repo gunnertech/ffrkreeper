@@ -35,6 +35,7 @@
 
   function getDropMessageFor(user) {
     socket.emit('/drops', user.dena.sessionId, function(message) {
+      console.log(message);
       $('#attach-point').prepend(renderDrops(message));
       setTimeout(function(){ getDropMessageFor(user) }, LOOP_FREQUENCY)
     });
