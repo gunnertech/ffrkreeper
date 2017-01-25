@@ -141,6 +141,9 @@ io.on('connection', (socket) => {
         return user.save().return(user);
       })
       .then((user) => {
+        console.log("\n\n SIGNED IN")
+        console.log(user)
+        console.log("\n\n")
         socket.join(`/${user.dena.sessionId}`);
         fn(user);
       });
