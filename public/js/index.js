@@ -34,10 +34,10 @@
   }
 
   function getDropMessageFor(user) {
-    // socket.emit('/drops', user.dena.sessionId, function(message) {
-    //   $('#attach-point').prepend(renderDrops(message));
-    //   setTimeout(function(){ getDropMessageFor(user) }, LOOP_FREQUENCY)
-    // });
+    socket.emit('/drops', user.dena.sessionId, function(message) {
+      $('#attach-point').prepend(renderDrops(message));
+      setTimeout(function(){ getDropMessageFor(user) }, LOOP_FREQUENCY)
+    });
   }
 
   var messages = [];
@@ -107,12 +107,12 @@
     createCookie('email', email, 365);
     createCookie('alertLevel', alertLevel, 365);
 
-    // socket.emit('/signin', {
-    //   sessionId: sessionId,
-    //   phone: phone,
-    //   email: email,
-    //   alertLevel: alertLevel
-    // }, getDropMessageFor);
+    socket.emit('/signin', {
+      sessionId: sessionId,
+      phone: phone,
+      email: email,
+      alertLevel: alertLevel
+    }, getDropMessageFor);
   }
 
   function signout() {
@@ -130,22 +130,22 @@
     eraseCookie('email');
     eraseCookie('alertLevel');
 
-    // socket.emit('/signout', {
-    //   sessionId: sessionId,
-    //   phone: phone,
-    //   email: email
-    // }, function(data) {
-    //   console.log("Signed Out!");
-    //   clearInterval(getDropsInterval);
-    // });
+    socket.emit('/signout', {
+      sessionId: sessionId,
+      phone: phone,
+      email: email
+    }, function(data) {
+      console.log("Signed Out!");
+      clearInterval(getDropsInterval);
+    });
   }
 
-  $('#session-id').val(readCookie('denaSessionId'));
-  $('#phone').val(readCookie('phone'));
-  $('#email').val(readCookie('email'));
-  $('#alert-level').val(readCookie('alertLevel'));
+  socket.on('connect', function() {
+    $('#session-id').val(readCookie('denaSessionId'));
+    $('#phone').val(readCookie('phone'));
+    $('#email').val(readCookie('email'));
+    $('#alert-level').val(readCookie('alertLevel'));
 
-  setTimeout(function() {
     if(
       $('#session-id').val() ||
       $('#phone').val() ||
@@ -153,7 +153,7 @@
     ) {
       signin();
     }
-  }, 2000)
+  });
 
   $('#btn-instructions').click(function(event) {
     event.preventDefault();

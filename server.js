@@ -141,6 +141,7 @@ io.on('connection', (socket) => {
         return user.save().return(user);
       })
       .then((user) => {
+        socket.join(`/${user.dena.sessionId}`);
         fn(user);
       });
   });
@@ -176,14 +177,12 @@ io.on('connection', (socket) => {
   });
 
   socket.on('/drops', (sessionId, fn) => {
-    console.log("\n\n~~~~~~We dropping....~~~~~~\n\n")
     User.findOne({'dena.sessionId': sessionId})
     .then((user) => {
       return [user, user.getDropMessage()];
     })
     .spread((user, message) => {
-      console.log("\n\n~~~~~~EMIT~~~~~~\n\n")
-      io.emit(`/drops/${user.dena.sessionId}`, message); /// Send it to the browser
+      io.sockets.in(`/${user.dena.sessionId}`).emit(`/drops/${user.dena.sessionId}`, message); /// Send it to the browser
       fn(message);
 
       return user;
