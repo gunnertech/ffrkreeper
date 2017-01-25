@@ -107,12 +107,12 @@
     createCookie('email', email, 365);
     createCookie('alertLevel', alertLevel, 365);
 
-    // socket.emit('/signin', {
-    //   sessionId: sessionId,
-    //   phone: phone,
-    //   email: email,
-    //   alertLevel: alertLevel
-    // }, getDropMessageFor);
+    socket.emit('/signin', {
+      sessionId: sessionId,
+      phone: phone,
+      email: email,
+      alertLevel: alertLevel
+    }, getDropMessageFor);
   }
 
   function signout() {
