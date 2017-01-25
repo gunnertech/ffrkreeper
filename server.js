@@ -136,6 +136,7 @@ io.on('connection', (socket) => {
         if(data.phone) { user.phone = data.phone; }
         if(data.email) { user.email = data.email; }
         if(data.sessionId) { user.dena.sessionId = data.sessionId; }
+        user.hasValidSessionId = true;
         user.alertLevel = parseInt(data.alertLevel) || 0;
 
         return user.save().return(user);
@@ -212,8 +213,6 @@ setInterval(() => { User.findValidWithPhone().then((users) => {
       if(!arr[1].notify) {
         return Promise.resolve(null);
       }
-      console.log(arr[0]);
-      console.log(arr[1].notificationMessage);
       return arr[0].sendSms(arr[1].notificationMessage);
     });
   });
