@@ -395,6 +395,9 @@ schema.methods.getDropMessage = function () {
     });
   })
   .catch(function(err) {
+    console.log("\n\n");
+    console.log(err);
+    console.log("\n\n");
     self.inBattle = false;
     self.hasValidSessionId = false;
     return self.save().then(() => {
