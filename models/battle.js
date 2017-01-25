@@ -40,8 +40,8 @@ function getUniqueItemsFromDungeon(dungeon) {
 
 				itemsFound.push({
 					itemId: itemId,
-					dropImg: dropImg,
-					dropName: dropData[itemId],
+					imgUrl: dropImg,
+					name: dropData[itemId],
 					rarity: info.rarity
 				})
 			}
@@ -60,7 +60,8 @@ schema.statics.getDungeonList = function(pageNumber, cb) {
 				_id: '$denaDungeonId',
 				dungeonName: { $first: '$dungeonName' },
 				eventType: { $first: '$eventType' },
-				dropRates: { $push: '$dropRates' }
+				dropRates: { $push: '$dropRates' },
+				enemies: { $push: '$enemies' }
 			}
 		},
 		{ $sort: { 'denaDungeonId': 1 } }, 
@@ -68,7 +69,8 @@ schema.statics.getDungeonList = function(pageNumber, cb) {
 		{ $limit: dungeonsPerPage }
 	], function(err, result) {
 		_.each(result, function(dungeon) {
-			dungeon.itemsFound = getUniqueItemsFromDungeon(dungeon);
+			dungeon.uniqueDrops = getUniqueItemsFromDungeon(dungeon);
+			//dungeon.enemiesStr = _.map((dungeon.enemies || []), 'name').join(', ');
 		})
 
 		cb(err, result)
