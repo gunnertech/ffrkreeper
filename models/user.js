@@ -305,6 +305,7 @@ schema.methods.getDropMessage = function () {
   return dena.api.getBattleInitDataForEventId((process.env.DENA_CURRENT_EVENT_ID||94), {sessionId: self.dena.sessionId})
   .then(function(json) {
     if(!json.success) {
+      self.inBattle = false;
       return self.save().then(() => {
         return {
           error: true,
@@ -346,39 +347,38 @@ schema.methods.getDropMessage = function () {
       battle.eventType = json.battle.event.event_type;
       battle.dropRates = battle.dropRates || {};
 
-      return Battle.update({ _id: battle._id }, battle).then(() => { return battle; });
+      return battle.save().return(battle);
     })
     .then(function (battle) {
-
-      // message.notify = !self.inBattle; ////// DON'T KEEP SENDING ALERTS
 
       if(self.inBattle) {
         //// DON'T RECORD THE SAME DROPS AGAIN
         /// But we still need to keep going to build the drop rate
-        return Promise.resolve(null);
+        return Promise.resolve(battle);
       }
       self.inBattle = true;
 
-      return self.save().return(
-        Promise.map(drops, (d) => { //IF IT HAS AN item_id, it's woth saving to the db
-          if (d.item_id) {
-            console.log("Let's record this drop!");
-            return Drop.create({
-              battle: battle._id,
-              user: self._id,
-              denaItemId: d.item_id,
-              qty: d.num,
-              rarity: d.rarity
-            });
+      return self.save()
+      .then(() => {
+        return Promise.map(drops, (d) => { //IF IT HAS AN item_id, it's woth saving to the db
+          if (!d.item_id) {
+            return Promise.resolve(null);
           }
-
-          return Promise.resolve(null);
-        })
-      );
+          
+          console.log("Let's record this drop!");
+          return Drop.create({
+            battle: battle._id,
+            user: self._id,
+            denaItemId: d.item_id,
+            qty: d.num,
+            rarity: d.rarity
+          });
+        });
+      }).return(battle);
     })
-    .then(() => {
+    .then((battle) => {
       /// the battle will now have the drops, let's get the drop rate;
-      return Battle.findOne({ denaBattleId: json.battle.battle_id }).select('-drops');
+      return Battle.findOne({ _id: battle._id }).select('-drops');
     })
     .then((battle) => {
       drops.forEach((d) => {

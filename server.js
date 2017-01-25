@@ -201,7 +201,6 @@ io.on('connection', (socket) => {
 
 ///// Start background tasks
 setInterval(() => { User.findValidWithPhone().then((users) => { 
-  console.log("....")
   return Promise.map(users, (user) => {
     return user.getDropMessage().then((message) => { return [user,message]; });
   })
@@ -228,7 +227,7 @@ setInterval(() => { User.findValidWithPhone().then((users) => {
       } else {
         user.lastMessage = hashedMessage;
 
-        return user.save().catch(console.log);
+        return user.save();
       }
     });
   });
