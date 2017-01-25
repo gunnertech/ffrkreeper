@@ -145,13 +145,16 @@
   $('#email').val(readCookie('email'));
   $('#alert-level').val(readCookie('alertLevel'));
 
-  if(
-    $('#session-id').val() ||
-    $('#phone').val() ||
-    $('#email').val()
-  ) {
-    signin();
-  }
+  setTimeout(function() {
+    if(
+      $('#session-id').val() ||
+      $('#phone').val() ||
+      $('#email').val()
+    ) {
+      console.log("Let's try to sign in");
+      signin();
+    }
+  }, 2000)
 
   $('#btn-instructions').click(function(event) {
     event.preventDefault();
