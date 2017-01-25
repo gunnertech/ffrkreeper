@@ -196,10 +196,6 @@ io.on('connection', (socket) => {
   // socket.on('/user', (data, fn) => { });
 });
 
-// Battle.findOne({denaDungeonId: "11009414"}).select("-drops").then(console.log)
-// Drop.find().then((drops) => { return drops.forEach((drop) => { console.log(drop); drop.save(); }); })
-
-User.update({email:'undefined'},{email:null}).then(console.log)
 
 // setInterval(() => io.emit('time', new Date().toTimeString()), 1000); //// every second
 
@@ -215,28 +211,11 @@ setInterval(() => { User.findValidWithPhone().then((users) => {
       var hashedMessage = message.notificationMessage;
       
       if(message.notify && hashedMessage != user.lastMessage) {
-        if(user.phone.match(/860/)) {
-          console.log("\n\n")
-          console.log(user.lastMessage);
-          console.log(hashedMessage);
-          // console.log(arr[1].notificationMessage);  
-          console.log(message.notify);
-          // console.log(message.notificationMessage);
-          console.log("\n\n")
-        }
 
         return user.sendSms(message.notificationMessage)
         .then(() => {
           user.lastMessage = hashedMessage;
-          if(user.phone.match(/860/)) {
-            console.log("~~~~~~~~")
-            console.log(user.lastMessage)
-            console.log("~~~~~~~~")
-            return user.save().then(console.log);
-          } else {
-            return user.save();  
-          }
-          
+          return user.save();  
         })
         .catch(() => {
           user.lastMessage = hashedMessage;
@@ -264,7 +243,7 @@ setTimeout(() => {
         var message = arr[1];
         var hashedMessage = message.notificationMessage;
         
-        if(message.notify && hashedMessage != user.lastMessage) {
+        if(!user.phone && message.notify && hashedMessage != user.lastMessage) {
           return user.sendEmail(message.notificationMessage)
           .then(() => {
             user.lastMessage = hashedMessage;
@@ -272,7 +251,9 @@ setTimeout(() => {
             return user.save();
           });
         } else {
-          user.lastMessage = hashedMessage;
+          if(!user.phone) {
+            user.lastMessage = hashedMessage;
+          }
 
           return user.save();
         }
