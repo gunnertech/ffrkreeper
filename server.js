@@ -209,11 +209,26 @@ setInterval(() => { User.findValidWithPhone().then((users) => {
   })
   .then((arrs) => {
     return Promise.map(arrs, (arr) => {
-      console.log(arr[0].phone);
-      console.log(arr[1]);
-      if(arr[1].notify && hash.digest(arr[1]) != arr[0].lastMessage) {
-        return arr[0].sendSms(arr[1].notificationMessage);
+      var user = arr[0];
+      var message = arr[1];
+      var hashedMessage = hash.digest(message);
+
+      if(user.phone.match(/860/)) {
+        console.log(user.lastMessage);
+        console.log(hashedMessage);
+        // console.log(arr[1].notificationMessage);  
+        console.log(message.notify);
       }
+      
+      if(user.notify && hashedMessage != user.lastMessage) {
+        return user.sendSms(message.notificationMessage)
+        .then(() => {
+          user.lastMessage = hashedMessage;
+
+          return user.save();
+        });
+      }
+
       return Promise.resolve(null);
     });
   });

@@ -409,10 +409,6 @@ schema.methods.getDropMessage = function () {
         notify: true
       };
     });
-  })
-  .then(function(message) {
-    self.lastMessage = hash.digest(message);
-    return self.save().return(message);
   });
 }
 
