@@ -107,12 +107,12 @@
     createCookie('email', email, 365);
     createCookie('alertLevel', alertLevel, 365);
 
-    socket.emit('/signin', {
-      sessionId: sessionId,
-      phone: phone,
-      email: email,
-      alertLevel: alertLevel
-    }, getDropMessageFor);
+    // socket.emit('/signin', {
+    //   sessionId: sessionId,
+    //   phone: phone,
+    //   email: email,
+    //   alertLevel: alertLevel
+    // }, getDropMessageFor);
   }
 
   function signout() {
@@ -151,7 +151,6 @@
       $('#phone').val() ||
       $('#email').val()
     ) {
-      console.log("Let's try to sign in");
       signin();
     }
   }, 2000)
@@ -164,17 +163,18 @@
   $("#btn-signin").click(signin);
   $("#btn-signout").click(signout);
 
-  // socket.on('time', function(timeString) {
-  //   clearTimeout(statusTimer);
-  //   statusTimer = setTimeout(function() {
-  //     // $('.badge-default').hide();
-  //     // $('.badge-success').hide();
-  //     // $('.badge-danger').show();
-  //   }, LOOP_FREQUENCY);
+  socket.on('time', function(timeString) {
+    console.log(timeString);
+    clearTimeout(statusTimer);
+    statusTimer = setTimeout(function() {
+      // $('.badge-default').hide();
+      // $('.badge-success').hide();
+      // $('.badge-danger').show();
+    }, LOOP_FREQUENCY);
 
-  //   // $('.badge-default').hide();
-  //   // $('.badge-success').show();
-  //   // $('.badge-danger').hide();
-  //   // $('#server-time').html(timeString);
-  // });
+    // $('.badge-default').hide();
+    // $('.badge-success').show();
+    // $('.badge-danger').hide();
+    // $('#server-time').html(timeString);
+  });
 })();
