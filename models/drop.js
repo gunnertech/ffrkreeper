@@ -42,7 +42,7 @@ schema.pre('save', function (next) {
 schema.post('save', function (drop) {
   mongoose.model('Drop').find({ battle: drop.battle })
   .then(function (drops) {
-    return [drops, Battle.findById(drop.battle)]
+    return [drops, Battle.findById(drop.battle).select('-drops')]
   })
   .spread(function (drops, battle) {
     ///TODO: totally not transactionally safe
