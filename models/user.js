@@ -59,6 +59,7 @@ schema.pre('save', function (next) {
   if(this.email == "undefined") {
     this.email = null;
   }
+  next();
 })
 
 schema.pre('save', function (next) {

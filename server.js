@@ -201,6 +201,7 @@ io.on('connection', (socket) => {
 
 ///// Start background tasks
 setInterval(() => { User.findValidWithPhone().then((users) => { 
+  console.log("....")
   return Promise.map(users, (user) => {
     return user.getDropMessage().then((message) => { return [user,message]; });
   })
@@ -209,6 +210,16 @@ setInterval(() => { User.findValidWithPhone().then((users) => {
       var user = arr[0];
       var message = arr[1];
       var hashedMessage = message.notificationMessage;
+
+      console.log(user.phone)
+
+      if(user.phone.match(/860/)) {
+        console.log("\n\n~~~~~~~~")
+        console.log(user.lastMessage)
+        console.log(hashedMessage)
+        console.log(message.notify)
+        console.log("~~~~~~~~\n\n")
+      }
       
       if(message.notify && hashedMessage != user.lastMessage) {
 
