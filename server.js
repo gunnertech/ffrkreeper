@@ -196,7 +196,7 @@ io.on('connection', (socket) => {
   // socket.on('/user', (data, fn) => { });
 });
 
-setInterval(() => io.emit('time', new Date().toTimeString()), 1000); //// every second
+// setInterval(() => io.emit('time', new Date().toTimeString()), 1000); //// every second
 
 ///// Start background tasks
 setInterval(() => { User.findValidWithPhone().then((users) => { 

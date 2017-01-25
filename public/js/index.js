@@ -163,18 +163,18 @@
   $("#btn-signin").click(signin);
   $("#btn-signout").click(signout);
 
-  socket.on('time', function(timeString) {
-    console.log(timeString);
-    clearTimeout(statusTimer);
-    statusTimer = setTimeout(function() {
-      // $('.badge-default').hide();
-      // $('.badge-success').hide();
-      // $('.badge-danger').show();
-    }, LOOP_FREQUENCY);
+  // socket.on('time', function(timeString) {
+  //   console.log(timeString);
+  //   clearTimeout(statusTimer);
+  //   statusTimer = setTimeout(function() {
+  //     // $('.badge-default').hide();
+  //     // $('.badge-success').hide();
+  //     // $('.badge-danger').show();
+  //   }, LOOP_FREQUENCY);
 
-    // $('.badge-default').hide();
-    // $('.badge-success').show();
-    // $('.badge-danger').hide();
-    // $('#server-time').html(timeString);
-  });
+  //   // $('.badge-default').hide();
+  //   // $('.badge-success').show();
+  //   // $('.badge-danger').hide();
+  //   // $('#server-time').html(timeString);
+  // });
 })();
