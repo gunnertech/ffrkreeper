@@ -36,7 +36,9 @@ const schema = new mongoose.Schema({
     id: { type: String, index: true },
     updatedAt: Date,
     invite_id: String,
-    json: mongoose.Schema.Types.Mixed
+    json: mongoose.Schema.Types.Mixed,
+    supporter_buddy_soul_strike_name: String,
+    profile_message: String
   },
   hasValidSessionId: {
     type: Boolean,
@@ -237,6 +239,13 @@ schema.methods.updateData = function() {
     if(profileJson.invite_id) {
       self.dena.invite_id = profileJson.invite_id;
     }
+
+    if(profileJson.profile) {
+      self.dena.profile_message = profileJson.profile.profile_message;
+      self.dena.supporter_buddy_soul_strike_name = profileJson.profile.supporter_buddy_soul_strike_name;
+    }
+
+    // console.log(profileJson.profile)
 
     // console.log(profileJson)
 

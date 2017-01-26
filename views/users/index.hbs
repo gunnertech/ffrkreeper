@@ -1,12 +1,21 @@
 <div class="container-fluid">
-
   <div class="row">
+
     {{#each users}}
-      <div class="col-xs" style="text-align: center;">
-        <img src="{{buddy.imgUrl}}" /><br />
-        <!--a href="/users/{{_id}}">{{dena.name}}</a><br /-->
-        {{dena.name}}<br />
-        {{dena.invite_id}}
+      <div class="col-12 col-sm-6 col-md-3">
+        <div class="media">
+          <img class="d-flex mr-3" src="{{buddy.imgUrl}}" alt="{{dena.name}}">
+          <div class="media-body">
+            <h5 class="mt-0">{{dena.name}}</h5>
+            <ul>
+              <li>{{dena.supporter_buddy_soul_strike_name}}</li>
+              <li>Code: {{dena.invite_id}}</li>
+            </ul>
+            <blockquote class="blockquote">
+              <p class="mb-0">{{dena.profile_message}}</p>
+            </blockquote>
+          </div>
+        </div>
       </div>
     {{/each}}
   </div>
