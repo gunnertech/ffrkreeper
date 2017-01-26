@@ -206,7 +206,12 @@ io.on('connection', (socket) => {
   // socket.on('/user', (data, fn) => { });
 });
 
-Battle.findOne({_id: '5887fdd10b21f8a941f1915d'}).select('-drops').then(console.log)
+// mongoose.model('Drop').find().select("_id")
+// .then((drops) => {
+//   return Promise.map(drops, (drop) => {
+//     drop.save();
+//   });
+// });
 
 // User.find({buddy: {$exists: false}}).select('-dena.json -drops')
 // User.find({'dena.supporter_buddy_soul_strike_name': {$exists: false}, hasValidSessionId: true, buddy: {$exists: true}}).select('-dena.json -drops')
