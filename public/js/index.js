@@ -28,10 +28,10 @@
   }
 
   function getDropMessageFor(user) {
-    $(".loading-wrapper").show();
+    $(".drop-loading-wrapper").show();
 
     socket.emit('/drops', user.dena.sessionId, function(message) {
-      $(".loading-wrapper").hide();
+      $(".drop-loading-wrapper").hide();
       if(message.name == 'Invalid Session Id') {
         return signout();
       }
@@ -91,13 +91,15 @@
     var email = $('#email').val();
     var alertLevel = $('#alert-level').val();
 
+    $(".signin-loading-wrapper").show();
+
     socket.emit('/signin', {
       sessionId: sessionId,
       phone: phone,
       email: email,
       alertLevel: alertLevel
     }, function(user) {
-      console.log("Signed in!");
+      $(".signin-loading-wrapper").hide();
 
       createCookie('denaSessionId', user.dena.sessionId, 365);
       createCookie('phone', user.phone, 365);

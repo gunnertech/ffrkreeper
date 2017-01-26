@@ -22,6 +22,10 @@
           </div>
           <input type="submit" class="btn btn-block btn-primary" value="Sign In" />
       </form>
+      <div class="loading-wrapper signin-loading-wrapper">
+        <img src="/images/loading.gif" />
+        <p>Signing In...</p>
+      </div>
     </div>
 
     <div class="col-lg">
@@ -94,7 +98,7 @@
     <div class="col-sm">
       <h2>Drops</h2>
         <div id="attach-point"></div>
-        <div class="loading-wrapper">
+        <div class="loading-wrapper drop-loading-wrapper">
           <img src="/images/loading.gif" />
           <p>Fetching drops...</p>
         </div>
@@ -104,7 +108,5 @@
 
 </div>
 
-<a class="btn btn-block btn-primary" id="btn-signout" href="#" style="display: none;">Sign Out</a>
-
 <script src="/socket.io/socket.io.js"></script>
-<script src="js/index.js?version=1.24"></script>
+<script src="js/index.js?ver=1.25"></script>
