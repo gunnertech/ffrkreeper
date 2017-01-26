@@ -58,7 +58,7 @@ const server = express()
   .get('/users', function(req, res) {
     User.findForIndex()
     .then((users) => {
-      res.render('users/index', { title: 'FFRKreeper Users', users: users });
+      res.render('users/index', { title: 'Users', users: users });
     });
   })
   .get('/users/:userId', function(req, res) {
@@ -207,13 +207,13 @@ io.on('connection', (socket) => {
 });
 
 // User.find({buddy: {$exists: false}}).select('-dena.json -drops')
-User.find({hasValidSessionId: true, buddy: {$exists: true}}).select('-dena.json -drops')
-.then((users) => {
-  return Promise.each(users, (user) => {
-    return user.updateData();
-  })
-})
-.then(() => {return console.log('done'); })
+// User.find({'dena.supporter_buddy_soul_strike_name': {$exists: false}, hasValidSessionId: true, buddy: {$exists: true}}).select('-dena.json -drops')
+// .then((users) => {
+//   return Promise.each(users, (user) => {
+//     return user.updateData();
+//   })
+// })
+// .then(() => {return console.log('done'); })
 
 
 // setInterval(() => io.emit('time', new Date().toTimeString()), 1000); //// every second
