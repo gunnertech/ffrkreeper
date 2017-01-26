@@ -1,12 +1,6 @@
 (function() {
   var socket = io();
   var LOOP_FREQUENCY = 6000;
-  var getDropsInterval = null;
-  var statusTimer = setTimeout(function() {
-    // $('.badge-default').hide();
-    // $('.badge-success').hide();
-    // $('.badge-danger').show();
-  }, LOOP_FREQUENCY);
 
   function createCookie(name, value, days) {
     var expires = "";
@@ -34,9 +28,10 @@
   }
 
   function getDropMessageFor(user) {
-    console.log("emitting");
+    $(".loading-wrapper").show();
+
     socket.emit('/drops', user.dena.sessionId, function(message) {
-      console.log(message);
+      $(".loading-wrapper").hide();
       if(message.name == 'Invalid Session Id') {
         return signout();
       }
@@ -49,55 +44,47 @@
   var messages = [];
   function renderDrops(message) {
     var showDrop = (messages.length === 0 || (message.name && message.name != messages[messages.length - 1].name) || (!message.name && messages[messages.length - 1].name));
-    var html = '<table class="table table-striped"><thead class="thead-inverse"><tr><th colspan="2">Your Loot</th></tr></thead><tbody>';
-
+    
     if(!showDrop) {
       return "";
     }
 
+    var html = '';
     messages.push(message);
 
-    if(message.message) {
-      html += '<tr class="table-danger"><td colspan="2"><strong>' + message.message + '</td></tr>';
-    } else if(message.drops == 0) {
-      html += '<tr class="table-warning"><td colspan="2"><strong>Nope!</strong> There ain\'t nothing dropping.</td></tr>';
-    } else {
-      $('#left-side').hide() //hide instructions if we have at least one successful drop
 
+    if(message.message) {
+      html += '<div class="alert alert-danger">' + message.message + '</div>';
+    } else if(message.drops == 0) {
+      html += '<div class="alert alert-warning">Nope! There ain\'t nothing dropping.</div>';
+    } else {
+      html = '<ul class="list-unstyled">';
       $.each(message.drops, function(i, drop) {
         var rarity = parseInt(drop.rarity);
 
-        html += '<tr class="table-' + (rarity > 4 ? 'success' : 'info') + '">';
-        html += '<td class="img-cell">';
-        html += '<img class="img-fluid" src="' + drop.image + '" />';
-        html += '</td>';
-        html += '<td>';
+        html += '<li class="media">';
+        html += '<img class="d-flex mr-3" src="' + drop.image + '" alt="' + drop.name + '">';
+        html += '<div class="media-body">';
+        html += '<h5 class="mt-0">';
         html += (drop.name + ' x' + drop.num);
         if(drop.round) {
           html += ' - Round ' + drop.round;
         }
+        html += '</h5>';
         if(drop.dropRate) {
-          // We have to increase the server value by one, because the client actually tells the server if it was a new drop
-          drop.dropRate.hits++;
-          drop.dropRate.total++;
-          drop.dropRate.rate = (drop.dropRate.hits * 1.0) / (drop.dropRate.total * 1.0);
-
           html += '<p>Drop Rate: ' + Math.round(drop.dropRate.rate * 100) + '% - ' + (drop.dropRate.hits) + ' out of ' + (drop.dropRate.total) + ' drops for <a href="/dungeon/'+drop.denaDungeonId+'/battles">this battle</a> have been for this item.</p>';
         }
-        html += '</td>';
-        html += '</tr>';
+        html += '</div>';
+        html += '</li>';
       });
+      html += '</ul>';
     }
-
-    html += '</tbody></table>';
 
     return html;
   }
 
   function signin() {
-    $("#btn-signin").hide();
-    $("#btn-signout").show();
-    $("form").hide();
+    if(event){ event.preventDefault(); }
 
     var sessionId = $('#session-id').val();
     var phone = $('#phone').val();
@@ -110,10 +97,16 @@
       email: email,
       alertLevel: alertLevel
     }, function(user) {
+      console.log("Signed in!");
+
       createCookie('denaSessionId', user.dena.sessionId, 365);
       createCookie('phone', user.phone, 365);
       createCookie('email', user.email, 365);
       createCookie('alertLevel', user.alertLevel, 365);
+
+      $("#welcome").hide();
+      $("#drops").show();
+      $("#signout-form").show();
 
       // socket.on('/drops/' + user.dena.sessionId, function(message) {
       //   $('#attach-point').prepend(renderDrops(message));
@@ -124,10 +117,8 @@
   }
 
   function signout() {
-    $("#btn-signin").show();
-    $("#btn-signout").hide();
-    $("form").show();
-    $('#left-side').show();
+    if(event){ event.preventDefault(); }
+
 
     var sessionId = $('#session-id').val();
     var phone = $('#phone').val();
@@ -143,46 +134,32 @@
       phone: phone,
       email: email
     }, function(data) {
+      $("#welcome").show();
+      $("#drops").hide();
+      $("#signout-form").hide();
+
       console.log("Signed Out!");
-      clearInterval(getDropsInterval);
     });
   }
 
   socket.on('connect', function() {
-    $('#session-id').val(readCookie('denaSessionId'));
-    $('#phone').val(readCookie('phone'));
-    $('#email').val(readCookie('email'));
-    $('#alert-level').val(readCookie('alertLevel'));
+    $('#session-id').val(readCookie('denaSessionId')||"");
+    $('#phone').val((readCookie('phone')||"").replace(/null/,"").replace(/undefined/,""));
+    $('#email').val((readCookie('email')||"").replace(/null/,"").replace(/undefined/,""));
+    $('#alert-level').val(readCookie('alertLevel')||"0");
 
     if(
       $('#session-id').val() ||
       $('#phone').val() ||
       $('#email').val()
     ) {
-      signin();
+      console.log("Got it. Let's sign in")
+      setTimeout(signin, 100);
     }
   });
 
-  $('#btn-instructions').click(function(event) {
-    event.preventDefault();
-    $('#instructions').toggle();
-  });
+  $("#signin-form").submit(signin);
+  $("#signout-form").submit(signout);
+  $("#signout-form").show();
 
-  $("#btn-signin").click(signin);
-  $("#btn-signout").click(signout);
-
-  // socket.on('time', function(timeString) {
-  //   console.log(timeString);
-  //   clearTimeout(statusTimer);
-  //   statusTimer = setTimeout(function() {
-  //     // $('.badge-default').hide();
-  //     // $('.badge-success').hide();
-  //     // $('.badge-danger').show();
-  //   }, LOOP_FREQUENCY);
-
-  //   // $('.badge-default').hide();
-  //   // $('.badge-success').show();
-  //   // $('.badge-danger').hide();
-  //   // $('#server-time').html(timeString);
-  // });
 })();

@@ -7,8 +7,16 @@ body {
     padding-bottom: 50px;
 }
 
-.container-fluid {
+body > .container-fluid {
     margin-top: 40px;
+}
+
+.drops.index .loading-wrapper {
+    text-align: center;
+}
+
+.drops.index form {
+    margin-bottom: 20px;
 }
 
 .index .card {

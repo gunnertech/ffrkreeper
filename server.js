@@ -240,3 +240,8 @@ io.on('connection', (socket) => {
   // socket.on('/world', (data, fn) => { });
   // socket.on('/user', (data, fn) => { });
 });
+
+User.update({email: "null"}, { $unset: { email: 1 }}).then(console.log)
+User.update({email: "undefined"}, { $unset: { email: 1 }}).then(console.log)
+User.update({phone: "null"}, { $unset: { phone: 1 }}).then(console.log)
+User.update({phone: "undefined"}, { $unset: { phone: 1 }}).then(console.log)

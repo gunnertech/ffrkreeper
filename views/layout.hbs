@@ -37,10 +37,36 @@
                     <a class="nav-link" href="/audio-files">Audio</a>
                 </li>
             </ul>
+
+            <form id="signout-form" style="display: none;" class="form-inline my-2 my-lg-0">
+              <button class="btn btn-outline-success my-2 my-sm-0" type="submit">Sign Out</button>
+            </form>
         </div>
     </nav>
 
     {{{body}}}
+
+    <footer class="fixed-bottom">
+        <div class="container-fluid">
+            <div class="row">
+                <div class="col">
+                    <div class="d-flex flex-row">
+                        <div class="p-2"><small>By <a href="http://gunnertech.com">Gunner Technology</a></small></div>
+                    </div>
+                </div>
+                <div class="col">
+                    <div class="d-flex flex-row-reverse">
+                        <div class="p-2">
+                            <span style="display: none;" class="badge badge-default">Status: Connecting...</span>
+                            <span style="display: none;" class="badge badge-danger">Status: Disconnected</span>
+                            <span style="display: none;" class="badge badge-success">Status: Connected</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </footer>
+
 
     <script>
       (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
