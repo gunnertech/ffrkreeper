@@ -312,8 +312,6 @@ function doSimpleGet(path, options) {
         try {
           var json = JSON.parse(data);   
         } catch(e) {
-          console.log(data)
-          console.log(headers)
           reject({
             message: "invalid session id",
             name: "Authorization Error"

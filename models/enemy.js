@@ -10,6 +10,13 @@ const schema = new mongoose.Schema({
   battle: { type: mongoose.Schema.Types.ObjectId, ref: 'Battle' }
 });
 
+schema.virtual('imgUrl').get(function () {
+  return `https://ffrk.static.denagames.com/dff/static/lang/image/enemy/${this.dena.enemyId}.png`;
+});
+
+schema.set('toJSON', { getters: true, virtuals: true });
+schema.set('toObject', { getters: true, virtuals: true });
+
 schema.pre('save', function (next) {
   var self = this;
 

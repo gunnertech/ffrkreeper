@@ -19,6 +19,7 @@ const hash = require('json-hash');
 const handlebars = require('handlebars');
 const engine = hbs.create(handlebars.create());
 const moment = require('moment');
+const lodash = require('lodash');
 
 //load all template partials
 fs.readdirSync(path.join(__dirname, 'views/partials')).forEach(function(file) {
@@ -90,6 +91,12 @@ const server = express()
     AudioFile.find()
     .then((audioFiles) => {
       return res.render('audio-files/index', { title: "Audio Files", audioFiles: audioFiles });
+    });
+  })
+  .get('/enemies', function(req, res) {
+    mongoose.model('Enemy').find().sort('name').select('-dena.json').populate('battle', 'denaDungeonId')
+    .then((enemies) => {
+      return res.render('enemies/index', { title: "Enemies", enemies: lodash.uniqBy(enemies,'name') });
     });
   })
 	.get('/dungeon/:dungeonId/battles', function(req, res) {

@@ -59,7 +59,7 @@ schema.statics.forDungeonIndex = function(pageNumber) {
   return mongoose.model('Battle').find().distinct('denaDungeonId')
   .then((denaDungeonIds) => {
     return Promise.map(denaDungeonIds, (denaDungeonId) => {
-      return mongoose.model('Battle').find({denaDungeonId: denaDungeonId}).select("-drops").populate('enemies');
+      return mongoose.model('Battle').find({denaDungeonId: denaDungeonId}).select("-drops").populate('enemies', 'name');
     })
     .then((groupedBattles) => {
       return Promise.map(groupedBattles, (battles) => {

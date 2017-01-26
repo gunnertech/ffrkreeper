@@ -14,6 +14,10 @@ body {
     margin-top: 40px;
 }
 
+.index .card {
+    margin-bottom: 20px;
+}
+
 .dungeons.index img {
     height: 50px;
     width: 50px;
