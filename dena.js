@@ -255,8 +255,6 @@ function doSimplePost(path, json, options) {
     'X-CSRF-Token': csrfToken
   }
 
-  console.log(headers)
-
   return new Promise(function(resolve, reject) {
 
     var post_data = JSON.stringify(json);

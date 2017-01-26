@@ -88,8 +88,13 @@ schema.pre('save', function (next) {
   next();
 });
 
-schema.statics.index = () => {
-  return mongoose.model('User', schema).find({ 'dena.name': { $ne: null } }).select('-dena.json -drops')
+schema.statics.findForIndex = () => {
+  return mongoose.model('User').find({hasValidSessionId: true, buddy: {$exists: true}}).distinct('dena.id')
+  .then((denaIds) => {
+    return Promise.map(denaIds, (denaId) => {
+      return mongoose.model('User').findOne({'dena.id': denaId, hasValidSessionId: true, buddy: {$exists: true}}).select('-dena.json -drops').populate('buddy');
+    });
+  });
 }
 
 schema.statics.buildDrops = (json) => {
@@ -225,32 +230,39 @@ schema.methods.updateData = function() {
       self.dena.name = userJson.user.name;
 
       /// let this run in the background
-      self.cacheImages();
-      self.cacheAudioFiles();
+      // self.cacheImages();
+      // self.cacheAudioFiles();
     } 
 
     if(profileJson.invite_id) {
-      self.dena.invite_id = profileJson.profile.invite_id;
+      self.dena.invite_id = profileJson.invite_id;
     }
 
-    if(profileJson.user_supporter) {
-      return mongoose.model('Buddy').findOne({'dena.buddy_id': profileJson.user_supporter.buddy_id})
+    // console.log(profileJson)
+
+    if(profileJson.user_supporter_buddy) {
+      return mongoose.model('Buddy').findOne({'dena.buddy_id': profileJson.user_supporter_buddy.buddy_id})
       .then((buddy) => {
         if(buddy) {
           return Promise.resolve(buddy);
         }
 
         return mongoose.model('Buddy').create({
-          'dena.buddy_id': profileJson.user_supporter.buddy_id,
-          'dena.name': profileJson.user_supporter.name
+          'dena.buddy_id': profileJson.user_supporter_buddy.buddy_id,
+          'dena.name': profileJson.user_supporter_buddy.name
         });
+      })
+      .then((buddy) => {
+        console.log(buddy);
+        self.buddy = buddy._id;
+        return self.save();
       })
       .return(self);
     }
 
     return self.save();
   })
-  .catch(() => {});
+  .catch((err) => { console.log(err); });
 }
 
 schema.methods.sendEmail = function (message) {

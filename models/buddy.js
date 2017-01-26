@@ -9,7 +9,7 @@ const schema = new mongoose.Schema({
 });
 
 schema.virtual('imgUrl').get(function () {
-  return `https://ffrk.static.denagames.com/dff/static/lang/ww/compile/en/image/buddy/${this.buddy_id}/${this.buddy_id}.png`;
+  return `https://ffrk.static.denagames.com/dff/static/lang/ww/compile/en/image/buddy/${this.dena.buddy_id}/${this.dena.buddy_id}.png`;
 });
 
 schema.set('toJSON', { getters: true, virtuals: true });

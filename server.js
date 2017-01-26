@@ -29,6 +29,7 @@ require('./config/mongoose.js').setup(mongoose);
 
 const dena = require('./dena.js');
 const User = require('./models/user.js');
+const Buddy = require('./models/buddy.js');
 const Battle = require('./models/battle.js');
 const Image = require('./models/image.js');
 const AudioFile = require('./models/audioFile.js');
@@ -55,7 +56,7 @@ const server = express()
 		})
   })
   .get('/users', function(req, res) {
-    User.index()
+    User.findForIndex()
     .then((users) => {
       res.render('users/index', { title: 'FFRKreeper Users', users: users });
     });
@@ -204,6 +205,15 @@ io.on('connection', (socket) => {
   // socket.on('/world', (data, fn) => { });
   // socket.on('/user', (data, fn) => { });
 });
+
+// User.find({buddy: {$exists: false}}).select('-dena.json -drops')
+// User.find({hasValidSessionId: true, buddy: {$exists: false}}).select('-dena.json -drops')
+// .then((users) => {
+//   return Promise.each(users, (user) => {
+//     console.log(user);
+//     return user.updateData();
+//   })
+// })
 
 
 // setInterval(() => io.emit('time', new Date().toTimeString()), 1000); //// every second
