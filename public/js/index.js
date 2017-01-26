@@ -32,7 +32,8 @@
 
     socket.emit('/drops', user.dena.sessionId, function(message) {
       $(".drop-loading-wrapper").hide();
-      if(message.name == 'Invalid Session Id') {
+      if(message.name == 'Session Error') {
+        alert(message.name + ": " + message.message);
         return signout();
       }
 
@@ -99,6 +100,11 @@
       email: email,
       alertLevel: alertLevel
     }, function(user) {
+      if(user.name == 'Session Error') {
+        alert(message.name + ": " + message.message);
+        return signout();
+      }
+      
       $(".signin-loading-wrapper").hide();
 
       createCookie('denaSessionId', user.dena.sessionId, 365);
