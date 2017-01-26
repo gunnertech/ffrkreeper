@@ -124,7 +124,7 @@ io.on('connection', (socket) => {
       query['phone'] = User.normalizePhone(data.phone);
     }
 
-    User.findOne({ $or: [query] }).select('-dena.json')
+    User.findOne({ $or: [query] }).select('-dena.json -drops')
       .then((user) => {
         if(user) {
           return Promise.resolve(user);
@@ -170,7 +170,7 @@ io.on('connection', (socket) => {
       query['phone'] = User.normalizePhone(data.phone);
     }
 
-    User.findOne({ $or: [query] })
+    User.findOne({ $or: [query] }).select('-dena.json -drops')
       .then((user) => {
         if(!user) {
           return Promise.resolve(null);
@@ -186,7 +186,7 @@ io.on('connection', (socket) => {
   });
 
   socket.on('/drops', (sessionId, fn) => {
-    User.findOne({'dena.sessionId': sessionId})
+    User.findOne({'dena.sessionId': sessionId}).select('-dena.json -drops')
     .then((user) => {
       return [user, user.getDropMessage()];
     })

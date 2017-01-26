@@ -89,7 +89,7 @@ schema.pre('save', function (next) {
 });
 
 schema.statics.index = () => {
-  return mongoose.model('User', schema).find({ 'dena.name': { $ne: null } })
+  return mongoose.model('User', schema).find({ 'dena.name': { $ne: null } }).select('-dena.json -drops')
 }
 
 schema.statics.buildDrops = (json) => {
