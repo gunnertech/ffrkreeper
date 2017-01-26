@@ -37,7 +37,10 @@ const schema = new mongoose.Schema({
     invite_id: String,
     json: mongoose.Schema.Types.Mixed,
     supporter_buddy_soul_strike_name: String,
-    profile_message: String
+    profile_message: String,
+    mnd: Number,
+    matk: Number,
+    atk: Number
   },
   hasValidSessionId: {
     type: Boolean,
@@ -213,7 +216,10 @@ schema.methods.generateUsersFromRelationships = function() {
   .then((json) => {
     utils.runInBg(mongoose.model('Buddy').createFromRelationship, json.followees.target_profiles);
     return self;
-  });
+  })
+  .catch((err) => {
+    return self;
+  })
 }
 
 schema.methods.updateData = function() {
@@ -234,6 +240,10 @@ schema.methods.updateData = function() {
 				self.dena.id = profileJson.profile.user_id;
 				self.dena.profile_message = profileJson.profile.profile_message;
 				self.dena.supporter_buddy_soul_strike_name = profileJson.profile.supporter_buddy_soul_strike_name;
+        self.dena.mnd = profileJson.profile.supporter_buddy_mnd;
+        self.dena.matk = profileJson.profile.supporter_buddy_matk;
+        self.dena.atk = profileJson.profile.supporter_buddy_atk;
+        console.log(self.dena)
 			}
 
 			if(profileJson.user_supporter_buddy) {

@@ -10,6 +10,15 @@
             <ul>
               <li>{{dena.supporter_buddy_soul_strike_name}}</li>
               <li>Code: {{dena.invite_id}}</li>
+              {{#if dena.mnd}}
+              <li>{{dena.mnd}} MND</li>
+              {{/if}}
+              {{#if dena.matk}}
+              <li>{{dena.matk}} MAG</li>
+              {{/if}}
+              {{#if dena.atk}}
+              <li>{{dena.atk}} ATK</li>
+              {{/if}}
             </ul>
             <blockquote class="blockquote">
               <p class="mb-0">{{dena.profile_message}}</p>

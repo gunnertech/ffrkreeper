@@ -123,21 +123,21 @@ io.on('connection', (socket) => {
 
   ///FAUX routing
   socket.on('/signin', (data, fn) => { ////ALLOW THEM TO SIGN IN WITH EITHER A SESSIONID, PHONE OR EMAIL
-    var query = {};
+    var query = [];
 
     if(data.sessionId) {
-      query['dena.sessionId'] = data.sessionId;
+      query.push({'dena.sessionId': data.sessionId})
     }
 
     if(data.email) {
-      query['email'] = data.email;
+      query.push({'email': data.email});
     }
 
     if(data.phone) {
-      query['phone'] = User.normalizePhone(data.phone);
+      query.push({'phone': data.phone});
     }
 
-    User.findOne({ $or: [query] }).select('-dena.json -drops')
+    User.findOne().or(query).select('-dena.json -drops')
       .then((user) => {
         if(user) {
           return Promise.resolve(user);
@@ -176,21 +176,21 @@ io.on('connection', (socket) => {
   });
 
   socket.on('/signout', (data, fn) => {
-    var query = {};
+    var query = [];
 
     if(data.sessionId) {
-      query['dena.sessionId'] = data.sessionId;
+      query.push({'dena.sessionId': data.sessionId})
     }
 
     if(data.email) {
-      query['email'] = data.email;
+      query.push({'email': data.email});
     }
 
     if(data.phone) {
-      query['phone'] = User.normalizePhone(data.phone);
+      query.push({'phone': data.phone});
     }
 
-    User.findOne({ $or: [query] }).select('-dena.json -drops')
+    User.findOne().or(query).select('-dena.json -drops')
       .then((user) => {
         if(!user) {
           return Promise.resolve(null);
@@ -251,15 +251,22 @@ io.on('connection', (socket) => {
 
 
 /// BEGIN AREA TO RUN ONE OFF SHIT
-User.update({email: "null"}, { $unset: { email: 1 }}).then(console.log)
-User.update({email: "undefined"}, { $unset: { email: 1 }}).then(console.log)
-User.update({phone: "null"}, { $unset: { phone: 1 }}).then(console.log)
-User.update({phone: "undefined"}, { $unset: { phone: 1 }}).then(console.log)
+User.update({email: "null"}, { $unset: { email: 1 }}).then(() => {})
+User.update({email: "undefined"}, { $unset: { email: 1 }}).then(() => {})
+User.update({phone: "null"}, { $unset: { phone: 1 }}).then(() => {})
+User.update({phone: "undefined"}, { $unset: { phone: 1 }}).then(() => {})
+console.log("OK")
+User.find({hasValidSessionId: true, 'dena.sessionId': { $ne: null }})
+.then((users) => {
+  users.forEach((user) => {
+    User.count({'dena.sessionId': user.dena.sessionId}).then(console.log)
+  })
+})
 
-// User.findOne({hasValidSessionId: true, phone: '+18609404747'})
-// .then((user) => {
-//   return user.getFolloweesAndFollowers();
-// })
-// .then((json) => { 
-//   followees
-// })
+// User.find({hasValidSessionId: true, phone: '+18609404747'})
+// .then((users) => {
+//   users.forEach((user) => {
+//     user.updateData()
+//   });
+//   return users;
+// });

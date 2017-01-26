@@ -1,6 +1,7 @@
 const _ = require('lodash');
 const mongoose = require('mongoose');
 const lodash = require('lodash');
+const Promise = require('bluebird');
 
 const schema = new mongoose.Schema({
   dena: {
@@ -17,10 +18,12 @@ schema.set('toJSON', { getters: true, virtuals: true });
 schema.set('toObject', { getters: true, virtuals: true });
 
 schema.statics.createFromRelationship = (json) => {
-  Proise.map(json, (data) => {
-    return mongoose.model('User').findOne({'dena.id': data.user_id})
+
+  let User = mongoose.model('User');
+  Promise.map(json, (data) => {
+    return User.findOne({'dena.id': data.user_id})
     .then((user) => {
-      user = user || new mongoose.model('User');
+      user = user || (new User);
 
       let fieldData = {
         dena: {
@@ -33,14 +36,20 @@ schema.statics.createFromRelationship = (json) => {
           atk: data.supporter_buddy_atk
         }
       };
-
-      Object.assign(user.dena, fieldData);
+      user.dena = Object.assign(user.dena, fieldData.dena);
 
       return user.save();
     })
+    .then((user) => {
+      return mongoose.model('Buddy').findOne({'dena.buddy_id': data.supporter_buddy_id})
+      .then((buddy) => {
+        user.buddy = buddy;
+
+        return user.save();
+      })
+    })
   })
   .then((users) => {
-    console.log(users);
     return users;
   })
   
@@ -50,7 +59,7 @@ schema.statics.checkForNewOnes = (profileJson) => {
   mongoose.model('Buddy').find().distinct('dena.buddy_id')
   .then((buddyIds) => {
     var buddiesToCreate = [];
-    profileJson.buddies.forEach( (buddyData) => {
+    (profileJson.buddies||[]).forEach( (buddyData) => {
       if(!lodash.find(buddyIds, (b) => { return b.toString() == buddyData.buddy_id.toString(); })) {
         var name = buddyData.name;
 
