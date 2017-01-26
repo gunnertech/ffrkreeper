@@ -36,7 +36,6 @@ schema.post('save', function (drop) {
     ///TODO: totally not transactionally safe
     
     battle.dropRates = battle.dropRates || {};
-    console.log(drop.denaItemId);    
     for (var i in battle.dropRates) {
       console.log(i);
       battle.dropRates[i].total = drops.length;
@@ -45,9 +44,7 @@ schema.post('save', function (drop) {
     }
 
     // battle.dropRates[drop.denaItemId].rate = (battle.dropRates[drop.denaItemId].hits * 1.0) / (battle.dropRates[drop.denaItemId].total * 1.0) || 0.0;
-    console.log(battle._id)
-    console.log(battle.dropRates);
-    return battle.save()
+    return Battle.update({_id: battle._id}, {dropRates: battle.dropRates}).then(() => { return battle });
   });
 });
 
