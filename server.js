@@ -204,7 +204,30 @@ io.on('connection', (socket) => {
       // io.sockets.in(`/${user.dena.sessionId}`).emit(`/drops/${user.dena.sessionId}`, message); /// Send it to the browser
       fn(message);
 
-      return user;
+      return [user, message];
+    })
+    .spread((user, message) => {
+      var hashedMessage = message.notificationMessage;
+              
+      if(message.notify && hashedMessage != user.lastMessage) {
+        user.lastMessage = hashedMessage;
+        
+        return user.save()
+        .then(() => {
+          var promises = [];
+          if(user.email && user.lastMessage) {
+            promises.push(user.sendEmail(message.notificationMessage));
+          }
+          if(user.phone && user.lastMessage) {
+            promises.push(user.sendEmail(message.notificationMessage));
+          }
+
+          return Promise.all(promises).return(user);
+        });
+      } else {
+        return Promise.resolve(user);
+      }   
+        
     });
 
   });

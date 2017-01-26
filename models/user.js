@@ -332,7 +332,7 @@ schema.methods.getDropMessage = function () {
   let self = this;
 
   var message = { 
-    notificationMessage: " ",
+    notificationMessage: "",
     notify: true
   };
 
