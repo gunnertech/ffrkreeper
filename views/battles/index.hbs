@@ -2,6 +2,11 @@
   {{#each battles}}
   <div class="card">
     <div class="card-block">
+      {{#if imgUrl}}
+        <div style="text-align: center;">
+          <img class="img-fluid" src="{{imgUrl}}" onerror="this.onerror=null;this.src='https://placeholdit.imgix.net/~text?txtsize=100&txt=%3F&w=500&h=190&txttrack=0';" />
+        </div>
+      {{/if}}
       <h4 class="card-title">Battle: {{name}}</h4>
       <ul class="list-unstyled">
         {{#each uniqueDrops}}

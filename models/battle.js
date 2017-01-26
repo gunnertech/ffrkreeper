@@ -1,7 +1,8 @@
 const _ = require('lodash');
 const mongoose = require('mongoose');
-const dropData = require('../dropData.js');
 const Promise = require('bluebird');
+
+const Drop = require('./drop.js');
 
 const dungeonsPerPage = 12;
 
@@ -19,41 +20,6 @@ const schema = new mongoose.Schema({
   enemies: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Enemy' }]
 });
 
-function GetDropImg(itemId) {
-	var dropName = dropData[itemId]
-	if(!dropName) return 'https://placeholdit.imgix.net/~text?txtsize=50&txt=%3F&w=112&h=112&txttrack=0';
-
-	if(dropName.match(/Orb/) || dropName.match(/Crystal/)) {
-		return 'https://ffrk.static.denagames.com/dff/static/lang/ww/compile/en/image/ability_material/' + itemId + '/' + itemId + '_112.png';
-	} else {
-		return 'https://ffrk.static.denagames.com/dff/static/lang/ww/compile/en/image/common_item/' + itemId + '.png';
-	}
-}
-
-function getUniqueItemsFromDungeon(dungeon) {
-	var itemsFound = []
-
-	_.each(dungeon.dropRates, function(drop) {
-		_.each(drop, function(info, itemId) {
-			if(!_.includes(itemsFound, itemId)) {
-				var dropImg = GetDropImg(itemId);
-				if(dropImg === 'https://placeholdit.imgix.net/~text?txtsize=50&txt=%3F&w=112&h=112&txttrack=0') return;//don't display default image here
-
-				itemsFound.push({
-					itemId: itemId,
-					imgUrl: dropImg,
-					name: dropData[itemId],
-					rarity: info.rarity
-				})
-			}
-		})
-	})
-
-	//itemsFound = _.sortBy(itemsFound, [function(o) { return -o.rarity; }]); //will take extra db calls to get rarity :(
-
-	return itemsFound;
-}
-
 schema.statics.forDungeonIndex = function(pageNumber) {
   var dungeons = [];
   return mongoose.model('Battle').find().distinct('denaDungeonId')
@@ -65,7 +31,9 @@ schema.statics.forDungeonIndex = function(pageNumber) {
       return Promise.map(groupedBattles, (battles) => {
         var dungeon = {};
         var enemies = _.flatten(_.map(battles, (battle) => { return _.map((battle.enemies||[]), 'name'); }));
+        
         dungeon._id = _.compact(_.map(battles, 'denaDungeonId'))[0];
+        
         if(enemies.length) {
           dungeon.name = enemies.join(", ");  
         } else {
@@ -76,7 +44,7 @@ schema.statics.forDungeonIndex = function(pageNumber) {
 
         battles.forEach((battle) => {
           for(var i in (battle.dropRates || {})) {
-            dungeon.dropImages.push(GetDropImg(i));
+            dungeon.dropImages.push(Drop.getImgUrl(i));
           }
         });
 
@@ -95,43 +63,20 @@ schema.statics.forDungeonIndex = function(pageNumber) {
   })
 }
 
-schema.statics.getDungeonList = function(pageNumber, cb) {
-	mongoose.model('Battle', schema).aggregate([	
-		{
-			$group: {
-				_id: '$denaDungeonId',
-				dungeonName: { $first: '$dungeonName' },
-				eventType: { $first: '$eventType' },
-				dropRates: { $push: '$dropRates' },
-				enemies: { $push: '$enemies' }
-			}
-		},
-		{ $sort: { 'denaDungeonId': 1 } }, 
-	  { $skip: dungeonsPerPage * pageNumber },
-		{ $limit: dungeonsPerPage }
-	], function(err, result) {
-		_.each(result, function(dungeon) {
-			dungeon.uniqueDrops = getUniqueItemsFromDungeon(dungeon);
-			//dungeon.enemiesStr = _.map((dungeon.enemies || []), 'name').join(', ');
-		})
-
-		cb(err, result)
-	});
-}
-
 schema.statics.getBattleList = function(denaDungeonId) {
-  return mongoose.model('Battle').find({ denaDungeonId: denaDungeonId }).sort([['denaDungeonId', 'descending']]).populate(["enemies"]).select("-drops")
+  return mongoose.model('Battle').find({ denaDungeonId: denaDungeonId }).sort([['denaDungeonId', 'descending']]).populate("enemies", "name dena.enemyId").select("-drops")
   .then((battles) => {
     return Promise.map(battles, (battle) => {
-      return mongoose.model('Drop').find({battle: battle._id}).distinct('denaItemId')
+      return Drop.find({battle: battle._id}).distinct('denaItemId')
       .then((denaItemIds) => {
         battle.uniqueDrops = [];
         battle.name = _.map((battle.enemies||[]), 'name').join(', ') || battle.denaBattleId;
+        battle.imgUrl = battle.enemies[0] ? battle.enemies[0].imgUrl : null;
 
         denaItemIds.forEach((denaItemId) => {
           var drop = {};
-          drop.imgUrl = GetDropImg(denaItemId);
-          drop.name = dropData[denaItemId];
+          drop.imgUrl = Drop.getImgUrl(denaItemId);
+          drop.name = Drop.getName(denaItemId);
           drop.hits = battle.dropRates[denaItemId] ? battle.dropRates[denaItemId].hits : 0;
           drop.total = battle.dropRates[denaItemId] ? battle.dropRates[denaItemId].total : 0;
           drop.rate = battle.dropRates[denaItemId] ? (battle.dropRates[denaItemId].rate ? Math.round(battle.dropRates[denaItemId].rate * 100) : 0) : 0;
@@ -146,13 +91,13 @@ schema.statics.getBattleList = function(denaDungeonId) {
     .return(battles);
   });
 }
-//5887fdd10b21f8a941f1915d
+
 schema.methods.updateDropRates = function() {
   var self = this;
 
-  return mongoose.model('Drop').find({battle: self._id}).distinct('denaItemId')
+  return Drop.find({battle: self._id}).distinct('denaItemId')
   .then((denaItemIds) => {
-    return [denaItemIds, mongoose.model('Drop').find({battle: self._id}).select('denaItemId')];
+    return [denaItemIds, Drop.find({battle: self._id}).select('denaItemId')];
   })
   .spread((denaItemIds, drops) => {
     self.dropRates = {};

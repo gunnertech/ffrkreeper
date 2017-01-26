@@ -7,10 +7,7 @@ body {
     padding-bottom: 50px;
 }
 
-.audio-files.index,
-.battles.index,
-.users.index,
-.dungeons.index {
+.container-fluid {
     margin-top: 40px;
 }
 

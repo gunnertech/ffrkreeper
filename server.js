@@ -46,16 +46,6 @@ const server = express()
 
 	.engine('hbs', engine.__express)
 	.set('view engine', 'hbs')
-	.get('/olddungeons/:pageNumber?', function(req, res) {
-		if(!req.params.pageNumber) req.params.pageNumber = 0;
-		Battle.getDungeonList(req.params.pageNumber, function(err, data) {
-			if(req.params.pageNumber === 0) {
-				res.render('dungeonList', { title: 'Dungeon List', dungeons: data });
-			} else {
-				res.render('partials/dungeons', { layout: false, dungeons: data });
-			}			
-		})
-  })
   .get('/dungeons', function(req, res) {
     Battle.forDungeonIndex()
     .then((dungeons) => {
@@ -100,9 +90,10 @@ const server = express()
     });
   })
 	.get('/dungeon/:dungeonId/battles', function(req, res) {
-		Battle.getBattleList(req.params.dungeonId).then((battles) => {
-      return res.render('battleList', { title: 'Battle List', battles: battles });
-    })
+		Battle.getBattleList(req.params.dungeonId)
+    .then((battles) => {
+      return res.render('battles/index', { title: 'Battles', battles: battles });
+    }).catch(console.log)
   })
   .get('/', function(req, res) {
     res.render('index', { title: 'Home' });
