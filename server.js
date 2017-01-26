@@ -124,7 +124,7 @@ io.on('connection', (socket) => {
       query['phone'] = User.normalizePhone(data.phone);
     }
 
-    User.findOne({ $or: [query] })
+    User.findOne({ $or: [query] }).select('-dena.json')
       .then((user) => {
         if(user) {
           return Promise.resolve(user);
