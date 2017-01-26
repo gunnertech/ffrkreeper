@@ -35,6 +35,7 @@ const schema = new mongoose.Schema({
     name: String,
     id: { type: String, index: true },
     updatedAt: Date,
+    invite_id: String,
     json: mongoose.Schema.Types.Mixed
   },
   hasValidSessionId: {
@@ -52,6 +53,7 @@ const schema = new mongoose.Schema({
     default: 0
   },
   lastMessage: String,
+  buddy: { type: mongoose.Schema.Types.ObjectId, ref: 'Buddy' },
   drops: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Drop' }]
 });
 
@@ -142,15 +144,6 @@ schema.statics.normalizePhone = (phone) => {
   return phone;
 }
 
-schema.statics.updateData = () => {
-  return mongoose.model('User').find({ 'dena.sessionId': { $ne: null }, hasValidSessionId: true }).select('-dena.json -drops')
-  .then((users) => {
-    return Promise.map(users, (user) => {
-      return user.updateData();
-    });
-  });
-}
-
 schema.statics.findValidWithPhone = () => {
   var query = {
     hasValidSessionId: true,
@@ -217,25 +210,45 @@ schema.methods.updateData = function() {
 
   return dena.api.authData({sessionId: this.dena.sessionId})
   .spread((sessionId, browserData, userSessionKey) => {
-    return dena.api.getWorldBattles({sessionId: sessionId, userSessionKey: userSessionKey});
+    return [
+      dena.api.getWorldBattles({sessionId: sessionId, userSessionKey: userSessionKey}),
+      dena.api.getProfileData({sessionId: sessionId, userSessionKey: userSessionKey, csrfToken: browserData.csrfToken})
+    ];
   })
-  .then((json) => {
+  .spread((userJson, profileJson) => {
 
-    if(json.user) {
-      self.dena.json = json.user;
-      self.dena.id = json.user.id;
-      self.dena.name = json.user.name;
-      self.dena.updatedAt = new Date();
+    self.dena.updatedAt = new Date();
+
+    if(userJson.user) {
+      self.dena.json = userJson.user;
+      self.dena.id = userJson.user.id;
+      self.dena.name = userJson.user.name;
 
       /// let this run in the background
       self.cacheImages();
       self.cacheAudioFiles();
-      
-      return self.save();  
-    } else {
-      return Promise.resolve(null);
+    } 
+
+    if(profileJson.invite_id) {
+      self.dena.invite_id = profileJson.profile.invite_id;
     }
-    
+
+    if(profileJson.user_supporter) {
+      return mongoose.model('Buddy').findOne({'dena.buddy_id': profileJson.user_supporter.buddy_id})
+      .then((buddy) => {
+        if(buddy) {
+          return Promise.resolve(buddy);
+        }
+
+        return mongoose.model('Buddy').create({
+          'dena.buddy_id': profileJson.user_supporter.buddy_id,
+          'dena.name': profileJson.user_supporter.name
+        });
+      })
+      .return(self);
+    }
+
+    return self.save();
   })
   .catch(() => {});
 }

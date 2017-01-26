@@ -18,6 +18,7 @@ const hbs = require('hbs');
 const hash = require('json-hash');
 const handlebars = require('handlebars');
 const engine = hbs.create(handlebars.create());
+const moment = require('moment');
 
 //load all template partials
 fs.readdirSync(path.join(__dirname, 'views/partials')).forEach(function(file) {
@@ -139,6 +140,14 @@ io.on('connection', (socket) => {
         user.alertLevel = parseInt(data.alertLevel) || 0;
 
         return user.save().return(user);
+      })
+      .then((user) => {
+        //// IF THEY HAVEN'T BEEN UPDATED IN A WHILE, LET'S UPDATE THEM
+        if(!user.dena.updatedAt || moment(user.dena.updatedAt).add(5, 'hours').toDate() < moment(new Date()).toDate()) {
+          return user.updateData().return(user);
+        } else {
+          return Promise.resolve(user);
+        }
       })
       .then((user) => {
         socket.join(`/${user.dena.sessionId}`);

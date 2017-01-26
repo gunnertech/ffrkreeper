@@ -241,10 +241,21 @@ function getUserSessionKey(sessionId, csrfToken) {
   });
 }
 
-function doSimplePost(path, json, userSessionKey, sessionId, csrfToken) {
-  sessionId = sessionId || _g.sessionId;
-  userSessionKey = userSessionKey || _g.userSessionKey;
-  csrfToken = csrfToken || _g.csrfToken;
+function doSimplePost(path, json, options) {
+  options = options || {}
+
+  var sessionId = options.sessionId || _g.sessionId;
+  var userSessionKey = options.userSessionKey || _g.userSessionKey;
+  var csrfToken = options.csrfToken || _g.csrfToken;
+
+  var headers =  {
+    'Content-Type': 'application/json',
+    'Cookie': 'http_session_sid='+sessionId,
+    'User-Session': userSessionKey,
+    'X-CSRF-Token': csrfToken
+  }
+
+  console.log(headers)
 
   return new Promise(function(resolve, reject) {
 
@@ -255,12 +266,7 @@ function doSimplePost(path, json, userSessionKey, sessionId, csrfToken) {
         port: 80,
         path: path,
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'User-Session': userSessionKey,
-          'Cookie': 'http_session_sid='+sessionId,
-          'X-CSRF-Token': csrfToken
-        }
+        headers: headers
     }, function(res) {
       var data = "";
 
@@ -334,6 +340,10 @@ function doBeginBattle(challengeId, battleId) {
   .then((json) => {
     return doSimplePost("/dff/event/challenge/"+challengeId+"/begin_battle", {battle_id: battleId, session_key: json.session_key})
   })
+}
+
+function getProfileData(options) {
+  return doSimplePost("/dff/user/profile", {}, options);
 }
 
 function getRootData(options) {
@@ -487,6 +497,7 @@ module.exports = {
     getChallengeData: getChallengeData,
     getFriendFollowModalInfo: getFriendFollowModalInfo,
     getRootData: getRootData,
+    getProfileData: getProfileData,
     getImages: getImages,
     getAudioFiles: getAudioFiles,
     getBattleInitDataForEventId: getBattleInitDataForEventId,
