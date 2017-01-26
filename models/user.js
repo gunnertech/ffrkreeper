@@ -2,11 +2,10 @@
 
 try {
   require('dotenv').config();
-} catch (e) {
+} catch(e) {
   // ignore it
 }
 
-const http = require('http');
 //const util = require('util');
 const twilio = require('twilio')(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
 const mongoose = require('mongoose');
@@ -48,8 +47,8 @@ const schema = new mongoose.Schema({
     type: Boolean,
     default: true
   },
-  alertLevel: { 
-    type: Number, 
+  alertLevel: {
+    type: Number,
     min: 0,
     max: 6,
     default: 0
@@ -59,14 +58,14 @@ const schema = new mongoose.Schema({
   drops: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Drop' }]
 });
 
-schema.pre('save', function (next) {
+schema.pre('save', function(next) {
   if(this.email == "undefined") {
     this.email = null;
   }
   next();
 })
 
-schema.pre('save', function (next) {
+schema.pre('save', function(next) {
   this.phone = mongoose.model('User', schema).normalizePhone(this.phone);
 
   if(!this.phone) {
@@ -84,47 +83,46 @@ schema.pre('save', function (next) {
   next();
 });
 
-schema.pre('save', function (next) {
+schema.pre('save', function(next) {
   this.phone = mongoose.model('User', schema).normalizePhone(this.phone);
 
   next();
 });
 
 schema.statics.findForIndex = () => {
-  return mongoose.model('User').find({hasValidSessionId: true, buddy: {$exists: true}}).distinct('dena.id')
-  .then((denaIds) => {
-    return Promise.map(denaIds, (denaId) => {
-      return mongoose.model('User').findOne({'dena.id': denaId, hasValidSessionId: true, buddy: {$exists: true}}).select('-dena.json -drops').populate('buddy');
-    });
-  });
+  return mongoose.model('User').find({ hasValidSessionId: true, buddy: { $exists: true } }).distinct('dena.id')
+		.then((denaIds) => {
+			return Promise.map(denaIds, (denaId) => {
+				return mongoose.model('User').findOne({ 'dena.id': denaId, hasValidSessionId: true, buddy: { $exists: true } }).select('-dena.json -drops').populate('buddy');
+			});
+		});
 }
 
 schema.statics.buildDrops = (json) => {
   var drops = [];
 
-  json.battle.rounds.forEach(function (round) {
-    round.drop_item_list.forEach(function (drop) {
+  json.battle.rounds.forEach(function(round) {
+    round.drop_item_list.forEach(function(drop) {
       drops.push(getDropInfo(drop));
     });
 
-    round.enemy.forEach(function (enemy) {
-
-      enemy.children.forEach(function (child) {
+    round.enemy.forEach(function(enemy) {
+      enemy.children.forEach(function(child) {
         if(enemy.is_sp_enemy === '1') { ///// IT'S A BOSS BATTLE
-          Enemy.count({'dena.enemyId': child.enemy_id})
-          .then((count) => {
-            if(!count) {
-              child.battle_id = json.battle.battle_id;
-              var e = new Enemy();
-              e.dena = {
-                enemyId: child.enemy_id,
-                json: child
-              }
-              e.save();
-            }
-          });
+          Enemy.count({ 'dena.enemyId': child.enemy_id })
+						.then((count) => {
+							if(!count) {
+								child.battle_id = json.battle.battle_id;
+								var e = new Enemy();
+								e.dena = {
+									enemyId: child.enemy_id,
+									json: child
+								}
+								e.save();
+							}
+						});
         }
-        child.drop_item_list.forEach(function (drop) {
+        child.drop_item_list.forEach(function(drop) {
           drops.push(getDropInfo(drop));
         });
       });
@@ -135,17 +133,15 @@ schema.statics.buildDrops = (json) => {
 }
 
 schema.statics.normalizePhone = (phone) => {
-  if (phone) {
+  if(phone) {
     ///Strip out any non numeric characters
     phone = phone.toString().replace(/\D/g, '');
 
-    if (phone.length >= 11 && phone.indexOf('+') == -1) {
+    if(phone.length >= 11 && phone.indexOf('+') == -1) {
       phone = `+${phone}`;
-    } else if (phone.length < 11) {
+    } else if(phone.length < 11) {
       phone = `+1${phone}`; //ASSUME IT'S A US NUMBER
     }
-
-    
   }
 
   return phone;
@@ -154,7 +150,7 @@ schema.statics.normalizePhone = (phone) => {
 schema.statics.findValidWithPhone = () => {
   var query = {
     hasValidSessionId: true,
-    phone: { $nin: [null,""] }
+    phone: { $nin: [null, ""] }
   }
   return mongoose.model('User').find(query).select('-dena.json -drops')
 }
@@ -162,7 +158,7 @@ schema.statics.findValidWithPhone = () => {
 schema.statics.findValidWithEmail = () => {
   var query = {
     hasValidSessionId: true,
-    email: { $nin: [null,""] }
+    email: { $nin: [null, ""] }
   }
   return mongoose.model('User').find(query).select('-dena.json -drops')
 }
@@ -172,91 +168,85 @@ schema.methods.cacheImages = function(images) {
   (
     images ? Promise.resolve(images) : dena.api.getImages(self.dena.sessionId)
   )
-  .then((images) => {
-    var remoteImages = lodash.map(images, 'url');
-    return [remoteImages, mongoose.model("Image").find({url: { $in: remoteImages }})];
-  })
-  .spread((remoteImages, images) => {
-    var existingImages = lodash.map(images, 'url');
-    
-    var newImages = lodash.map(lodash.uniq(lodash.differenceWith(remoteImages, existingImages, lodash.isEqual)), (img) => { return {url: img}; });
+		.then((images) => {
+			var remoteImages = lodash.map(images, 'url');
+			return [remoteImages, mongoose.model("Image").find({ url: { $in: remoteImages } })];
+		})
+		.spread((remoteImages, images) => {
+			var existingImages = lodash.map(images, 'url');
 
-    newImages.forEach((image) => {
-      mongoose.model("Image").create(image).catch((err) => { } )
-    });
+			var newImages = lodash.map(lodash.uniq(lodash.differenceWith(remoteImages, existingImages, lodash.isEqual)), (img) => { return { url: img }; });
 
-  });
-
+			newImages.forEach((image) => {
+				mongoose.model("Image").create(image).catch((err) => { })
+			});
+		});
 }
-
 
 schema.methods.cacheAudioFiles = function(audioFiles) {
   var self = this;
   (
     audioFiles ? Promise.resolve(audioFiles) : dena.api.getAudioFiles(self.dena.sessionId)
   )
-  .then((audioFiles) => {
-    var remoteAudioFiles = lodash.map(audioFiles, 'url');
-    return [remoteAudioFiles, mongoose.model("AudioFile").find({url: { $in: remoteAudioFiles }})];
-  })
-  .spread((remoteAudioFiles, audioFiles) => {
-    var existingAudioFiles = lodash.map(audioFiles, 'url');
-    
-    var newAudioFiles = lodash.map(lodash.uniq(lodash.differenceWith(remoteAudioFiles, existingAudioFiles, lodash.isEqual)), (img) => { return {url: img}; });
+		.then((audioFiles) => {
+			var remoteAudioFiles = lodash.map(audioFiles, 'url');
+			return [remoteAudioFiles, mongoose.model("AudioFile").find({ url: { $in: remoteAudioFiles } })];
+		})
+		.spread((remoteAudioFiles, audioFiles) => {
+			var existingAudioFiles = lodash.map(audioFiles, 'url');
 
-    newAudioFiles.forEach((audioFile) => {
-      mongoose.model("AudioFile").create(audioFile).catch((err) => { } )
-    });
+			var newAudioFiles = lodash.map(lodash.uniq(lodash.differenceWith(remoteAudioFiles, existingAudioFiles, lodash.isEqual)), (img) => { return { url: img }; });
 
-  });
-
+			newAudioFiles.forEach((audioFile) => {
+				mongoose.model("AudioFile").create(audioFile).catch((err) => { })
+			});
+		});
 }
 
 schema.methods.updateData = function() {
   var self = this;
 
-  return dena.api.authData({sessionId: this.dena.sessionId})
-  .spread((sessionId, browserData, userSessionKey) => {
-    return dena.api.getProfileData({sessionId: sessionId, userSessionKey: userSessionKey, csrfToken: browserData.csrfToken});
-  })
-  .then((profileJson) => {
+  return dena.api.authData({ sessionId: this.dena.sessionId })
+		.spread((sessionId, browserData, userSessionKey) => {
+			return dena.api.getProfileData({ sessionId: sessionId, userSessionKey: userSessionKey, csrfToken: browserData.csrfToken });
+		})
+		.then((profileJson) => {
+			self.dena.updatedAt = new Date();
+			self.dena.invite_id = profileJson.invite_id;
 
-    self.dena.updatedAt = new Date();
-    self.dena.invite_id = profileJson.invite_id;
+			if(profileJson.profile) {
+				self.dena.name = profileJson.profile.nickname;
+				self.dena.id = profileJson.profile.user_id;
+				self.dena.profile_message = profileJson.profile.profile_message;
+				self.dena.supporter_buddy_soul_strike_name = profileJson.profile.supporter_buddy_soul_strike_name;
+			}
 
-    if(profileJson.profile) {
-      self.dena.name = profileJson.profile.nickname;
-      self.dena.id = profileJson.profile.user_id;
-      self.dena.profile_message = profileJson.profile.profile_message;
-      self.dena.supporter_buddy_soul_strike_name = profileJson.profile.supporter_buddy_soul_strike_name;
-    }
+			if(profileJson.user_supporter_buddy) {
+				return mongoose.model('Buddy').findOne({ 'dena.buddy_id': profileJson.user_supporter_buddy.buddy_id })
+					.then((buddy) => {
+						if(buddy) {
+							return Promise.resolve(buddy);
+						}
 
-    if(profileJson.user_supporter_buddy) {
-      return mongoose.model('Buddy').findOne({'dena.buddy_id': profileJson.user_supporter_buddy.buddy_id})
-      .then((buddy) => {
-        if(buddy) {
-          return Promise.resolve(buddy);
-        }
+						return mongoose.model('Buddy').create({
+							'dena.buddy_id': profileJson.user_supporter_buddy.buddy_id,
+							'dena.name': profileJson.user_supporter_buddy.name
+						});
+					})
+					.then((buddy) => {
+						console.log(buddy);
+						self.buddy = buddy._id;
+						return self.save();
+					})
+					.return(self);
+			}
 
-        return mongoose.model('Buddy').create({
-          'dena.buddy_id': profileJson.user_supporter_buddy.buddy_id,
-          'dena.name': profileJson.user_supporter_buddy.name
-        });
-      })
-      .then((buddy) => {
-        console.log(buddy);
-        self.buddy = buddy._id;
-        return self.save();
-      })
-      .return(self);
-    }
-
-    return self.save();
-  })
-  .catch((err) => { console.log(err); });
+			return self.save();
+		})
+		.catch((err) => { console.log(err); });
 }
 
-schema.methods.sendEmail = function (message) {
+schema.methods.sendEmail = function(message) {
   if(!message) {
     return Promise.resolve("");
   }
@@ -277,7 +267,7 @@ schema.methods.sendEmail = function (message) {
 
   return new Promise((resolve, reject) => {
     sg.API(request, (error, response) => {
-      if (error) {
+      if(error) {
         error.name = "Email Error";
         reject(error);
       } else {
@@ -287,7 +277,7 @@ schema.methods.sendEmail = function (message) {
   })
 };
 
-schema.methods.sendSms = function (message) {
+schema.methods.sendSms = function(message) {
   var self = this;
 
   return new Promise((resolve, reject) => {
@@ -300,7 +290,7 @@ schema.methods.sendSms = function (message) {
       from: process.env.TWILIO_PHONE_NUMBER,
       body: message
     }, (err, responseData) => {
-      if (!err) {
+      if(!err) {
         resolve(responseData)
       } else {
         err.name = "SMS Error";
@@ -310,129 +300,127 @@ schema.methods.sendSms = function (message) {
   });
 };
 
-schema.methods.getDropMessage = function () {
+schema.methods.getDropMessage = function() {
   let self = this;
 
-  var message = { 
+  var message = {
     notificationMessage: "",
     notify: true
   };
 
-  return dena.api.getBattleInitDataForEventId((process.env.DENA_CURRENT_EVENT_ID||94), {sessionId: self.dena.sessionId})
-  .then(function(json) {
-    if(!json.success) {
-      self.inBattle = false;
-      return self.save().then(() => {
-        return {
-          error: true,
-          message: "Not in Battle: Go join a battle to see your drops!",
-          notificationMessage: "Not in Battle: Go join a battle to see your drops!",
-          name: "Out of Battle Error",
-          notify: false
-        };
-      });
-    }
+  return dena.api.getBattleInitDataForEventId((process.env.DENA_CURRENT_EVENT_ID || 94), { sessionId: self.dena.sessionId })
+		.then(function(json) {
+			if(!json.success) {
+				self.inBattle = false;
+				return self.save().then(() => {
+					return {
+						error: true,
+						message: "Not in Battle: Go join a battle to see your drops!",
+						notificationMessage: "Not in Battle: Go join a battle to see your drops!",
+						name: "Out of Battle Error",
+						notify: false
+					};
+				});
+			}
 
-    let images = dena.api.extraFilesFromBlob('png',JSON.stringify(json));
-    let audioFiles = dena.api.extraFilesFromBlob('m4a',JSON.stringify(json));
+			let images = dena.api.extraFilesFromBlob('png', JSON.stringify(json));
+			let audioFiles = dena.api.extraFilesFromBlob('m4a', JSON.stringify(json));
 
-    self.cacheAudioFiles(audioFiles);
-    self.cacheImages(images);
+			self.cacheAudioFiles(audioFiles);
+			self.cacheImages(images);
 
-    var drops = mongoose.model('User').buildDrops(json);
+			var drops = mongoose.model('User').buildDrops(json);
 
+			return Battle.findOne({ denaBattleId: json.battle.battle_id }).select('-drops')
+				.then(function(battle) { //// FIND OR CRATE THE BATTLE
+					if(battle) {
+						return Promise.resolve(battle);
+					} else {
+						return Battle.create({
+							denaBattleId: json.battle.battle_id,
+							denaDungeonId: json.battle.dungeon.dungeon_id,
+							eventId: json.battle.event.event_id,
+							eventType: json.battle.event.event_type,
+							dropRates: {}
+						});
+					}
+				})
+				.then(function(battle) { ///// UPDATE THE BATTLE WITH THE MOST RECENT DATA
+					battle.denaBattleId = json.battle.battle_id;
+					battle.denaDungeonId = json.battle.dungeon.dungeon_id;
+					battle.eventId = json.battle.event.event_id;
+					battle.eventType = json.battle.event.event_type;
 
-    return Battle.findOne({ denaBattleId: json.battle.battle_id }).select('-drops')
-    .then(function (battle) { //// FIND OR CRATE THE BATTLE
-      if (battle) {
-        return Promise.resolve(battle);
-      } else {
-      return Battle.create({
-        denaBattleId: json.battle.battle_id,
-        denaDungeonId: json.battle.dungeon.dungeon_id,
-        eventId: json.battle.event.event_id,
-        eventType: json.battle.event.event_type,
-        dropRates: {}
-      });
-      }
-    })
-    .then(function (battle) { ///// UPDATE THE BATTLE WITH THE MOST RECENT DATA
-      battle.denaBattleId = json.battle.battle_id;
-      battle.denaDungeonId = json.battle.dungeon.dungeon_id;
-      battle.eventId = json.battle.event.event_id;
-      battle.eventType = json.battle.event.event_type;
+					return battle.save().return(battle);
+				})
+				.then(function(battle) {
+					if(self.inBattle) {
+						//// DON'T RECORD THE SAME DROPS AGAIN
+						/// But we still need to keep going to build the drop rate
+						return Promise.resolve(battle);
+					}
+					self.inBattle = true;
 
-      return battle.save().return(battle);
-    })
-    .then(function (battle) {
+					return self.save()
+						.then(() => {
+							return Promise.map(drops, (d) => { //IF IT HAS AN item_id, it's woth saving to the db
+								if(!d.item_id) {
+									return Promise.resolve(null);
+								}
 
-      if(self.inBattle) {
-        //// DON'T RECORD THE SAME DROPS AGAIN
-        /// But we still need to keep going to build the drop rate
-        return Promise.resolve(battle);
-      }
-      self.inBattle = true;
+								console.log("Let's record this drop!");
+								return Drop.create({
+									battle: battle._id,
+									user: self._id,
+									denaItemId: d.item_id,
+									qty: d.num,
+									rarity: d.rarity
+								});
+							});
+						}).return(battle);
+				})
+				.then((battle) => {
+					/// the battle will now have the drops, let's get the drop rate;
+					return Battle.findOne({ _id: battle._id }).select('-drops');
+				})
+				.then((battle) => {
+					drops.forEach((d) => {
+						// console.log(battle.dropRates)
+						if(d.item_id && battle.dropRates && battle.dropRates[d.item_id]) {
+							d.dropRate = battle.dropRates[d.item_id];
+							d.denaDungeonId = battle.denaDungeonId;
+						}
+					});
+					message.drops = drops;
 
-      return self.save()
-      .then(() => {
-        return Promise.map(drops, (d) => { //IF IT HAS AN item_id, it's woth saving to the db
-          if (!d.item_id) {
-            return Promise.resolve(null);
-          }
-          
-          console.log("Let's record this drop!");
-          return Drop.create({
-            battle: battle._id,
-            user: self._id,
-            denaItemId: d.item_id,
-            qty: d.num,
-            rarity: d.rarity
-          });
-        });
-      }).return(battle);
-    })
-    .then((battle) => {
-      /// the battle will now have the drops, let's get the drop rate;
-      return Battle.findOne({ _id: battle._id }).select('-drops');
-    })
-    .then((battle) => {
-      drops.forEach((d) => {
-        // console.log(battle.dropRates)
-        if (d.item_id && battle.dropRates && battle.dropRates[d.item_id]) {
-          d.dropRate = battle.dropRates[d.item_id];
-          d.denaDungeonId = battle.denaDungeonId;
-        }
-      });
-      message.drops = drops;
+					const userAlertLevel = self.alertLevel || 1000; /// If not set, default to a high number that rarity won't reach
 
-      const userAlertLevel = self.alertLevel || 1000; /// If not set, default to a high number that rarity won't reach
+					message.drops.forEach((drop) => {
+						if(parseInt(drop.rarity || 0) >= userAlertLevel) {
+							message.notificationMessage = ` ${message.notificationMessage}${drop.name} x${drop.num}`;
+						}
+					});
 
-      message.drops.forEach((drop) => {
-        if(parseInt(drop.rarity||0) >= userAlertLevel) {
-          message.notificationMessage = ` ${message.notificationMessage}${drop.name} x${drop.num}`;
-        }
-      });
+					if(message.notificationMessage) {
+						message.notificationMessage = `Your Drops: ${message.notificationMessage}`;
+					}
 
-      if(message.notificationMessage) {
-        message.notificationMessage = `Your Drops: ${message.notificationMessage}`;
-      }
-      
-      return message;
-    });
-  })
-  .catch(function(err) {
-    self.inBattle = false;
-    self.hasValidSessionId = false;
-    return self.save().then(() => {
-      return {
-        error: true,
-        message: "Session Id Expired: Your session id no longer valid! Please reset it.",
-        name: "Session Error",
-        notificationMessage: "Session Id Expired: Your session id no longer valid! Please reset it.",
-        notify: true
-      };
-    });
-  });
+					return message;
+				});
+		})
+		.catch(function(err) {
+			self.inBattle = false;
+			self.hasValidSessionId = false;
+			return self.save().then(() => {
+				return {
+					error: true,
+					message: "Session Id Expired: Your session id no longer valid! Please reset it.",
+					name: "Session Error",
+					notificationMessage: "Session Id Expired: Your session id no longer valid! Please reset it.",
+					notify: true
+				};
+			});
+		});
 }
 
 module.exports = mongoose.model('User', schema);
