@@ -150,15 +150,18 @@ io.on('connection', (socket) => {
 
         return user.save().return(user);
       })
-      // .then((user) => {
-      //   if(!user.hasValidSessionId) { return Promise.resolve(user); }
-      //   //// IF THEY HAVEN'T BEEN UPDATED IN A WHILE, LET'S UPDATE THEM
-      //   if(!user.dena.updatedAt || moment(user.dena.updatedAt).add(5, 'hours').toDate() < moment(new Date()).toDate()) {
-      //     return user.updateData().return(user);
-      //   } else {
-      //     return Promise.resolve(user);
-      //   }
-      // })
+      .then((user) => {
+        if(!user.hasValidSessionId) { return Promise.resolve(user); }
+        //// IF THEY HAVEN'T BEEN UPDATED IN A WHILE, LET'S UPDATE THEM
+        if(!user.dena.updatedAt || moment(user.dena.updatedAt).add(5, 'hours').toDate() < moment(new Date()).toDate()) {
+          return user.updateData().return(user);
+        } else {
+          return Promise.resolve(user);
+        }
+      })
+      .catch((err) => {
+        fn({name: 'Session Error', message: 'That session Id is not valid'});
+      })
       .then((user) => {
         socket.join(`/${user.dena.sessionId}`);
         fn(user);
@@ -237,96 +240,3 @@ io.on('connection', (socket) => {
   // socket.on('/world', (data, fn) => { });
   // socket.on('/user', (data, fn) => { });
 });
-
-// mongoose.model('Drop').find().select("_id")
-// .then((drops) => {
-//   return Promise.map(drops, (drop) => {
-//     drop.save();
-//   });
-// });
-
-// User.find({buddy: {$exists: false}}).select('-dena.json -drops')
-// User.find({'dena.supporter_buddy_soul_strike_name': {$exists: false}, hasValidSessionId: true, buddy: {$exists: true}}).select('-dena.json -drops')
-// .then((users) => {
-//   return Promise.each(users, (user) => {
-//     return user.updateData();
-//   })
-// })
-// .then(() => {return console.log('done'); })
-
-// mongoose.model('Battle').find().select("-drops")
-// .then((battles) => {
-//   return Promise.map(battles, (battle) => {
-//     return battle.updateDropRates();
-//   })
-// })
-// .then(() => {
-//   console.log("Done!");
-// })
-
-
-// setInterval(() => io.emit('time', new Date().toTimeString()), 1000); //// every second
-
-///// Start background tasks
-// setInterval(() => { User.findValidWithPhone().then((users) => { 
-//   return Promise.map(users, (user) => {
-//     return user.getDropMessage().then((message) => { return [user,message]; });
-//   })
-//   .then((arrs) => {
-//     return Promise.map(arrs, (arr) => {
-//       var user = arr[0];
-//       var message = arr[1];
-//       var hashedMessage = message.notificationMessage;
-
-      
-//       if(message.notify && hashedMessage != user.lastMessage) {
-
-//         return user.sendSms(message.notificationMessage)
-//         .then(() => {
-//           user.lastMessage = hashedMessage;
-//           return user.save();  
-//         })
-//         .catch(() => {
-//           user.lastMessage = hashedMessage;
-//           user.phone = "";
-
-//           return user.save();
-//         });
-//       } else {
-//         user.lastMessage = hashedMessage;
-
-//         return user.save();
-//       }
-//     });
-//   });
-// }) }, 6000);  /// Once every six seconds
-
-// setTimeout(() => {
-//   setInterval(() => { User.findValidWithEmail().then((users) => { 
-//     return Promise.map(users, (user) => {
-//       return [user, user.getDropMessage()];
-//     })
-//     .then((arrs) => {
-//       return Promise.map(arrs, (arr) => {
-//         var user = arr[0];
-//         var message = arr[1];
-//         var hashedMessage = message.notificationMessage;
-        
-//         if(!user.phone && message.notify && hashedMessage != user.lastMessage) {
-//           return user.sendEmail(message.notificationMessage)
-//           .then(() => {
-//             user.lastMessage = hashedMessage;
-
-//             return user.save();
-//           });
-//         } else {
-//           if(!user.phone) {
-//             user.lastMessage = hashedMessage;
-//           }
-
-//           return user.save();
-//         }
-//       });
-//     });
-//   }) }, 6000);  /// Once every six seconds
-// }, 3000);

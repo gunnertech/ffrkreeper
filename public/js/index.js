@@ -37,6 +37,10 @@
     console.log("emitting");
     socket.emit('/drops', user.dena.sessionId, function(message) {
       console.log(message);
+      if(message.name == 'Invalid Session Id') {
+        return signout();
+      }
+
       $('#attach-point').prepend(renderDrops(message));
       setTimeout(function(){ getDropMessageFor(user) }, LOOP_FREQUENCY)
     });
@@ -52,10 +56,6 @@
     }
 
     messages.push(message);
-
-    if(message.name == "Session Error") {
-      signout();
-    }
 
     if(message.message) {
       html += '<tr class="table-danger"><td colspan="2"><strong>' + message.message + '</td></tr>';

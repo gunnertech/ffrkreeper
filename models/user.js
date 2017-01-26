@@ -217,37 +217,19 @@ schema.methods.updateData = function() {
 
   return dena.api.authData({sessionId: this.dena.sessionId})
   .spread((sessionId, browserData, userSessionKey) => {
-    return [
-      dena.api.getWorldBattles({sessionId: sessionId, userSessionKey: userSessionKey}),
-      dena.api.getProfileData({sessionId: sessionId, userSessionKey: userSessionKey, csrfToken: browserData.csrfToken})
-    ];
+    return dena.api.getProfileData({sessionId: sessionId, userSessionKey: userSessionKey, csrfToken: browserData.csrfToken});
   })
-  .spread((userJson, profileJson) => {
+  .then((profileJson) => {
 
     self.dena.updatedAt = new Date();
-
-    if(userJson.user) {
-      self.dena.json = userJson.user;
-      self.dena.id = userJson.user.id;
-      self.dena.name = userJson.user.name;
-
-      /// let this run in the background
-      // self.cacheImages();
-      // self.cacheAudioFiles();
-    } 
-
-    if(profileJson.invite_id) {
-      self.dena.invite_id = profileJson.invite_id;
-    }
+    self.dena.invite_id = profileJson.invite_id;
 
     if(profileJson.profile) {
+      self.dena.name = profileJson.profile.nickname;
+      self.dena.id = profileJson.profile.user_id;
       self.dena.profile_message = profileJson.profile.profile_message;
       self.dena.supporter_buddy_soul_strike_name = profileJson.profile.supporter_buddy_soul_strike_name;
     }
-
-    // console.log(profileJson.profile)
-
-    // console.log(profileJson)
 
     if(profileJson.user_supporter_buddy) {
       return mongoose.model('Buddy').findOne({'dena.buddy_id': profileJson.user_supporter_buddy.buddy_id})
