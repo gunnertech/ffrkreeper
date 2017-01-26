@@ -16,6 +16,36 @@ schema.virtual('imgUrl').get(function () {
 schema.set('toJSON', { getters: true, virtuals: true });
 schema.set('toObject', { getters: true, virtuals: true });
 
+schema.statics.createFromRelationship = (json) => {
+  Proise.map(json, (data) => {
+    return mongoose.model('User').findOne({'dena.id': data.user_id})
+    .then((user) => {
+      user = user || new mongoose.model('User');
+
+      let fieldData = {
+        dena: {
+          name: data.nickname,
+          id: data.user_id,
+          profile_message: data.profile_message,
+          supporter_buddy_soul_strike_name: data.supporter_buddy_soul_strike_name,
+          mnd: data.supporter_buddy_mnd,
+          matk: data.supporter_buddy_matk,
+          atk: data.supporter_buddy_atk
+        }
+      };
+
+      Object.assign(user.dena, fieldData);
+
+      return user.save();
+    })
+  })
+  .then((users) => {
+    console.log(users);
+    return users;
+  })
+  
+}
+
 schema.statics.checkForNewOnes = (profileJson) => {
   mongoose.model('Buddy').find().distinct('dena.buddy_id')
   .then((buddyIds) => {

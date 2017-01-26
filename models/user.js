@@ -30,7 +30,6 @@ const schema = new mongoose.Schema({
   phone: { type: String, index: { unique: true, sparse: true } },
   dena: {
     sessionId: { type: String, index: { unique: true, sparse: true } },
-    userId: { type: String, index: true },
     accessToken: String,
     name: String,
     id: { type: String, index: true },
@@ -204,6 +203,19 @@ schema.methods.cacheAudioFiles = function(audioFiles) {
 		});
 }
 
+schema.methods.generateUsersFromRelationships = function() {
+  var self = this;
+
+  return dena.api.authData({ sessionId: this.dena.sessionId })
+  .spread((sessionId, browserData, userSessionKey) => {
+    return dena.api.getFolloweeAndFollowersData({ sessionId: sessionId, userSessionKey: userSessionKey, csrfToken: browserData.csrfToken });
+  })
+  .then((json) => {
+    utils.runInBg(mongoose.model('Buddy').createFromRelationship, json.followees.target_profiles);
+    return self;
+  });
+}
+
 schema.methods.updateData = function() {
   var self = this;
 
@@ -237,7 +249,6 @@ schema.methods.updateData = function() {
 						});
 					})
 					.then((buddy) => {
-						// console.log(buddy);
 						self.buddy = buddy._id;
 						return self.save();
 					})

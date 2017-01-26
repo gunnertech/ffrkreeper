@@ -342,6 +342,10 @@ function getProfileData(options) {
   return doSimplePost("/dff/user/profile", {}, options);
 }
 
+function getFolloweeAndFollowersData(options) {
+  return doSimplePost("/dff/relation/followee_and_follower_list", {}, options);
+}
+
 function getRootData(options) {
   return doSimpleGet("/dff/get_root_data", options);
 }
@@ -497,6 +501,7 @@ module.exports = {
     getImages: getImages,
     getAudioFiles: getAudioFiles,
     getBattleInitDataForEventId: getBattleInitDataForEventId,
-    extraFilesFromBlob: extraFilesFromBlob
+    extraFilesFromBlob: extraFilesFromBlob,
+    getFolloweeAndFollowersData: getFolloweeAndFollowersData
   }
 };

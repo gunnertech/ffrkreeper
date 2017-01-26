@@ -20,6 +20,7 @@ const handlebars = require('handlebars');
 const engine = hbs.create(handlebars.create());
 const moment = require('moment');
 const lodash = require('lodash');
+const util = require('util');
 
 //load all template partials
 fs.readdirSync(path.join(__dirname, 'views/partials')).forEach(function(file) {
@@ -255,7 +256,10 @@ User.update({email: "undefined"}, { $unset: { email: 1 }}).then(console.log)
 User.update({phone: "null"}, { $unset: { phone: 1 }}).then(console.log)
 User.update({phone: "undefined"}, { $unset: { phone: 1 }}).then(console.log)
 
-User.findOne({hasValidSessionId: true, phone: '+18609404747'})
-.then((user) => {
-  return user.updateData();
-})
+// User.findOne({hasValidSessionId: true, phone: '+18609404747'})
+// .then((user) => {
+//   return user.getFolloweesAndFollowers();
+// })
+// .then((json) => { 
+//   followees
+// })
