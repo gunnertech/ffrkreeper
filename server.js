@@ -255,13 +255,7 @@ User.update({email: "null"}, { $unset: { email: 1 }}).then(() => {})
 User.update({email: "undefined"}, { $unset: { email: 1 }}).then(() => {})
 User.update({phone: "null"}, { $unset: { phone: 1 }}).then(() => {})
 User.update({phone: "undefined"}, { $unset: { phone: 1 }}).then(() => {})
-console.log("OK")
-User.find({hasValidSessionId: true, 'dena.sessionId': { $ne: null }})
-.then((users) => {
-  users.forEach((user) => {
-    User.count({'dena.sessionId': user.dena.sessionId}).then(console.log)
-  })
-})
+
 
 // User.find({hasValidSessionId: true, phone: '+18609404747'})
 // .then((users) => {
