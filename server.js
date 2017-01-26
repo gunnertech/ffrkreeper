@@ -141,13 +141,17 @@ io.on('connection', (socket) => {
       .then((user) => {
         if(data.phone) { user.phone = data.phone; }
         if(data.email) { user.email = data.email; }
-        if(data.sessionId) { user.dena.sessionId = data.sessionId; }
-        user.hasValidSessionId = true;
+        if(data.sessionId){ 
+          user.dena.sessionId = data.sessionId; 
+          user.hasValidSessionId = true;  
+        }
+        
         user.alertLevel = parseInt(data.alertLevel) || 0;
 
         return user.save().return(user);
       })
       // .then((user) => {
+      //   if(!user.hasValidSessionId) { return Promise.resolve(user); }
       //   //// IF THEY HAVEN'T BEEN UPDATED IN A WHILE, LET'S UPDATE THEM
       //   if(!user.dena.updatedAt || moment(user.dena.updatedAt).add(5, 'hours').toDate() < moment(new Date()).toDate()) {
       //     return user.updateData().return(user);
