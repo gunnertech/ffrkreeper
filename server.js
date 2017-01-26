@@ -206,14 +206,16 @@ io.on('connection', (socket) => {
   // socket.on('/user', (data, fn) => { });
 });
 
+Battle.findOne({_id: '5887fdd10b21f8a941f1915d'}).select('-drops').then(console.log)
+
 // User.find({buddy: {$exists: false}}).select('-dena.json -drops')
-User.find({'dena.supporter_buddy_soul_strike_name': {$exists: false}, hasValidSessionId: true, buddy: {$exists: true}}).select('-dena.json -drops')
-.then((users) => {
-  return Promise.each(users, (user) => {
-    return user.updateData();
-  })
-})
-.then(() => {return console.log('done'); })
+// User.find({'dena.supporter_buddy_soul_strike_name': {$exists: false}, hasValidSessionId: true, buddy: {$exists: true}}).select('-dena.json -drops')
+// .then((users) => {
+//   return Promise.each(users, (user) => {
+//     return user.updateData();
+//   })
+// })
+// .then(() => {return console.log('done'); })
 
 
 // setInterval(() => io.emit('time', new Date().toTimeString()), 1000); //// every second

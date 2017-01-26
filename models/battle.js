@@ -88,8 +88,6 @@ schema.statics.getBattleList = function(denaDungeonId) {
         battle.name = _.map((battle.enemies||[]), 'name').join(', ') || battle.denaBattleId;
 
         denaItemIds.forEach((denaItemId) => {
-          console.log(denaItemId)
-          console.log(battle.dropRates)
           var drop = {};
           drop.imgUrl = GetDropImg(denaItemId);
           drop.name = dropData[denaItemId];

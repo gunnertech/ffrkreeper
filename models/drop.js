@@ -45,15 +45,9 @@ schema.post('save', function (drop) {
     }
 
     // battle.dropRates[drop.denaItemId].rate = (battle.dropRates[drop.denaItemId].hits * 1.0) / (battle.dropRates[drop.denaItemId].total * 1.0) || 0.0;
-
+    console.log(battle._id)
     console.log(battle.dropRates);
     return battle.save()
-    .then(() => {
-      return Battle.findOne({ _id: battle._id }).select('-drops');
-    })
-    .then((battle) => {
-      console.log(battle.dropRates)
-    });
   });
 });
 

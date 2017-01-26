@@ -379,7 +379,6 @@ schema.methods.getDropMessage = function () {
       battle.denaDungeonId = json.battle.dungeon.dungeon_id;
       battle.eventId = json.battle.event.event_id;
       battle.eventType = json.battle.event.event_type;
-      battle.dropRates = battle.dropRates || {};
 
       return battle.save().return(battle);
     })
