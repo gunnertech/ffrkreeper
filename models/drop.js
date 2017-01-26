@@ -34,26 +34,26 @@ schema.post('save', function (drop) {
   })
   .spread(function (drops, battle) {
     ///TODO: totally not transactionally safe
-    // if(!battle) { return Promise.resolve([]); }
-
+    
     battle.dropRates = battle.dropRates || {};
-    battle.dropRates[drop.denaItemId] = battle.dropRates[drop.denaItemId] || {};
+    console.log(drop.denaItemId);    
     for (var i in battle.dropRates) {
-      if (i) {
-        battle.dropRates[i].rate = (battle.dropRates[i].hits * 1.0) / (battle.dropRates[i].total * 1.0) || 0.0;
-      }
-
+      console.log(i);
+      battle.dropRates[i].total = drops.length;
+      battle.dropRates[i].hits = lodash.filter(drops, (d) => { return i == (d.denaItemId || "").toString() }).length
+      battle.dropRates[i].rate = (battle.dropRates[i].hits * 1.0) / (battle.dropRates[i].total * 1.0) || 0.0;
     }
 
-    battle.dropRates[drop.denaItemId] = {
-      total: drops.length,
-      hits: lodash.filter(drops, (d) => { return drop.denaItemId.toString() == (d.denaItemId || "").toString() }).length
-    };
-
-    battle.dropRates[drop.denaItemId].rate = (battle.dropRates[drop.denaItemId].hits * 1.0) / (battle.dropRates[drop.denaItemId].total * 1.0) || 0.0;
+    // battle.dropRates[drop.denaItemId].rate = (battle.dropRates[drop.denaItemId].hits * 1.0) / (battle.dropRates[drop.denaItemId].total * 1.0) || 0.0;
 
     console.log(battle.dropRates);
-    return battle.save();
+    return battle.save()
+    .then(() => {
+      return Battle.findOne({ _id: battle._id }).select('-drops');
+    })
+    .then((battle) => {
+      console.log(battle.dropRates)
+    });
   });
 });
 
