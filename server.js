@@ -147,14 +147,14 @@ io.on('connection', (socket) => {
 
         return user.save().return(user);
       })
-      .then((user) => {
-        //// IF THEY HAVEN'T BEEN UPDATED IN A WHILE, LET'S UPDATE THEM
-        if(!user.dena.updatedAt || moment(user.dena.updatedAt).add(5, 'hours').toDate() < moment(new Date()).toDate()) {
-          return user.updateData().return(user);
-        } else {
-          return Promise.resolve(user);
-        }
-      })
+      // .then((user) => {
+      //   //// IF THEY HAVEN'T BEEN UPDATED IN A WHILE, LET'S UPDATE THEM
+      //   if(!user.dena.updatedAt || moment(user.dena.updatedAt).add(5, 'hours').toDate() < moment(new Date()).toDate()) {
+      //     return user.updateData().return(user);
+      //   } else {
+      //     return Promise.resolve(user);
+      //   }
+      // })
       .then((user) => {
         socket.join(`/${user.dena.sessionId}`);
         fn(user);
