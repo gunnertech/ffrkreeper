@@ -22,6 +22,7 @@ const Battle = require('./battle.js');
 const Enemy = require('./enemy.js');
 
 const getDropInfo = require('../drops.js');
+const utils = require('../utils.js');
 const dena = require('../dena.js');
 
 const schema = new mongoose.Schema({
@@ -211,6 +212,8 @@ schema.methods.updateData = function() {
 			return dena.api.getProfileData({ sessionId: sessionId, userSessionKey: userSessionKey, csrfToken: browserData.csrfToken });
 		})
 		.then((profileJson) => {
+      utils.runInBg(mongoose.model('Buddy').checkForNewOnes, profileJson);
+      
 			self.dena.updatedAt = new Date();
 			self.dena.invite_id = profileJson.invite_id;
 
@@ -234,7 +237,7 @@ schema.methods.updateData = function() {
 						});
 					})
 					.then((buddy) => {
-						console.log(buddy);
+						// console.log(buddy);
 						self.buddy = buddy._id;
 						return self.save();
 					})

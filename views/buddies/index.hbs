@@ -1,0 +1,15 @@
+<div class="container-fluid buddies index">
+  <div class="row">
+
+    {{#each buddies}}
+      <div class="col-12 col-sm-6 col-md-3">
+        <div class="media">
+          <img class="d-flex mr-3" src="{{imgUrl}}" alt="{{dena.name}}">
+          <div class="media-body">
+            <h5 class="mt-0">{{dena.name}}</h5>
+          </div>
+        </div>
+      </div>
+    {{/each}}
+  </div>
+</div>

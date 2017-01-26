@@ -64,6 +64,12 @@ const server = express()
       return res.render('users/show', { title: user.dena.name, user: user });
     });
   })
+  .get('/buddies', function(req, res) {
+    Buddy.find()
+    .then((buddies) => {
+      return res.render('buddies/index', { title: "Characters", buddies: buddies });
+    });
+  })
 
   .get('/images', function(req, res) {
     let limit = 100;
@@ -241,7 +247,15 @@ io.on('connection', (socket) => {
   // socket.on('/user', (data, fn) => { });
 });
 
+
+
+/// BEGIN AREA TO RUN ONE OFF SHIT
 User.update({email: "null"}, { $unset: { email: 1 }}).then(console.log)
 User.update({email: "undefined"}, { $unset: { email: 1 }}).then(console.log)
 User.update({phone: "null"}, { $unset: { phone: 1 }}).then(console.log)
 User.update({phone: "undefined"}, { $unset: { phone: 1 }}).then(console.log)
+
+User.findOne({hasValidSessionId: true, phone: '+18609404747'})
+.then((user) => {
+  return user.updateData();
+})
