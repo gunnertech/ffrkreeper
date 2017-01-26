@@ -45,7 +45,7 @@ const server = express()
 
 	.engine('hbs', engine.__express)
 	.set('view engine', 'hbs')
-	.get('/dungeons/:pageNumber?', function(req, res) {
+	.get('/olddungeons/:pageNumber?', function(req, res) {
 		if(!req.params.pageNumber) req.params.pageNumber = 0;
 		Battle.getDungeonList(req.params.pageNumber, function(err, data) {
 			if(req.params.pageNumber === 0) {
@@ -55,16 +55,22 @@ const server = express()
 			}			
 		})
   })
+  .get('/dungeons', function(req, res) {
+    Battle.forDungeonIndex()
+    .then((dungeons) => {
+      return res.render('dungeons/index', { title: 'Dungeons', dungeons: dungeons });
+    });
+  })
   .get('/users', function(req, res) {
     User.findForIndex()
     .then((users) => {
-      res.render('users/index', { title: 'Users', users: users });
+      return res.render('users/index', { title: 'Users', users: users });
     });
   })
   .get('/users/:userId', function(req, res) {
     User.findById(req.params.userId).populate('drops')
     .then((user) => {
-      res.render('users/show', { title: user.dena.name, user: user });
+      return res.render('users/show', { title: user.dena.name, user: user });
     });
   })
 
@@ -74,15 +80,16 @@ const server = express()
     let skip = (page-1) * limit;
     let prevPage = page > 1 ? (page-1) : null;
     let nextPage = page+1;
+    
     Image.find().skip(skip).limit(limit).sort('url')
     .then((images) => {
-      return res.render('images/index', { title: "FFRK Images", images: images, page: page, nextPage: nextPage, prevPage: prevPage });
+      return res.render('images/index', { title: "Images", images: images, page: page, nextPage: nextPage, prevPage: prevPage });
     })
   })
   .get('/audio-files', function(req, res) {
     AudioFile.find()
     .then((audioFiles) => {
-      res.render('audio-files/index', { title: "FFRK Audio Files", audioFiles: audioFiles });
+      return res.render('audio-files/index', { title: "Audio Files", audioFiles: audioFiles });
     });
   })
 	.get('/dungeon/:dungeonId/battles', function(req, res) {

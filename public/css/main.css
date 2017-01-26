@@ -7,6 +7,18 @@ body {
     padding-bottom: 50px;
 }
 
+.audio-files.index,
+.battles.index,
+.users.index,
+.dungeons.index {
+    margin-top: 40px;
+}
+
+.dungeons.index img {
+    height: 50px;
+    width: 50px;
+}
+
 #attach-point .col {
     /*white-space: nowrap;
     overflow: hidden;

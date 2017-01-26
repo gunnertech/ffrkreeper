@@ -54,6 +54,47 @@ function getUniqueItemsFromDungeon(dungeon) {
 	return itemsFound;
 }
 
+schema.statics.forDungeonIndex = function(pageNumber) {
+  var dungeons = [];
+  return mongoose.model('Battle').find().distinct('denaDungeonId')
+  .then((denaDungeonIds) => {
+    return Promise.map(denaDungeonIds, (denaDungeonId) => {
+      return mongoose.model('Battle').find({denaDungeonId: denaDungeonId}).select("-drops").populate('enemies');
+    })
+    .then((groupedBattles) => {
+      return Promise.map(groupedBattles, (battles) => {
+        var dungeon = {};
+        var enemies = _.flatten(_.map(battles, (battle) => { return _.map((battle.enemies||[]), 'name'); }));
+        dungeon._id = _.compact(_.map(battles, 'denaDungeonId'))[0];
+        if(enemies.length) {
+          dungeon.name = enemies.join(", ");  
+        } else {
+          dungeon.name = dungeon._id;
+        }
+        
+        dungeon.dropImages = [];
+
+        battles.forEach((battle) => {
+          for(var i in (battle.dropRates || {})) {
+            dungeon.dropImages.push(GetDropImg(i));
+          }
+        });
+
+        dungeon.dropImages = _.uniq(dungeon.dropImages);
+
+        dungeons.push(dungeon);
+
+        return dungeon;
+
+      })
+    })
+
+  }).return(dungeons)
+  .then((dungeons) => {
+    return _.sortBy(dungeons, ['_id']);
+  })
+}
+
 schema.statics.getDungeonList = function(pageNumber, cb) {
 	mongoose.model('Battle', schema).aggregate([	
 		{
