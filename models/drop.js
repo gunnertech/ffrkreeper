@@ -33,18 +33,7 @@ schema.post('save', function (drop) {
     return [drops, Battle.findById(drop.battle).select('-drops')]
   })
   .spread(function (drops, battle) {
-    ///TODO: totally not transactionally safe
-    
-    battle.dropRates = battle.dropRates || {};
-    for (var i in battle.dropRates) {
-      console.log(i);
-      battle.dropRates[i].total = drops.length;
-      battle.dropRates[i].hits = lodash.filter(drops, (d) => { return i == (d.denaItemId || "").toString() }).length
-      battle.dropRates[i].rate = (battle.dropRates[i].hits * 1.0) / (battle.dropRates[i].total * 1.0) || 0.0;
-    }
-
-    // battle.dropRates[drop.denaItemId].rate = (battle.dropRates[drop.denaItemId].hits * 1.0) / (battle.dropRates[drop.denaItemId].total * 1.0) || 0.0;
-    return Battle.update({_id: battle._id}, {dropRates: battle.dropRates}).then(() => { return battle });
+    return battle.updateDropRates();
   });
 });
 

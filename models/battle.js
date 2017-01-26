@@ -105,5 +105,28 @@ schema.statics.getBattleList = function(denaDungeonId) {
     .return(battles);
   });
 }
+//5887fdd10b21f8a941f1915d
+schema.methods.updateDropRates = function() {
+  var self = this;
+
+  return mongoose.model('Drop').find({battle: self._id}).distinct('denaItemId')
+  .then((denaItemIds) => {
+    return [denaItemIds, mongoose.model('Drop').find({battle: self._id}).select('denaItemId')];
+  })
+  .spread((denaItemIds, drops) => {
+    self.dropRates = {};
+    denaItemIds.forEach((i) => {
+      self.dropRates[i] = self.dropRates[i] || {};
+      self.dropRates[i].total = drops.length;
+      self.dropRates[i].hits = _.filter(drops, (d) => { return i == (d.denaItemId || "").toString() }).length
+      self.dropRates[i].rate = (self.dropRates[i].hits * 1.0) / (self.dropRates[i].total * 1.0) || 0.0;  
+    });
+
+    return mongoose.model('Battle').update({_id: self._id}, {dropRates: self.dropRates});
+  })
+  .then(() => { 
+    return self; 
+  });
+}
 
 module.exports = mongoose.model('Battle', schema);

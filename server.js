@@ -222,6 +222,16 @@ io.on('connection', (socket) => {
 // })
 // .then(() => {return console.log('done'); })
 
+// mongoose.model('Battle').find().select("-drops")
+// .then((battles) => {
+//   return Promise.map(battles, (battle) => {
+//     return battle.updateDropRates();
+//   })
+// })
+// .then(() => {
+//   console.log("Done!");
+// })
+
 
 // setInterval(() => io.emit('time', new Date().toTimeString()), 1000); //// every second
 
