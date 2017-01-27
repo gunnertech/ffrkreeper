@@ -289,16 +289,20 @@ schema.methods.sendEmail = function(message) {
     body: mail.toJSON()
   });
 
-  return new Promise((resolve, reject) => {
-    sg.API(request, (error, response) => {
-      if(error) {
-        error.name = "Email Error";
-        reject(error);
-      } else {
-        resolve(response);
-      }
-    });
-  })
+  try {
+    return new Promise((resolve, reject) => {
+      sg.API(request, (error, response) => {
+        if(error) {
+          error.name = "Email Error";
+          reject(error);
+        } else {
+          resolve(response);
+        }
+      });
+    })
+  } catch (e) {
+    return Promise.reject(e);
+  }
 };
 
 schema.methods.sendSms = function(message) {

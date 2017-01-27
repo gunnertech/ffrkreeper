@@ -218,23 +218,32 @@ io.on('connection', (socket) => {
     })
     .spread((user, message) => {
       var hashedMessage = message.notificationMessage;
-              
+      console.log(message.notify);
+      console.log(hashedMessage)
+      console.log(user.lastMessage);
+      console.log(!!user.email);
       if(message.notify && hashedMessage != user.lastMessage) {
+        console.log("HI THERE")
         user.lastMessage = hashedMessage;
         
         return user.save()
         .then(() => {
           var promises = [];
-          if(user.email && user.lastMessage) {
+
+          if(user.email && message.notificationMessage) {
             promises.push(user.sendEmail(message.notificationMessage));
           }
-          if(user.phone && user.lastMessage) {
-            promises.push(user.sendEmail(message.notificationMessage));
+          if(user.phone && message.notificationMessage) {
+            promises.push(user.sendSms(message.notificationMessage));
           }
 
           return Promise.all(promises).return(user);
         });
       } else {
+        if(user.lastMessage != hashedMessage) {
+          user.lastMessage = hashedMessage;
+          return user.save().return(user);
+        }
         return Promise.resolve(user);
       }   
         
