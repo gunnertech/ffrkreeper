@@ -7,6 +7,9 @@
     <li class="nav-item">
       <a class="nav-link" data-toggle="tab" href="#events" role="tab">Events</a>
     </li>
+    <li class="nav-item">
+      <a class="nav-link" data-toggle="tab" href="#backgrounds" role="tab">Backgrounds</a>
+    </li>
   </ul>
 
   <div class="tab-content">
@@ -19,11 +22,22 @@
       {{/each}}
       </div>
     </div>
+    
     <div class="tab-pane" id="events" role="tabpanel">
       <div class="row">
       {{#each events}}
         <div class="col-lg-4 col-md-6">
           <img class="img-fluid" src="https://ffrk.static.denagames.com/dff/static/lang/ww/compile/en/image/event/{{this}}.png" onerror="this.onerror=null;$(this).parent().remove();" />
+        </div>
+      {{/each}}
+      </div>
+    </div>
+
+    <div class="tab-pane" id="backgrounds" role="tabpanel">
+      <div class="row">
+      {{#each events}}
+        <div class="col-lg-4 col-md-6">
+          <img class="img-fluid" src="https://ffrk.static.denagames.com/dff/static/lang/image/event/{{this}}_bg.png" onerror="this.onerror=null;$(this).parent().remove();" />
         </div>
       {{/each}}
       </div>
