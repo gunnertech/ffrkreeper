@@ -80,9 +80,55 @@ const server = express()
   .get('/banners', function(req, res) {
     Event.find().distinct('dena.event_id').then((event_ids) => {
       event_ids = lodash.sortBy(event_ids, [function(id) { return parseInt(id); }]);
-      return res.render('banners/index', { title: "Banners", gachas: [...Array(400).keys()], events: event_ids });
+      return res.render('banners/index', { 
+        title: "Banners", 
+        gachas: [...Array(400).keys()], 
+        events: event_ids,
+        characters: lodash.range(501004, 501200)
+      });
     })
   })
+  .get('/gear', function(req, res) {
+    Event.find().distinct('dena.event_id').then((event_ids) => {
+      event_ids = lodash.sortBy(event_ids, [function(id) { return parseInt(id); }]);
+      return res.render('gear/index', { 
+        weapons: lodash.flatten([
+          lodash.range(21001000, 21001200), //DAGGERS
+          lodash.range(21002000, 21002400), //SWORDS
+          lodash.range(21003000, 21003100), //KATANAS
+          lodash.range(21004000, 21004100), //AXES
+          lodash.range(21005000, 21005100), //HAMMERS
+          lodash.range(21006000, 21006100), //SPEARS
+          lodash.range(21007000, 21007100), //FISTS
+          lodash.range(21008000, 21008200), //RODS
+          lodash.range(21009000, 21009100), //STAFFS
+          lodash.range(21010000, 21010100), //BOWS
+          lodash.range(21011000, 21011100), //INSTRUMENTS
+          lodash.range(21012000, 21012100), //WHIPS
+          lodash.range(21013000, 21013100), //THROWN
+          lodash.range(21014000, 21014100), //BOOKS
+          lodash.range(21015000, 21015200), //GUNS
+
+          lodash.range(21030000, 21030320), //BALLS
+          lodash.range(21034000, 21034010), //DOLLS
+          
+
+          lodash.range(22050000, 22050050), //Shields
+          lodash.range(22051000, 22051050), //HAts
+          lodash.range(22053000, 22053100), //light armor
+          lodash.range(22054000, 22054100), //heavy armor
+          lodash.range(22055000, 22055100), //robes
+          lodash.range(22056000, 22056100), //bracers
+          
+          lodash.range(23080000, 23080300), ///ACCESSORIES
+
+          
+        ]);
+      });
+    })
+  })
+
+  
 
 
   .get('/images', function(req, res) {

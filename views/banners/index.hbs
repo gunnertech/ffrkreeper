@@ -8,7 +8,10 @@
       <a class="nav-link" data-toggle="tab" href="#events" role="tab">Events</a>
     </li>
     <li class="nav-item">
-      <a class="nav-link" data-toggle="tab" href="#backgrounds" role="tab">Backgrounds</a>
+      <a class="nav-link" data-toggle="tab" href="#backgrounds" role="tab">BGs</a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link" data-toggle="tab" href="#characters" role="tab">Characters</a>
     </li>
   </ul>
 
@@ -42,6 +45,17 @@
       {{/each}}
       </div>
     </div>
+
+    <div class="tab-pane" id="characters" role="tabpanel">
+      <div class="row">
+      {{#each characters}}
+        <div class="col-lg-1 col-md-2 col-4">
+          <img src="https://ffrk.static.denagames.com/dff/static/lang/image/tip_download/{{this}}.png" onerror="this.onerror=null;$(this).parent().remove();" />
+        </div>
+      {{/each}}
+      </div>
+    </div>
+
   </div>
 
 </div>
