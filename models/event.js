@@ -10,6 +10,8 @@ const schema = new mongoose.Schema({
     event_id: {type: String, index: true },
     event_type: {type: String, index: true }
   }
+}, {
+  timestamps: true
 });
 
 schema.virtual('imgUrl').get(function () {
