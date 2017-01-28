@@ -110,20 +110,21 @@ const server = express()
           lodash.range(21015000, 21015200), //GUNS
 
           lodash.range(21030000, 21030320), //BALLS
-          lodash.range(21034000, 21034010), //DOLLS
-          
+          lodash.range(21034000, 21034010) //DOLLS
+        ]),
 
+        armor: lodash.flatten([
           lodash.range(22050000, 22050050), //Shields
           lodash.range(22051000, 22051050), //HAts
           lodash.range(22053000, 22053100), //light armor
           lodash.range(22054000, 22054100), //heavy armor
           lodash.range(22055000, 22055100), //robes
-          lodash.range(22056000, 22056100), //bracers
-          
-          lodash.range(23080000, 23080300), ///ACCESSORIES
+          lodash.range(22056000, 22056100) //bracers
+        ]),
 
-          
-        ]);
+        accessories: lodash.flatten([
+          lodash.range(23080000, 23080300)
+        ])
       });
     })
   })
