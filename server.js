@@ -31,6 +31,7 @@ require('./config/mongoose.js').setup(mongoose);
 
 const dena = require('./dena.js');
 const User = require('./models/user.js');
+const Event = require('./models/event.js');
 const Buddy = require('./models/buddy.js');
 const Battle = require('./models/battle.js');
 const Image = require('./models/image.js');
@@ -69,6 +70,12 @@ const server = express()
     Buddy.find()
     .then((buddies) => {
       return res.render('buddies/index', { title: "Characters", buddies: buddies });
+    });
+  })
+  .get('/events', function(req, res) {
+    Event.find().sort('dena.event_id')
+    .then((events) => {
+      return res.render('events/index', { title: "Event", events: events });
     });
   })
 
@@ -265,11 +272,13 @@ User.update({email: "undefined"}, { $unset: { email: 1 }}).then(() => {})
 User.update({phone: "null"}, { $unset: { phone: 1 }}).then(() => {})
 User.update({phone: "undefined"}, { $unset: { phone: 1 }}).then(() => {})
 
+// Battle.find().distinct("denaBattleId").then(console.log)
 
-// User.find({hasValidSessionId: true, phone: '+18609404747'})
-// .then((users) => {
-//   users.forEach((user) => {
-//     user.updateData()
-//   });
-//   return users;
-// });
+
+// User.findOne({hasValidSessionId: true, 'dena.name': 'SaltyNut' })
+// .then((user) => {
+//   return user.getBattleInitDataForEventId(95);
+// })
+// .then(console.log)
+
+Event.generateEvents().then(console.log);
