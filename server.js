@@ -283,13 +283,13 @@ User.update({phone: "undefined"}, { $unset: { phone: 1 }}).then(() => {})
 // Battle.find().distinct("denaBattleId").then(console.log)
 
 
-User.findOne({hasValidSessionId: true, 'dena.name': 'SaltyNut' })
-.then((user) => {
-  return user.getBattleInitDataForEventId(95);
-})
-.then((json) => {
-  // console.log(util.inspect(json.battle.rounds[0].enemy[0], false, null))
-  console.log(json)
-})
+// User.findOne({hasValidSessionId: true, 'dena.name': 'SaltyNut' })
+// .then((user) => {
+//   return user.getBattleInitDataForEventId(95);
+// })
+// .then((json) => {
+//   console.log(util.inspect(json.battle.score, false, null))
+//   // console.log(json)
+// })
 
 
