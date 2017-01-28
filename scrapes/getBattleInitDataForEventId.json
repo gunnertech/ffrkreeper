@@ -1,0 +1,96 @@
+{
+  "world_id": "",
+  "events": [
+    {
+      "event_id": "94",
+      "event_type": "challenge",
+      "dungeons": [
+        {
+          "dungeon_id": "11009416",
+          "battles": [
+            {
+              "battle_id": "1100940135",
+              "rounds": [
+                {
+                  "bgm": "bgm_10_078", //// this is the audio file for the round => https://ffrk.static.denagames.com/dff/static/lang/bgm/bgm_m4a/bgm_10_078.m4a
+                  "enemy": [
+                    {
+                      "children": [
+                        {
+                          "is_sp_enemy": "1", //is the enemy a boss?
+                          "enemy_id": "21072603", /// img url -> https://ffrk.static.denagames.com/dff/static/lang/image/enemy/21072603.png
+                          "lv": "180",
+                          "ai_id": "2107260301", /// this would be a good one to crack somehow
+                          "max_hp": "361594",
+                          "init_hp": "361594",
+                          "drop_item_list": [
+
+                          ],
+
+                          "params": [ /// This shit is weird. Can"t figure it all out because, tidus, for example, had three items in this area
+                            {
+                              "disp_name": "Tidus (Ultimate ++)",
+                              "atk": "839",
+                              "no": "1",
+                              "mdef": "4574",
+                              "lv": "180",
+                              "acc": "200",
+                              "size": "3",
+                              "critical": "3",
+                              "def": "2911",
+                              "eva": "62",
+                              "id": "210726031",
+                              "breed_id": "12",
+                              "exp": 12798,
+                              "matk": "731",
+                              "looking": "210726031",
+                              "spd": "600",
+                              "counters": [],
+                              "max_hp": "361594",
+                              "mnd": "749",
+                              "def_attributes": [
+                                {}
+                              ],
+                              "animation_info": {
+
+                              },
+                              "abilities": [
+                                {
+
+                                }
+                              ]
+
+
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ],
+                  "drop_item_list": [
+
+                  ],
+
+                  "drop_materias": [
+                    
+                  ]
+                }
+              ],
+              "score": { //this is the prizes for the battle
+                "general": {
+
+                },
+                "specific": {
+
+                },
+                "various_info": {
+
+                }
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

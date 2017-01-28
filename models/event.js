@@ -26,11 +26,15 @@ schema.statics.generateEvents = () => {
 
   return Event.find().distinct('dena.event_id')
   .then((eventIds) => {
-    console.log(eventIds)
-    eventIds = lodash.differenceWith([...Array(1000).keys()], eventIds, lodash.isEqual);
-    console.log(eventIds)
+    var newEventIds = [];
+
+    [...Array(1000).keys()].forEach((key) => {
+      if(eventIds.indexOf(key) == -1) {
+        newEventIds.push(key);
+      }
+    });
     
-    return Promise.map(eventIds, (key) => {
+    return Promise.each(newEventIds, (key) => {
       return new Promise(((resolve, reject) => {
         request(`https://ffrk.static.denagames.com/dff/static/lang/ww/compile/en/image/event/${key}.png`, function (error, response, body) {
           if (!error && response.statusCode == 200) {

@@ -30,12 +30,14 @@ fs.readdirSync(path.join(__dirname, 'views/partials')).forEach(function(file) {
 require('./config/mongoose.js').setup(mongoose);
 
 const dena = require('./dena.js');
+const utils = require('./utils.js');
 const User = require('./models/user.js');
 const Event = require('./models/event.js');
 const Buddy = require('./models/buddy.js');
 const Battle = require('./models/battle.js');
 const Image = require('./models/image.js');
 const AudioFile = require('./models/audioFile.js');
+
 
 const server = express()
   .use(bodyParser.json())
@@ -73,11 +75,15 @@ const server = express()
     });
   })
   .get('/events', function(req, res) {
-    Event.find().sort('dena.event_id')
-    .then((events) => {
-      return res.render('events/index', { title: "Event", events: events });
-    });
+    return res.redirect('/banners');
   })
+  .get('/banners', function(req, res) {
+    Event.find().distinct('dena.event_id').then((event_ids) => {
+      event_ids = lodash.sortBy(event_ids, [function(id) { return parseInt(id); }]);
+      return res.render('banners/index', { title: "Banners", gachas: [...Array(400).keys()], events: event_ids });
+    })
+  })
+
 
   .get('/images', function(req, res) {
     let limit = 100;
@@ -264,6 +270,8 @@ io.on('connection', (socket) => {
   // socket.on('/user', (data, fn) => { });
 });
 
+utils.runInBg(Event.generateEvents);
+
 
 
 /// BEGIN AREA TO RUN ONE OFF SHIT
@@ -275,10 +283,13 @@ User.update({phone: "undefined"}, { $unset: { phone: 1 }}).then(() => {})
 // Battle.find().distinct("denaBattleId").then(console.log)
 
 
-// User.findOne({hasValidSessionId: true, 'dena.name': 'SaltyNut' })
-// .then((user) => {
-//   return user.getBattleInitDataForEventId(95);
-// })
-// .then(console.log)
+User.findOne({hasValidSessionId: true, 'dena.name': 'SaltyNut' })
+.then((user) => {
+  return user.getBattleInitDataForEventId(95);
+})
+.then((json) => {
+  // console.log(util.inspect(json.battle.rounds[0].enemy[0], false, null))
+  console.log(json)
+})
 
-Event.generateEvents().then(console.log);
+
