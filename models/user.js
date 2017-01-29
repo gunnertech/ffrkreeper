@@ -20,6 +20,8 @@ const CURRENT_PATH = '/dff/event/challenge/94/get_battle_init_data';
 const Drop = require('./drop.js');
 const Battle = require('./battle.js');
 const Enemy = require('./enemy.js');
+const World = require('./world.js');
+const Series = require('./series.js');
 
 const getDropInfo = require('../drops.js');
 const utils = require('../utils.js');
@@ -164,6 +166,60 @@ schema.statics.findValidWithEmail = () => {
     email: { $nin: [null, ""] }
   }
   return mongoose.model('User').find(query).select('-dena.json -drops')
+}
+
+schema.methods.buildWorlds = function() {
+  const World = mongoose.model('World');
+  const Series = mongoose.model('Series');
+
+  return World.find().distinct('dena.id')
+  .then((worldIds) => {
+
+    return dena.api.getJsonBlobs(this.dena.sessionId)
+    .then((blobs) => {
+      return Promise.each(blobs, (data) => {
+        const worldId = parseInt(data[4]);
+        const seriesId = parseInt(parseInt(data[7]));
+        var promise = null;
+
+        if(worldIds.indexOf(worldId) == -1) {        
+          promise = World.create({
+            dena: {
+              id: worldId,
+              name: data[5],
+              bgm: data[1],
+              type: parseInt(data[12])
+            }
+          });
+        } else {
+          promise = World.findOne({'dena.id': worldId});
+        }
+
+        return promise.then((world) => {
+          return Series.findOne({'dena.id': seriesId})
+          .then((series) => {
+            if(series) {
+              return Promise.resolve(series);
+            }
+
+            return Series.create({
+              dena: {
+                id: seriesId,
+                formal_name: data[3]
+              }
+            });
+          })
+          .then((series) => {
+            world.series = series._id;
+            return world.save();
+          })
+        })
+      })
+    })
+  })
+  .then(() => {
+    return World.find().populate('series');
+  })
 }
 
 schema.methods.cacheImages = function(images) {

@@ -37,6 +37,8 @@ const rp = require('request-promise');
 const Promise = require('bluebird');
 const util = require('util');
 const lodash = require('lodash');
+const readFile = Promise.promisify(require("fs").readFile);
+
 
 
 function getSessionId(userId, accessToken, sessionId) {
@@ -189,6 +191,21 @@ function extraFilesFromBlob(fileType, blob) {
   });
 
   return files;
+}
+
+function getJsonBlobs(sessionId) {
+  return (process.env.IS_TEST ? readFile("./scrapes/index.html", "utf8") : scrapeIndexScreen(sessionId))
+  .then((data) => {
+    data = data.toString();
+    data = data.replace(/,"dungeon_status_summary":\{\}/g,"")
+    data = data.replace(/,"dungeon_status_summary":\{[\}\}]+\}\}/g,"")
+    data = data.replace(/,"dungeon_term_list":\[[^\]]+\]/g,"")
+    data = data.replace(/,"dungeon_term_list":null/g,"")
+    
+    var embeddedJsonBlobs = /(?:"bgm":"([^"]+)",)?"door_image_path":"([^"]+)","series_formal_name":"([^"]+)","id":(\d+),"name":"([^"]+)","has_new_dungeon":([^,]+),"series_id":(\d+),"opened_at":(\d+),"kept_out_at":(\d+),"is_unlocked":(true|false),"image_path":"([^"]+)","type":(\d+),"banner_message":"([^"]*)"/g.execAll(data);
+
+    return embeddedJsonBlobs;
+  });
 }
 
 function getImages(sessionId) {
@@ -490,6 +507,7 @@ function begin(userId, accessToken, sessionId) {
 module.exports = {
   begin: begin,
   api: {
+    getJsonBlobs: getJsonBlobs,
     authData: authData,
     getWorldBattles: getWorldBattles,
     getDetailedFellowListing: getDetailedFellowListing,

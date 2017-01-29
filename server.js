@@ -33,6 +33,7 @@ const dena = require('./dena.js');
 const User = require('./models/user.js');
 const Buddy = require('./models/buddy.js');
 const Battle = require('./models/battle.js');
+const Dugeon = require('./models/dungeon.js');
 const Image = require('./models/image.js');
 const AudioFile = require('./models/audioFile.js');
 
@@ -47,6 +48,18 @@ const server = express()
 
 	.engine('hbs', engine.__express)
 	.set('view engine', 'hbs')
+  .get('/series', function(req, res) {
+    mongoose.model('Series').find().sort('dena.formal_name').populate({path: 'worlds', options: { sort: { 'dena.type': 1 } } })
+    .then((series) => {
+      return res.render('series/index', { title: 'Series', series: series });
+    });
+  })
+  .get('/worlds/:worldId', function(req, res) {
+    mongoose.model('World').findById(req.params.worldId).populate({path: 'dungeons'})
+    .then((world) => {
+      return res.render('worlds/show', { title: world.dena.name, world: world });
+    });
+  })
   .get('/dungeons', function(req, res) {
     Battle.forDungeonIndex()
     .then((dungeons) => {
@@ -266,10 +279,21 @@ User.update({phone: "null"}, { $unset: { phone: 1 }}).then(() => {})
 User.update({phone: "undefined"}, { $unset: { phone: 1 }}).then(() => {})
 
 
-// User.find({hasValidSessionId: true, phone: '+18609404747'})
+// User.find({hasValidSessionId: true, 'dena.name': 'SaltyNut'})
 // .then((users) => {
-//   users.forEach((user) => {
-//     user.updateData()
-//   });
-//   return users;
+//   return console.log(users.length);
 // });
+
+// Promise.all([
+//   mongoose.model('World').remove({}),
+//   mongoose.model('Series').remove({})
+// ])
+// .then(() => {
+  return User.findOne({hasValidSessionId: true, 'dena.name': 'SaltyNut'})
+  .then((user) => {
+    return user.buildWorlds();
+  })
+  .then((worlds) => {
+    return console.log(worlds)
+  });
+// })
