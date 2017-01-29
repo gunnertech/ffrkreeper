@@ -30,12 +30,15 @@ fs.readdirSync(path.join(__dirname, 'views/partials')).forEach(function(file) {
 require('./config/mongoose.js').setup(mongoose);
 
 const dena = require('./dena.js');
+const utils = require('./utils.js');
 const User = require('./models/user.js');
+const Event = require('./models/event.js');
 const Buddy = require('./models/buddy.js');
 const Battle = require('./models/battle.js');
 const Dugeon = require('./models/dungeon.js');
 const Image = require('./models/image.js');
 const AudioFile = require('./models/audioFile.js');
+
 
 const server = express()
   .use(bodyParser.json())
@@ -84,6 +87,63 @@ const server = express()
       return res.render('buddies/index', { title: "Characters", buddies: buddies });
     });
   })
+  .get('/events', function(req, res) {
+    return res.redirect('/banners');
+  })
+  .get('/banners', function(req, res) {
+    Event.find().distinct('dena.event_id').then((event_ids) => {
+      event_ids = lodash.sortBy(event_ids, [function(id) { return parseInt(id); }]);
+      return res.render('banners/index', { 
+        title: "Banners", 
+        gachas: [...Array(400).keys()], 
+        events: event_ids,
+        characters: lodash.range(501004, 501200)
+      });
+    })
+  })
+  .get('/gear', function(req, res) {
+    Event.find().distinct('dena.event_id').then((event_ids) => {
+      event_ids = lodash.sortBy(event_ids, [function(id) { return parseInt(id); }]);
+      return res.render('gear/index', { 
+        weapons: lodash.flatten([
+          lodash.range(21001000, 21001200), //DAGGERS
+          lodash.range(21002000, 21002400), //SWORDS
+          lodash.range(21003000, 21003100), //KATANAS
+          lodash.range(21004000, 21004100), //AXES
+          lodash.range(21005000, 21005100), //HAMMERS
+          lodash.range(21006000, 21006100), //SPEARS
+          lodash.range(21007000, 21007100), //FISTS
+          lodash.range(21008000, 21008200), //RODS
+          lodash.range(21009000, 21009100), //STAFFS
+          lodash.range(21010000, 21010100), //BOWS
+          lodash.range(21011000, 21011100), //INSTRUMENTS
+          lodash.range(21012000, 21012100), //WHIPS
+          lodash.range(21013000, 21013100), //THROWN
+          lodash.range(21014000, 21014100), //BOOKS
+          lodash.range(21015000, 21015200), //GUNS
+
+          lodash.range(21030000, 21030320), //BALLS
+          lodash.range(21034000, 21034010) //DOLLS
+        ]),
+
+        armor: lodash.flatten([
+          lodash.range(22050000, 22050050), //Shields
+          lodash.range(22051000, 22051050), //HAts
+          lodash.range(22053000, 22053100), //light armor
+          lodash.range(22054000, 22054100), //heavy armor
+          lodash.range(22055000, 22055100), //robes
+          lodash.range(22056000, 22056100) //bracers
+        ]),
+
+        accessories: lodash.flatten([
+          lodash.range(23080000, 23080300)
+        ])
+      });
+    })
+  })
+
+  
+
 
   .get('/images', function(req, res) {
     let limit = 100;
@@ -270,6 +330,8 @@ io.on('connection', (socket) => {
   // socket.on('/user', (data, fn) => { });
 });
 
+utils.runInBg(Event.generateEvents);
+
 
 
 /// BEGIN AREA TO RUN ONE OFF SHIT
@@ -277,6 +339,18 @@ User.update({email: "null"}, { $unset: { email: 1 }}).then(() => {})
 User.update({email: "undefined"}, { $unset: { email: 1 }}).then(() => {})
 User.update({phone: "null"}, { $unset: { phone: 1 }}).then(() => {})
 User.update({phone: "undefined"}, { $unset: { phone: 1 }}).then(() => {})
+
+// Battle.find().distinct("denaBattleId").then(console.log)
+
+
+// User.findOne({hasValidSessionId: true, 'dena.name': 'SaltyNut' })
+// .then((user) => {
+//   return user.getBattleInitDataForEventId(95);
+// })
+// .then((json) => {
+//   console.log(util.inspect(json.battle.score, false, null))
+//   // console.log(json)
+// })
 
 
 // User.find({hasValidSessionId: true, 'dena.name': 'SaltyNut'})

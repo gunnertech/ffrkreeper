@@ -1,0 +1,39 @@
+{
+  ///// one of the following is a root level object, but I'm not sure if series has worlds or worlds have series or what
+  "series_id": "", //// series id identifies the FF series, I, II, III, IX, etc
+  "world_id": "", //// I'm not really sure what this is
+  "events": [
+    {
+      "dungeons": [
+        {
+          "battles": [
+            {
+              "rounds": [
+                {
+                  "enemy": [
+                    {
+                      "children": [
+                        {
+                          "drop_item_list": [
+                            {}
+                          ]
+                        }
+                      ]
+                    }
+                  ],
+                  "drop_item_list": [
+                    {}
+                  ],
+
+                  "drop_materias": [
+                    {}
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

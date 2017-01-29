@@ -11,9 +11,23 @@ body > .container-fluid {
     margin-top: 40px;
 }
 
+.nav-pills {
+    margin-bottom: 20px;
+}
+
+#characters img {
+    width: 96px;
+    height: 96px;
+}
+
 .drops.index .loading-wrapper {
     text-align: center;
     display: none;
+}
+
+.drops.index #attach-point img {
+    max-width: 100px;
+    height: auto;
 }
 
 .drops.index form {

@@ -278,6 +278,27 @@ schema.methods.generateUsersFromRelationships = function() {
   })
 }
 
+schema.methods.getWorldBattles = function() {
+  return dena.api.authData({ sessionId: this.dena.sessionId })
+  .spread((sessionId, browserData, userSessionKey) => {
+    return dena.api.getWorldBattles({ sessionId: sessionId, userSessionKey: userSessionKey });
+  });
+}
+
+schema.methods.getWorldDungeonData = function(worldId) {
+  return dena.api.authData({ sessionId: this.dena.sessionId })
+  .spread((sessionId, browserData, userSessionKey) => {
+    return dena.api.getWorldDungeonData(worldId, { sessionId: sessionId, userSessionKey: userSessionKey });
+  });
+}
+
+schema.methods.getBattleInitDataForEventId = function(eventId) {
+  return dena.api.authData({ sessionId: this.dena.sessionId })
+  .spread((sessionId, browserData, userSessionKey) => {
+    return dena.api.getBattleInitDataForEventId(eventId, { sessionId: sessionId });
+  });
+}
+
 schema.methods.updateData = function() {
   var self = this;
 
@@ -299,7 +320,6 @@ schema.methods.updateData = function() {
         self.dena.mnd = profileJson.profile.supporter_buddy_mnd;
         self.dena.matk = profileJson.profile.supporter_buddy_matk;
         self.dena.atk = profileJson.profile.supporter_buddy_atk;
-        console.log(self.dena)
 			}
 
 			if(profileJson.user_supporter_buddy) {
