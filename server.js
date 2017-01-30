@@ -382,18 +382,6 @@ if(process.env.NODE_ENV == 'development') {
   User.update({phone: "undefined"}, { $unset: { phone: 1 }}).then(() => {})
 
 
-  Battle.find().populate('dungeon').select("-drops").then((battles) => {
-    return Promise.each(battles, (battle) => {
-      if(!battle.dungeon) {
-        return Promise.resolve(battle);
-      }
-      if(battle.dungeon.battles.length) {
-        return Promise.resolve(battle);
-      }
-      return battle.save();
-    })
-  })
-
   Battle.find({denaBattleId: {$exists: true}}).select("-drops")
   .then((battles) => {
     console.log(`Battles count: ${battles.length}`)
