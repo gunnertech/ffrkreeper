@@ -64,6 +64,14 @@ const server = express()
       return res.render('worlds/show', { title: world.dena.name, world: world });
     });
   })
+  .get('/dungeons/:dungeonId', function(req, res) {
+    mongoose.model('Dungeon').findById(req.params.dungeonId).populate({path: 'prizes'}).populate({path: 'battles'})
+    .then((dungeon) => {
+      return res.render('dungeons/show', { title: dungeon.dena.name, dungeon: dungeon });
+    });
+  })
+
+
   .get('/dungeons', function(req, res) {
     Battle.forDungeonIndex()
     .then((dungeons) => {
@@ -174,7 +182,7 @@ const server = express()
 		Battle.getBattleList(req.params.dungeonId)
     .then((battles) => {
       return res.render('battles/index', { title: 'Battles', battles: battles });
-    }).catch(console.log)
+    });
   })
   .get('/', function(req, res) {
     res.render('index', { title: 'Home' });
@@ -292,12 +300,7 @@ io.on('connection', (socket) => {
     })
     .spread((user, message) => {
       var hashedMessage = message.notificationMessage;
-      console.log(message.notify);
-      console.log(hashedMessage)
-      console.log(user.lastMessage);
-      console.log(!!user.email);
       if(message.notify && hashedMessage != user.lastMessage) {
-        console.log("HI THERE")
         user.lastMessage = hashedMessage;
         
         return user.save()
@@ -343,9 +346,12 @@ User.update({phone: "undefined"}, { $unset: { phone: 1 }}).then(() => {})
 
 // Battle.find().distinct("denaBattleId").then(console.log)
 
+// mongoose.model("Dungeon").findOne({'dena.id': 401002})
+// .then(console.log)
+
 // User.findOne({hasValidSessionId: true, 'dena.name': 'SaltyNut' })
 // .then((user) => {
-//   return [user, mongoose.model('World').find().limit(1)]
+//   return [user, mongoose.model('World').find({'dena.id': 101001}).limit(1)]
 // })
 // .spread((user, worlds) => {
 //   return Promise.each(worlds, (world) => {
@@ -353,11 +359,10 @@ User.update({phone: "undefined"}, { $unset: { phone: 1 }}).then(() => {})
 //     .then((json) => {
 //       console.log(json)
 //       return Promise.each(json.dungeons, (dungeonData) => {
-//         return Dungeon.findOneOrCreate({'dena.id': dungeonData.id}, { dena: dungeonData })
+//         return mongoose.model("Dungeon").findOneOrCreate({'dena.id': dungeonData.id}, { dena: dungeonData })
 //         .then((dungeon) => {
-//           console.log(dungeon);
 //           if(dungeon.prizes) {
-//             return Promise.resolve(dungeon)
+//             return Promise.resolve([dungeonData, dungeon])
 //           }
 
 //           var prizeArray = [];
@@ -375,8 +380,32 @@ User.update({phone: "undefined"}, { $unset: { phone: 1 }}).then(() => {})
 //                 num: prizeData.num
 //               });
 //             });
-//           }).return(dungeon);
-//         });
+//           }).return([dungeonData, dungeon]);
+//         })
+//         .spread((dungeonData, dungeon) => {
+//           // console.log(dungeonData);
+//           return Promise.resolve(dungeon)
+//           // var prizeArray = [];
+
+//           // for(var i in prizeData) {
+//           //   prizeArray.push(Object.assign(prizeData[i]), {category: i});
+//           // }
+          
+//           // return Promise.each(prizeArray, (prizeData) => {
+//           //   return mongoose.model("Item").findOneOrCreate({'dena.id': prizeData.id, 'dena.type_name': prizeData.type_name}, {dena: prizeData})
+//           //   .then((item) => {
+//           //     dungeon.prizes.push({
+//           //       item: item,
+//           //       category: prizeData.category,
+//           //       num: prizeData.num
+//           //     });
+//           //   });
+//           // }).return(dungeon);
+//         })
+//         .then((dungeon) => {
+//           dungeon.world = world;
+//           return dungeon.save();
+//         })
 //       });
 //     });
 //   });
@@ -384,6 +413,30 @@ User.update({phone: "undefined"}, { $unset: { phone: 1 }}).then(() => {})
 // .then(() => {
 //   console.log("DONE!")
 // })
+
+
+mongoose.model('Enemy').remove().then(console.log);
+
+// mongoose.model('Enemy').update({}, {$unset: {dena: {json: 1 }}}).then(console.log)
+
+// mongoose.model('Enemy').find()
+// .then((enemies) => {
+//   return Promise.map(enemies, (enemy) => {
+//     enemy.dena.json = undefined;
+//     enemy.dena.name = enemy.name + "";
+//     console.log(enemy.dena.enemyId)
+//     enemy.dena.id = parseInt(enemy.dena.enemyId)
+
+//     enemy.name = undefined;
+//     enemy.dena.enemyId = undefined;
+
+//     return enemy.save();
+//   })
+// }).then(console.log)
+
+// mongoose.model('Enemy').update({},
+//   {$unset: {'dena.json': true}},
+//   {multi: true, safe: true}).then(console.log)
 
 
 // User.findOne({hasValidSessionId: true, 'dena.name': 'SaltyNut' })
@@ -404,45 +457,45 @@ User.update({phone: "undefined"}, { $unset: { phone: 1 }}).then(() => {})
 //   // console.log(util.inspect(json, false, null))
 // })
 
-// // mongoose.model('Series').findOneOrCreate({'dena.id': 300001}, {
-// //   dena: {
-// //     id: 300001,
-// //     formal_name: 'Other' 
-// //   }
-// // })
-// // .then((series) => {
-// //   return mongoose.model('World').findOneOrCreate({'dena.id': 800003}, {
-// //     dena: {
-// //       name: 'Daily Dungeon',
-// //       bgm: 'bgm_04_011',
-// //       id: 800003,
-// //       type: 2
-// //     },
-// //     series: series
-// //   });
-// // })
-// // .then((world) => {
-// //   return console.log(world);
-// // })  
+// mongoose.model('Series').findOneOrCreate({'dena.id': 300001}, {
+//   dena: {
+//     id: 300001,
+//     formal_name: 'Other' 
+//   }
+// })
+// .then((series) => {
+//   return mongoose.model('World').findOneOrCreate({'dena.id': 800003}, {
+//     dena: {
+//       name: 'Daily Dungeon',
+//       bgm: 'bgm_04_011',
+//       id: 800003,
+//       type: 2
+//     },
+//     series: series
+//   });
+// })
+// .then((world) => {
+//   return console.log(world);
+// })  
 
 
 
 
-// // User.find({hasValidSessionId: true, 'dena.name': 'SaltyNut'})
-// // .then((users) => {
-// //   return console.log(users.length);
-// // });
+// User.find({hasValidSessionId: true, 'dena.name': 'SaltyNut'})
+// .then((users) => {
+//   return console.log(users.length);
+// });
 
-// // Promise.all([
-// //   mongoose.model('World').remove({}),
-// //   mongoose.model('Series').remove({})
-// // ])
-// // .then(() => {
-//   // return User.findOne({hasValidSessionId: true, 'dena.name': 'SaltyNut'})
-//   // .then((user) => {
-//   //   return user.buildWorlds();
-//   // })
-//   // .then((worlds) => {
-//   //   return console.log(worlds)
-//   // });
-// // })
+// Promise.all([
+//   mongoose.model('World').remove({}),
+//   mongoose.model('Series').remove({})
+// ])
+// .then(() => {
+  // return User.findOne({hasValidSessionId: true, 'dena.name': 'SaltyNut'})
+  // .then((user) => {
+  //   return user.buildWorlds();
+  // })
+  // .then((worlds) => {
+  //   return console.log(worlds)
+  // });
+// })

@@ -118,12 +118,12 @@ schema.statics.buildDrops = (json) => {
 						.then((count) => {
 							if(!count) {
 								child.battle_id = json.battle.battle_id;
-								var e = new Enemy();
-								e.dena = {
-									enemyId: child.enemy_id,
-									json: child
-								}
-								e.save();
+								// var e = new Enemy();
+								// e.dena = {
+								// 	enemyId: child.enemy_id,
+								// 	json: child
+								// }
+								// e.save();
 							}
 						});
         }
