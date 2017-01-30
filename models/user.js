@@ -546,7 +546,7 @@ schema.methods.getDropMessage = function() {
 
           message.drops.forEach((drop) => {
             if(parseInt(drop.rarity || 0) >= userAlertLevel) {
-              message.notificationMessage = ` ${message.notificationMessage}${drop.name} x${drop.num}`;
+              message.notificationMessage = ` ${message.notificationMessage}${drop.item.dena.name} x${drop.num}`;
             }
           });
 
