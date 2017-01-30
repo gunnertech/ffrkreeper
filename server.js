@@ -401,33 +401,39 @@ setInterval(() => {
 }, 3600*3600*2)
 
 
-User.update({email: "null"}, { $unset: { email: 1 }}, {multi: true}).then(() => {})
-User.update({email: null}, { $unset: { email: 1 }}, {multi: true}).then(() => {})
-User.update({email: "undefined"}, { $unset: { email: 1 }}, {multi: true}).then(() => {})
-User.update({email: ""}, { $unset: { email: 1 }}, {multi: true}).then(() => {})
-// User.update({email: "saimonsilveira@outlook.com"}, { $unset: { email: 1 }}, {multi: true}).then(() => {})
-User.update({phone: "+14082425732"}, { $unset: { phone: 1 }}, {multi: true}).then(() => {})
-User.update({phone: "null"}, { $unset: { phone: 1 }}, {multi: true}).then(() => {})
-User.update({phone: "undefined"}, { $unset: { phone: 1 }}, {multi: true}).then(() => {})
-User.update({phone: ""}, { $unset: { phone: 1 }}, {multi: true}).then(() => {})
-
-
-// User.count({email: 'dulmage.4@gmail.com', hasValidSessionId: true}).then((count) => {
-//   console.log("\n\n")  
-//   console.log(count)
-//   console.log("\n\n")
-// })
-
-
-// User.ensureIndexes(function (err) {
-//     if (err) return console.log(err);
-// });
 
 
 /// BEGIN AREA TO RUN ONE OFF SHIT
+if(process.env.NODE_ENV == 'development') {
+  // User.ensureIndexes(function (err) {
+//     if (err) return console.log(err);
+// });
 
-if(false && process.env.NODE_ENV == 'development') {
-  
+  User.update({email: "null"}, { $unset: { email: 1 }}, {multi: true}).then(() => {})
+  User.update({email: null}, { $unset: { email: 1 }}, {multi: true}).then(() => {})
+  User.update({email: "undefined"}, { $unset: { email: 1 }}, {multi: true}).then(() => {})
+  User.update({email: ""}, { $unset: { email: 1 }}, {multi: true}).then(() => {})
+  // User.update({email: "saimonsilveira@outlook.com"}, { $unset: { email: 1 }}, {multi: true}).then(() => {})
+  User.update({phone: "+14082425732"}, { $unset: { phone: 1 }}, {multi: true}).then(() => {})
+  User.update({phone: "null"}, { $unset: { phone: 1 }}, {multi: true}).then(() => {})
+  User.update({phone: "undefined"}, { $unset: { phone: 1 }}, {multi: true}).then(() => {})
+  User.update({phone: ""}, { $unset: { phone: 1 }}, {multi: true}).then(() => {})
+
+  User.findOne({hasValidSessionId: true, 'dena.name': 'SaltyNut' }).then((user) => {
+    return mongoose.model('Dungeon').find()
+    .then((dungeons) => {
+      return Promise.each(dungeons, (dungeon) => {
+        if(!dungeon.battles || dungeon.battles.length == 0) {
+          console.log(`Got one: ${dungeon._id}`);
+          return user.buildBattlesFromDungeon(dungeon.dena.id).return(dungeon);
+        } else {
+          return Promise.resolve(dungeon)
+        }
+      })
+    });
+  })
+  .then(console.log)
+  .catch(console.log)
 
 
   Battle.find({denaBattleId: {$exists: true}}).select("-drops")
@@ -476,7 +482,6 @@ if(false && process.env.NODE_ENV == 'development') {
           return drop.save(); 
         } else {
           item = new Item();
-          console.log(drop.denaItemId)
           item.dena = {
             id: drop.denaItemId,
             name: Drop.getName(drop.denaItemId),

@@ -32,7 +32,7 @@ try {
 
 
 const querystring = require('querystring');
-const http = require('http');
+const request = require('request');
 const rp = require('request-promise');
 const Promise = require('bluebird');
 const util = require('util');
@@ -54,51 +54,40 @@ function getSessionId(userId, accessToken, sessionId) {
       accessToken: accessToken
     });
 
-    var req = http.request({
-        host: 'ffrk.denagames.com',
-        port: 80,
-        path: "/dff/_api_create_session",
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-          'Content-Length': Buffer.byteLength(post_data)
-        }
-    }, function(res) {
-      res.setEncoding('utf8');
+		var options = {
+			url: 'http://ffrk.denagames.com/dff/_api_create_session',
+		  proxy: process.env.PROXY_URL,
+		  headers: {
+			  'Content-Type': 'application/x-www-form-urlencoded',
+			  //'Content-Length': Buffer.byteLength(post_data)  //pretty sure request does this for us
+		  }
+		};
+
+		request.post(options, post_data, function(err, data, headersMightBeHere) {
       var sessionId = null;
-      res.rawHeaders.forEach((header) => {
+
+      data.rawHeaders.forEach((header) => {   //todo fix this
         if(header.match(/http_session_sid=/)) {
           sessionId = header.match(/http_session_sid=([^;]+)/)[1];
         }
       });
       resolve(sessionId);
-    });
+		})
 
-    req.write(post_data);
-    req.end();
+
   });
 }
 
 function getBrowserData(sessionId) {
   return new Promise(function(resolve, reject) {
-
-    var req = http.request({
-        host: 'ffrk.denagames.com',
-        port: 80,
-        path: "/dff/",
-        method: 'GET',
+    request.get({
+        url: 'http://ffrk.denagames.com/dff/',
+		    proxy: process.env.PROXY_URL,
         headers: {
           'Cookie': 'http_session_sid='+sessionId
         }
-    }, function(res) {
-      res.setEncoding('utf8');
-
-      var data = "";
-
-      res.on('data', (chunk) => { data += chunk; });
-
-      res.on("end", () => {
-        var matchData = data.match(/FFEnv\.csrfToken="([^"]+)";/);
+    }, function(err, data, dataAsStr) {
+			var matchData = dataAsStr.match(/FFEnv\.csrfToken="([^"]+)";/);
 
         if(!matchData) {
           reject({
@@ -109,72 +98,45 @@ function getBrowserData(sessionId) {
           return;
         }
 
+		    var beginBattleToken;
         var csrfToken = matchData[1];
-        var beginBattleToken = data.match(/"begin_battle_token":"([^"]+)"/)[1];
+
+				var found = dataAsStr.match(/"begin_battle_token":"([^"]+)"/);
+			  if (found && found[1]) {
+					beginBattleToken = found[1];
+				}
+
         resolve({
           csrfToken: csrfToken,
           beginBattleToken: beginBattleToken
-        });
-      });
-
+        });  
     });
-
-    req.end();
   });
 }
 
 function scrapeSplashScreen() {
   return new Promise(function(resolve, reject) {
-
-    var req = http.request({
-        host: 'ffrk.denagames.com',
-        port: 80,
-        path: "/dff/splash",
-        method: 'GET'
-    }, function(res) {
-      res.setEncoding('utf8');
-
-      var data = "";
-
-      res.on('data', (chunk) => { data += chunk; });
-
-      res.on("end", () => {
-        resolve(data);
-      });
-
-    });
-
-    req.end();
+    request.get({
+			  url: 'http://ffrk.denagames.com/dff/splash',
+		    proxy: process.env.PROXY_URL
+    }, function(err, data) {
+			resolve(data);
+    });	
   });
 }
 
 function scrapeIndexScreen(sessionId) {
-  sessionId = sessionId || _g.sessionId;
-
+  sessionId = sessionId;
   return new Promise(function(resolve, reject) {
-
-    var req = http.request({
-        host: 'ffrk.denagames.com',
-        port: 80,
-        path: "/dff/",
-        method: 'GET',
+    request.get({
+			  url: 'http://ffrk.denagames.com/dff/',
+		    proxy: process.env.PROXY_URL,
         headers: {
           'Cookie': 'http_session_sid='+sessionId
         }
-    }, function(res) {
-      res.setEncoding('utf8');
-
-      var data = "";
-
-      res.on('data', (chunk) => { data += chunk; });
-
-      res.on("end", () => {
+    }, function(err, data) {
         resolve(data);
-      });
-
     });
-
-    req.end();
   });
 }
 
@@ -228,42 +190,35 @@ function getAudioFiles(sessionId) {
 
 function getUserSessionKey(sessionId, csrfToken) {
   return new Promise(function(resolve, reject) {
-
     var post_data = JSON.stringify({});
-
-    var req = http.request({
-        host: 'ffrk.denagames.com',
-        port: 80,
-        path: "/dff/update_user_session",
-        method: 'POST',
+    request.post({
+			  url: 'http://ffrk.denagames.com/dff/update_user_session',
+		   	proxy: process.env.PROXY_URL,
         headers: {
           'Content-Type': 'application/json',
           'X-CSRF-Token': csrfToken,
           'Cookie': 'http_session_sid='+sessionId
         }
-    }, function(res) {
-      var data = "";
-
-      res.on('data', (chunk) => { data += chunk; });
-
-      res.on("end", () => {
-        var json = JSON.parse(data); 
-
+    }, post_data, function(err, res, data) {
+			try {
+				var json = JSON.parse(data);
         resolve(json.user_session_key);
-      });
+			} catch (e) {
+				reject({
+					message: "invalid session id",
+					name: "Authorization Error"
+				});
+			}       
     });
-
-    req.write(post_data);
-    req.end();
   });
 }
 
 function doSimplePost(path, json, options) {
   options = options || {}
 
-  var sessionId = options.sessionId || _g.sessionId;
-  var userSessionKey = options.userSessionKey || _g.userSessionKey;
-  var csrfToken = options.csrfToken || _g.csrfToken;
+  var sessionId = options.sessionId;
+  var userSessionKey = options.userSessionKey;
+  var csrfToken = options.csrfToken;
 
   var headers =  {
     'Content-Type': 'application/json',
@@ -273,36 +228,30 @@ function doSimplePost(path, json, options) {
   }
 
   return new Promise(function(resolve, reject) {
-
     var post_data = JSON.stringify(json);
 
-    var req = http.request({
-        host: 'ffrk.denagames.com',
-        port: 80,
-        path: path,
-        method: 'POST',
+    request.post({
+			  url: 'http://ffrk.denagames.com/' + path,
+		   	proxy: process.env.PROXY_URL,
         headers: headers
-    }, function(res) {
-      var data = "";
-
-      res.on('data', (chunk) => { data += chunk; });
-
-      res.on("end", () => {
-        var json = JSON.parse(data); 
-
-        resolve(json);
-      });
+    }, post_data, function(err,data) {
+				try {
+					var json = JSON.parse(data);
+					resolve(json);
+				} catch(e) {
+					reject({
+            message: "invalid session id",
+            name: "Authorization Error"
+          });
+				}
     });
-
-    req.write(post_data);
-    req.end();
   });
 }
 
 function doSimpleGet(path, options) {
   options = options || {}
-  var sessionId = options.sessionId || _g.sessionId;
-  var userSessionKey = options.userSessionKey || _g.userSessionKey;
+  var sessionId = options.sessionId;
+  var userSessionKey = options.userSessionKey;
 
   var headers =  {
     'Content-Type': 'application/json',
@@ -314,18 +263,11 @@ function doSimpleGet(path, options) {
   }
 
   return new Promise(function(resolve, reject) {
-    var req = http.request({
-        host: 'ffrk.denagames.com',
-        port: 80,
-        path: path,
-        method: 'GET',
+    request.get({
+		  	url: 'http://ffrk.denagames.com/' + path,
+		   	proxy: process.env.PROXY_URL,
         headers: headers
-    }, function(res) {
-      var data = "";
-
-      res.on('data', (chunk) => { data += chunk; });
-
-      res.on("end", () => {
+    }, function(data) {
         try {
           var json = JSON.parse(data);   
         } catch(e) {
@@ -334,18 +276,16 @@ function doSimpleGet(path, options) {
             name: "Authorization Error"
           });
         }
-        
-
-        resolve(json);
-      });
     });
-
-    req.end();
   });
 }
 
-function doEnterDungeon(challengeId, json) {
-  return doSimplePost(userSessionKey, sessionId, csrfToken, "/dff/event/challenge/"+challengeId+"/enter_dungeon", json);
+function doEnterDungeon(challengeId, dungeonId, options) {
+  return doSimplePost("/dff/event/challenge/"+challengeId+"/enter_dungeon", {dungeon_id: dungeonId}, options);
+}
+
+function doLeaveDungeon(challengeId, dungeonId, options) {
+  return doSimplePost("/dff/event/challenge/"+challengeId+"/leave_dungeon", {dungeon_id: dungeonId}, options);
 }
 
 function doBeginBattle(challengeId, battleId) {
@@ -361,6 +301,10 @@ function getProfileData(options) {
 
 function getFolloweeAndFollowersData(options) {
   return doSimplePost("/dff/relation/followee_and_follower_list", {}, options);
+}
+
+function doGachaDraw(options) {
+  return doSimplePost("/dff/gacha/execute", {entry_point_id: 16008101}, options);
 }
 
 function getRootData(options) {
@@ -415,98 +359,12 @@ function authData(options) {
   });
 }
 
-var _g = {
-  sessionId: null,
-  userSessionKey: null,
-  csrfToken: null,
-  beginBattleToken: null
-}
-
-function begin(userId, accessToken, sessionId) {
-  
-  /// BEGIN endpoints that require only session id
-  // getSessionId(
-  //   (userId || process.env.DENA_USER_ID),
-  //   (accessToken || process.env.DENA_ACCESS_TOKEN),
-  //   (sessionId || process.env.DENA_SESSION_ID)
-  // )
-  // .then((sessionId) => {
-  //   _g.sessionId = sessionId;
-    
-  //   return [
-
-  //   ]
-  // })
-  // .spread(function() {
-  //   console.log(util.inspect(arguments, false, null));
-  // })
-  // .catch(console.log);
-
-  // if(true) { return; }
-
-  /// BEGIN endpoints that require user session key and session id 
-  authData()
-  .spread((sessionId, browserData, userSessionKey) => {
-    _g.sessionId = sessionId;
-    _g.csrfToken = browserData.csrfToken;
-    _g.beginBattleToken = browserData.beginBattleToken;
-    _g.userSessionKey = userSessionKey;
-
-    return [
-      // doBeginBattle(92, 1130920135)
-      // doEnterDungeon(92, { 
-      //   dungeon_id: 11309214,
-      //   fellow_user_id: null
-      // })
-
-
-      // getBattleInitDataForSuppressId(2028),
-      
-
-      // getBattleInitDataForEventId(94),
-      // getWdayDataForEvent(518)
-      // scrapeSplashScreen()
-      // scrapeIndexScreen()
-      
-      //// GET ANNOUNCMENTS SEEN ON HOME SCREEN WHEN YOU LOGIN
-      // getRootData(),
-
-
-
-      //// NO IDEA
-      // getFriendFollowModalInfo(),
-
-
-
-      ///USELESS. RETURNS NOTHING
-      // getChallengeData(92),
-
-
-      // HAS USER DATA AND A TON OF DATA ABOUT THE DUNGEONS FOR THE WORLD ID PASSED.
-      // WORLD IS BASICALLY AN EVENT BANNER AND YOU CAN GET THE ID FROM getWorldBattles
-      // getWorldDungeonData(100811),
-      
-      ////// THIS SEEMS TO ONLY WORK IF YOU'RE IN THE SCREEN TO CHOOSE YOUR ROAMING WARRIOR
-      // getDetailedFellowListing(),
-
-      /// FROM WHAT I CAN TELL THIS ONLY SHOWS INFO ABOUT THE CURRENT BATTLE YOU'RE IN. A BIT MORE DETAILED THOUGH.
-      /// ONLY WORKS IF YOU'RE IN A DUNGEON
-      /// json.user_dungeon.name has name of dungeon json.user_dungeon.id json.user_dungeon.world_id
-      /// json.battles[].name has name of battle
-      /// json.user has a ton of user info
-      getWorldBattles()
-    ];
-  })
-  .spread(function() {
-   // console.log(util.inspect(arguments, false, null));
-  })
-  .catch(console.log)
-}
-
 
 module.exports = {
-  begin: begin,
   api: {
+    doEnterDungeon: doEnterDungeon,
+    doLeaveDungeon: doLeaveDungeon,
+    doGachaDraw: doGachaDraw,
     getJsonBlobs: getJsonBlobs,
     authData: authData,
     getWorldBattles: getWorldBattles,
