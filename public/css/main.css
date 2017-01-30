@@ -25,6 +25,11 @@ body > .container-fluid {
     display: none;
 }
 
+.dungeon.show img {
+    max-width: 100px;
+    height: auto;
+}
+
 .drops.index #attach-point img {
     max-width: 100px;
     height: auto;

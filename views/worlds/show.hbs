@@ -1,8 +1,10 @@
 <div class="container-fluid world show">
-
+  <ol class="breadcrumb">
+    <li class="breadcrumb-item"><a href="/series#{{world.series._id}}">{{world.series.dena.formal_name}}</a></li>
+    <li class="breadcrumb-item active">{{world.dena.name}}</li>
+  </ol>
 
   <h3>{{world.dena.name}} - {{world.typeName}}</h3>
-  <h4>{{world.dena.id}}</h4>
   
 
   <img class="img-fluid" src="{{world.doorImgUrl}}" onerror="this.onerror=null;$(this).remove();" />
@@ -21,6 +23,8 @@
       <tr>
         <th>Name</th>
         <th>Battles</th>
+        <th>Enemies</th>
+        <th>Prizes</th>
       </tr>
     </thead>
     <tbody>
@@ -28,6 +32,8 @@
         <tr>
           <td><a href="/dungeons/{{_id}}">{{dena.name}}</a></td>
           <td>{{battles.length}}</td>
+          <td>{{enemies.length}}</td>
+          <td>{{prizes.length}}</td>
         </tr>
       {{/each}}    
     </tbody>

@@ -3,7 +3,8 @@ const mongoose = require('mongoose');
 
 const schema = new mongoose.Schema({
   dena: {
-    id: { type: Number, index: { unique: true } },
+    id: { type: Number, index: true },
+    no: { type: Number },
     name: { type: String }
   },
   battle: { type: mongoose.Schema.Types.ObjectId, ref: 'Battle' },
@@ -11,25 +12,56 @@ const schema = new mongoose.Schema({
 });
 
 schema.virtual('imgUrl').get(function () {
-  return `https://ffrk.static.denagames.com/dff/static/lang/image/enemy/${this.dena.enemyId}.png`;
+  return `https://ffrk.static.denagames.com/dff/static/lang/image/enemy/${this.dena.id}.png`;
 });
 
 schema.set('toJSON', { getters: true, virtuals: true });
 schema.set('toObject', { getters: true, virtuals: true });
 
+schema.pre('save', function (next) {
+  if(!this.dungeon) {
+    next();
+    return;
+  }
+
+  mongoose.model('Dungeon')
+    .update({ _id: this.dungeon }, { $addToSet: { enemies: this._id } })
+    .then(((dungeons) => next() ))
+    .error(((err) => next(err)));
+});
+
+schema.pre('save', function (next) {
+  if(!this.dungeon) {
+    next();
+    return;
+  }
+
+  mongoose.model('Battle')
+    .update({ _id: this.battle }, { $addToSet: { enemies: this._id } })
+    .then(((battles) => next() ))
+    .error(((err) => next(err)));
+});
+
+schema.post('save', function (enemy) { 
+  var self = this;
+  if(self.battle) {
+    mongoose.model('Battle').findById(self.battle).populate('dungeon')
+    .then((battle) => {
+      if(battle.dungeon && !self.dungeon) {
+        self.dungeon = battle.dungeon._id;
+        self.save();
+      }
+      return battle.save();
+    } )
+  }
+})
+
 schema.statics.findOneOrCreate = (conditions, data) => {
   const model = mongoose.model('Enemy');
   data = data || conditions;
-  console.log(conditions)
   return model.findOne(conditions)
   .then((instance) => {
-    console.log(instance)
     return instance ? Promise.resolve(instance) : model.create(data);
-  })
-  .catch((err) => {
-    console.log(err);
-    console.log(conditions);
-    return model.findOne(conditions);
   });
 }
 

@@ -37,6 +37,8 @@
         return signout();
       }
 
+      console.log(message);
+
       $('#attach-point').prepend(renderDrops(message));
       setTimeout(function(){ getDropMessageFor(user) }, LOOP_FREQUENCY)
     });
@@ -64,16 +66,16 @@
         var rarity = parseInt(drop.rarity);
 
         html += '<li class="media">';
-        html += '<img class="d-flex mr-3" src="' + drop.image + '" alt="' + drop.name + '">';
+        html += '<img class="d-flex mr-3" src="' + drop.item.imgUrl + '" alt="' + drop.item.dena.name + '">';
         html += '<div class="media-body">';
         html += '<h5 class="mt-0">';
-        html += (drop.name + ' x' + drop.num);
+        html += (drop.item.dena.name + ' x' + drop.num);
         if(drop.round) {
           html += ' - Round ' + drop.round;
         }
         html += '</h5>';
         if(drop.dropRate) {
-          html += '<p>Drop Rate: ' + Math.round(drop.dropRate.rate * 100) + '% - ' + (drop.dropRate.hits) + ' out of ' + (drop.dropRate.total) + ' drops for <a href="/dungeon/'+drop.denaDungeonId+'/battles">this battle</a> have been for this item.</p>';
+          html += '<p>Drop Rate: ' + Math.round(drop.dropRate.rate * 100) + '% - ' + (drop.dropRate.hits) + ' out of ' + (drop.dropRate.total) + ' drops for <a href="/battles/'+drop.battle+'">this battle</a> have been for this item.</p>';
         }
         html += '</div>';
         html += '</li>';

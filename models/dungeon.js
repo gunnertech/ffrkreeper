@@ -40,16 +40,9 @@ schema.pre('save', function (next) {
 schema.statics.findOneOrCreate = (conditions, data) => {
   const model = mongoose.model('Dungeon');
   data = data || conditions;
-  console.log(conditions)
   return model.findOne(conditions)
   .then((instance) => {
-    console.log(instance)
     return instance ? Promise.resolve(instance) : model.create(data);
-  })
-  .catch((err) => {
-    console.log(err);
-    console.log(conditions);
-    return model.findOne(conditions);
   });
 }
 

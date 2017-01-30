@@ -13,6 +13,7 @@ const Promise = require('bluebird');
 const lodash = require('lodash');
 const request = require('request');
 const hash = require('json-hash');
+const util = require('util');
 
 const CURRENT_PATH = '/dff/event/challenge/94/get_battle_init_data';
 //const CURRENT_PATH = '/dff/event/suppress/2025/single/get_battle_init_data';
@@ -37,7 +38,6 @@ const schema = new mongoose.Schema({
     id: { type: String, index: true },
     updatedAt: Date,
     invite_id: String,
-    json: mongoose.Schema.Types.Mixed,
     supporter_buddy_soul_strike_name: String,
     profile_message: String,
     mnd: Number,
@@ -103,33 +103,22 @@ schema.statics.findForIndex = () => {
 		});
 }
 
-schema.statics.buildDrops = (json) => {
+schema.statics.buildDrops = (json, battle) => {
   var drops = [];
 
   json.battle.rounds.forEach(function(round) {
     round.drop_item_list.forEach(function(drop) {
-      drops.push(getDropInfo(drop));
+      drops.push(drop);
     });
 
     round.enemy.forEach(function(enemy) {
       enemy.children.forEach(function(child) {
-        if(enemy.is_sp_enemy === '1') { ///// IT'S A BOSS BATTLE
-          Enemy.count({ 'dena.enemyId': child.enemy_id })
-						.then((count) => {
-							if(!count) {
-								child.battle_id = json.battle.battle_id;
-								// var e = new Enemy();
-								// e.dena = {
-								// 	enemyId: child.enemy_id,
-								// 	json: child
-								// }
-								// e.save();
-							}
-						});
-        }
         child.drop_item_list.forEach(function(drop) {
-          drops.push(getDropInfo(drop));
+          drops.push(drop);
         });
+        Promise.each(child.params, (param) => {
+          return mongoose.model('Enemy').findOneOrCreate({battle: battle._id, 'dena.id': child.enemy_id, 'dena.no': param.no, 'dena.name': param.disp_name}).then(() => null)   
+        })
       });
     });
   });
@@ -168,7 +157,55 @@ schema.statics.findValidWithEmail = () => {
   return mongoose.model('User').find(query).select('-dena.json -drops')
 }
 
+schema.methods.populateWorlds = function(worlds) {
+  return Promise.each(worlds, (world) => {
+    return self.getWorldDungeonData(world.dena.id)
+    .then((json) => {
+      return Promise.each(json.dungeons, (dungeonData) => {
+        return mongoose.model("Dungeon").findOneOrCreate({'dena.id': dungeonData.id}, { dena: dungeonData })
+        .then((dungeon) => {
+          if(dungeon.prizes && dungeon.prizes.length) {
+            return Promise.resolve([dungeonData, dungeon])
+          }
+
+          var prizeArray = [];
+
+          for(var i in dungeonData.prizes) {
+            dungeonData.prizes[i].forEach((prize) => {
+              prizeArray.push(Object.assign(prize, {category: i}));  
+            })
+            
+          }
+
+          dungeon.prizes = [];
+          
+          return Promise.each(prizeArray, (prizeData) => {
+            return mongoose.model("Item").findOneOrCreate({'dena.id': prizeData.id, 'dena.type_name': prizeData.type_name}, {dena: prizeData})
+            .then((item) => {
+              dungeon.prizes.push({
+                item: item,
+                category: prizeData.category,
+                num: prizeData.num
+              });
+            });
+          }).return([dungeonData, dungeon]);
+        })
+        .spread((dungeonData, dungeon) => {
+          return Promise.each(dungeonData.captures, (capture) => {
+            return mongoose.model('Enemy').findOneOrCreate({dungeon: dungeon._id, 'dena.id': capture.enemy_id, 'dena.name': capture.tip_battle.title}, {dungeon: dungeon._id, 'dena.id': capture.enemy_id, 'dena.name': capture.tip_battle.title})
+          }).return([dungeonData, dungeon]);
+        })
+        .spread((dungeonData, dungeon) => {
+          dungeon.world = world;
+          return dungeon.save();
+        })
+      });
+    });
+  });
+}
+
 schema.methods.buildWorlds = function() {
+  const self = this;
   const World = mongoose.model('World');
   const Series = mongoose.model('Series');
 
@@ -219,6 +256,9 @@ schema.methods.buildWorlds = function() {
   })
   .then(() => {
     return World.find().populate('series');
+  })
+  .then((worlds) => {
+    return self.populateWorlds(worlds);
   })
 }
 
@@ -427,90 +467,95 @@ schema.methods.getDropMessage = function() {
 				});
 			}
 
-			let images = dena.api.extraFilesFromBlob('png', JSON.stringify(json));
-			let audioFiles = dena.api.extraFilesFromBlob('m4a', JSON.stringify(json));
+			// let images = dena.api.extraFilesFromBlob('png', JSON.stringify(json));
+			// let audioFiles = dena.api.extraFilesFromBlob('m4a', JSON.stringify(json));
 
-			self.cacheAudioFiles(audioFiles);
-			self.cacheImages(images);
+			// self.cacheAudioFiles(audioFiles);
+			// self.cacheImages(images);
 
-			var drops = mongoose.model('User').buildDrops(json);
+			var drops = [];
 
-			return Battle.findOne({ denaBattleId: json.battle.battle_id }).select('-drops')
-				.then(function(battle) { //// FIND OR CRATE THE BATTLE
-					if(battle) {
-						return Promise.resolve(battle);
-					} else {
-						return Battle.create({
-							denaBattleId: json.battle.battle_id,
-							denaDungeonId: json.battle.dungeon.dungeon_id,
-							eventId: json.battle.event.event_id,
-							eventType: json.battle.event.event_type,
-							dropRates: {}
-						});
-					}
-				})
-				.then(function(battle) { ///// UPDATE THE BATTLE WITH THE MOST RECENT DATA
-					battle.denaBattleId = json.battle.battle_id;
-					battle.denaDungeonId = json.battle.dungeon.dungeon_id;
-					battle.eventId = json.battle.event.event_id;
-					battle.eventType = json.battle.event.event_type;
+			return Battle.findOneOrCreate({ 'dena.id': json.battle.battle_id })
+			.then(function(battle) {
+        drops = mongoose.model('User').buildDrops(json, battle);
 
-					return battle.save().return(battle);
-				})
-				.then(function(battle) {
-					if(self.inBattle) {
-						//// DON'T RECORD THE SAME DROPS AGAIN
-						/// But we still need to keep going to build the drop rate
-						return Promise.resolve(battle);
-					}
-					self.inBattle = true;
+        if(battle.dungeon) {
+          return Promise.resolve(battle);
+        }
 
-					return self.save()
-						.then(() => {
-							return Promise.map(drops, (d) => { //IF IT HAS AN item_id, it's woth saving to the db
-								if(!d.item_id) {
-									return Promise.resolve(null);
-								}
+        return mongoose.model('Dungeon').findOne({'dena.id': json.battle.dungeon.dungeon_id})
+        .then((dungeon) => {
+          battle.dungeon = dungeon;
+          return battle.save();
+        })
+      })
+      .then(function(battle) {
+				if(self.inBattle) {
+					//// DON'T RECORD THE SAME DROPS AGAIN
+					/// But we still need to keep going to build the drop rate
+					return Promise.resolve(battle);
+				}
 
-								console.log("Let's record this drop!");
-								return Drop.create({
-									battle: battle._id,
-									user: self._id,
-									denaItemId: d.item_id,
-									qty: d.num,
-									rarity: d.rarity
-								});
-							});
-						}).return(battle);
-				})
-				.then((battle) => {
-					/// the battle will now have the drops, let's get the drop rate;
-					return Battle.findOne({ _id: battle._id }).select('-drops');
-				})
-				.then((battle) => {
-					drops.forEach((d) => {
-						// console.log(battle.dropRates)
-						if(d.item_id && battle.dropRates && battle.dropRates[d.item_id]) {
-							d.dropRate = battle.dropRates[d.item_id];
-							d.denaDungeonId = battle.denaDungeonId;
+				self.inBattle = true;
+
+				return self.save()
+				.then(() => {
+					return Promise.map(drops, (d) => { //IF IT HAS AN item_id, it's woth saving to the db
+						if(!d.item_id) {
+							return Promise.resolve(null);
 						}
-					});
-					message.drops = drops;
 
-					const userAlertLevel = self.alertLevel || 1000; /// If not set, default to a high number that rarity won't reach
+            return mongoose.model('Item').findOneOrCreate({'dena.id': d.item_id})
+            .then((item) => {
+              return  Drop.create({
+                battle: battle._id,
+                user: self._id,
+                qty: d.num,
+                rarity: d.rarity,
+                item: item
+              });
+            });
+					})
+				}).return(battle);
+			})
+			.then((battle) => {
+				/// the battle will now have the drops, let's get the drop rate;
+				return Battle.findOne({ _id: battle._id }).select('-drops');
+			})
+			.then((battle) => {
+        return Promise.map(lodash.filter(drops, (drop) => !!drop.item_id), (d) => {
+          return mongoose.model('Item').findOne({'dena.id': d.item_id})
+          .then((item) => {
+            d.item = item;
+            return d;
+          })
+        })
+        .then((drops) => {
+          drops.forEach((d) => {
+            if(battle.dropRates && battle.dropRates[d.item._id]) {
+              d.dropRate = battle.dropRates[d.item._id];
+              d.battle = battle._id;
+            }
+          });
 
-					message.drops.forEach((drop) => {
-						if(parseInt(drop.rarity || 0) >= userAlertLevel) {
-							message.notificationMessage = ` ${message.notificationMessage}${drop.name} x${drop.num}`;
-						}
-					});
+          message.drops = drops;
 
-					if(message.notificationMessage) {
-						message.notificationMessage = `Your Drops: ${message.notificationMessage}`;
-					}
+          const userAlertLevel = self.alertLevel || 1000; /// If not set, default to a high number that rarity won't reach
 
-					return message;
-				});
+          message.drops.forEach((drop) => {
+            if(parseInt(drop.rarity || 0) >= userAlertLevel) {
+              message.notificationMessage = ` ${message.notificationMessage}${drop.name} x${drop.num}`;
+            }
+          });
+
+          if(message.notificationMessage) {
+            message.notificationMessage = `Your Drops: ${message.notificationMessage}`;
+          }
+
+          return message;
+
+        })
+			});
 		})
 		.catch(function(err) {
 			self.inBattle = false;

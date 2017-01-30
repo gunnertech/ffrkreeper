@@ -1,0 +1,43 @@
+<div class="container-fluid battles index">
+  <ol class="breadcrumb">
+    <li class="breadcrumb-item"><a href="/series#{{battle.dungeon.world.series._id}}">{{battle.dungeon.world.series.dena.formal_name}}</a></li>
+    <li class="breadcrumb-item"><a href="/worlds/{{battle.dungeon.world._id}}">{{battle.dungeon.world.dena.name}}</a></li>
+    <li class="breadcrumb-item"><a href="/dungeons/{{battle.dungeon._id}}">{{battle.dungeon.dena.name}}</a></li>
+    <li class="breadcrumb-item active">{{battle.name}}</li>
+  </ol>
+
+  <h5>Drop Rates</h5>
+
+  <div class="card">
+    <div class="card-block">
+      <ul class="list-unstyled">
+        {{#each battle.dropRates}}
+
+        <li class="media">
+          <img class="d-flex mr-3" src="{{item.imgUrl}}">
+          <div class="media-body">
+            <h5 class="mt-0 mb-1">{{item.name}}</h5>
+            Drop Rate: {{rate}}% - {{hits}} out of {{total}} drops for this battle have been for this item
+          </div>
+        </li>
+        {{/each}}
+      </ul>
+    </div>
+  </div>
+
+  <h5>Enemies</h5>
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        <th>Name</th>
+      </tr>
+    </thead>
+    <tbody>
+      {{#each battle.enemies}}
+        <tr>
+          <td><a href="/enemies/{{_id}}">{{dena.name}}</a></td>
+        </tr>
+      {{/each}}    
+    </tbody>
+  </table>
+</div>

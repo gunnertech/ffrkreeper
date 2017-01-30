@@ -59,15 +59,53 @@ const server = express()
     });
   })
   .get('/worlds/:worldId', function(req, res) {
-    mongoose.model('World').findById(req.params.worldId).populate({path: 'dungeons'})
+    mongoose.model('World').findById(req.params.worldId).populate({path: 'dungeons'}).populate('series')
     .then((world) => {
       return res.render('worlds/show', { title: world.dena.name, world: world });
     });
   })
   .get('/dungeons/:dungeonId', function(req, res) {
-    mongoose.model('Dungeon').findById(req.params.dungeonId).populate({path: 'prizes'}).populate({path: 'battles'})
+    mongoose.model('Dungeon').findById(req.params.dungeonId).populate({path: 'prizes'}).populate({path: 'battles'}).populate({path: 'enemies'})
+    .populate({
+      path: 'world',
+      populate: {
+        path: 'series'
+      }
+    })
     .then((dungeon) => {
       return res.render('dungeons/show', { title: dungeon.dena.name, dungeon: dungeon });
+    });
+  })
+  .get('/battles/:battleId', function(req, res) {
+    mongoose.model('Battle').findById(req.params.battleId).populate('enemies').populate({
+      path: 'dungeon',
+      populate: {
+        path: 'world',
+        populate: {
+          path: 'series'
+        }
+      }
+    })
+    .then((battle) => {
+      var promises = [];
+      for(var i in battle.dropRates) {
+        promises.push(mongoose.model('Item').findById(i)
+        .then((item) => {
+          battle.dropRates[i].item = item;
+          battle.dropRates[i].rate = Math.round(battle.dropRates[i].rate * 100)
+        }));
+      }
+
+      return Promise.all(promises).return(battle);
+    })
+    .then((battle) => {
+      return res.render('battles/show', { title: battle.name, battle: battle });
+    });
+  })
+  .get('/enemies/:enemyId', function(req, res) {
+    mongoose.model('Enemy').findById(req.params.enemyId)
+    .then((enemy) => {
+      return res.render('enemies/show', { title: enemy.dena.name, enemy: enemy });
     });
   })
 
@@ -176,12 +214,6 @@ const server = express()
     mongoose.model('Enemy').find().sort('name').select('-dena.json').populate('battle', 'denaDungeonId')
     .then((enemies) => {
       return res.render('enemies/index', { title: "Enemies", enemies: lodash.uniqBy(enemies,'name') });
-    });
-  })
-	.get('/dungeon/:dungeonId/battles', function(req, res) {
-		Battle.getBattleList(req.params.dungeonId)
-    .then((battles) => {
-      return res.render('battles/index', { title: 'Battles', battles: battles });
     });
   })
   .get('/', function(req, res) {
@@ -328,13 +360,15 @@ io.on('connection', (socket) => {
 
   });
 
-  // socket.on('/battle', (data, fn) => { });
-  // socket.on('/dungeon', (data, fn) => { });
-  // socket.on('/world', (data, fn) => { });
-  // socket.on('/user', (data, fn) => { });
 });
 
-utils.runInBg(Event.generateEvents);
+setInterval(() => {
+  utils.runInBg(Event.generateEvents);
+  User.findOne({hasValidSessionId: true, 'dena.name': 'SaltyNut' }).then((user) => {
+    utils.runInBg(user.buildWorlds);  
+    return user;
+  });
+}, 3600*3600*2)
 
 
 
@@ -344,99 +378,102 @@ User.update({email: "undefined"}, { $unset: { email: 1 }}).then(() => {})
 User.update({phone: "null"}, { $unset: { phone: 1 }}).then(() => {})
 User.update({phone: "undefined"}, { $unset: { phone: 1 }}).then(() => {})
 
-// Battle.find().distinct("denaBattleId").then(console.log)
+Battle.find().populate('dungeon').select("-drops").then((battles) => {
+  return Promise.each(battles, (battle) => {
+    if(!battle.dungeon) {
+      return Promise.resolve(battle);
+    }
+    if(battle.dungeon.battles.length) {
+      return Promise.resolve(battle);
+    }
+    return battle.save();
+  })
+})
 
-// mongoose.model("Dungeon").findOne({'dena.id': 401002})
-// .then(console.log)
+Battle.find({denaBattleId: {$exists: true}}).select("-drops")
+.then((battles) => {
+  console.log(`Battles count: ${battles.length}`)
+  return Promise.each(battles, (battle) => {
+    battle.denaBattleId = undefined;
+    delete battle.denaBattleId;
+    // delte 
+    battle.denaDungeonId = undefined;
+    delete battle.denaDungeonId;
+    battle.eventId = undefined;
+    delete battle.eventId;
+    battle.eventType = undefined;
+    delete battle.eventType;
+    battle.realm = undefined;
+    delete battle.realm;
+    battle.dungeonName = undefined;
+    delete battle.dungeonName;
+    battle.battleName = undefined;
+    delete battle.battleName;
+    battle.stamina = undefined;
+    delete battle.stamina;
 
-// User.findOne({hasValidSessionId: true, 'dena.name': 'SaltyNut' })
-// .then((user) => {
-//   return [user, mongoose.model('World').find({'dena.id': 101001}).limit(1)]
-// })
-// .spread((user, worlds) => {
-//   return Promise.each(worlds, (world) => {
-//     return user.getWorldDungeonData(world.dena.id)
-//     .then((json) => {
-//       console.log(json)
-//       return Promise.each(json.dungeons, (dungeonData) => {
-//         return mongoose.model("Dungeon").findOneOrCreate({'dena.id': dungeonData.id}, { dena: dungeonData })
-//         .then((dungeon) => {
-//           if(dungeon.prizes) {
-//             return Promise.resolve([dungeonData, dungeon])
-//           }
+    return battle.save();
+  })
+})
 
-//           var prizeArray = [];
+mongoose.model('User').find({'dena.json': {$exists: true }})
+.then((users) => {
+  console.log(`User count: ${users.length}`)
+  return Promise.each(users, (user) => {
+    user.dena.json = undefined;
+    delete user.dena.json;
+    user.drops = undefined;
+    delete user.drops;
 
-//           for(var i in prizeData) {
-//             prizeArray.push(Object.assign(prizeData[i]), {category: i});
-//           }
-          
-//           return Promise.each(prizeArray, (prizeData) => {
-//             return mongoose.model("Item").findOneOrCreate({'dena.id': prizeData.id, 'dena.type_name': prizeData.type_name}, {dena: prizeData})
-//             .then((item) => {
-//               dungeon.prizes.push({
-//                 item: item,
-//                 category: prizeData.category,
-//                 num: prizeData.num
-//               });
-//             });
-//           }).return([dungeonData, dungeon]);
-//         })
-//         .spread((dungeonData, dungeon) => {
-//           // console.log(dungeonData);
-//           return Promise.resolve(dungeon)
-//           // var prizeArray = [];
-
-//           // for(var i in prizeData) {
-//           //   prizeArray.push(Object.assign(prizeData[i]), {category: i});
-//           // }
-          
-//           // return Promise.each(prizeArray, (prizeData) => {
-//           //   return mongoose.model("Item").findOneOrCreate({'dena.id': prizeData.id, 'dena.type_name': prizeData.type_name}, {dena: prizeData})
-//           //   .then((item) => {
-//           //     dungeon.prizes.push({
-//           //       item: item,
-//           //       category: prizeData.category,
-//           //       num: prizeData.num
-//           //     });
-//           //   });
-//           // }).return(dungeon);
-//         })
-//         .then((dungeon) => {
-//           dungeon.world = world;
-//           return dungeon.save();
-//         })
-//       });
-//     });
-//   });
-// })
-// .then(() => {
-//   console.log("DONE!")
-// })
+    return user.save();
+  })
+})
 
 
-mongoose.model('Enemy').remove().then(console.log);
 
-// mongoose.model('Enemy').update({}, {$unset: {dena: {json: 1 }}}).then(console.log)
 
-// mongoose.model('Enemy').find()
-// .then((enemies) => {
-//   return Promise.map(enemies, (enemy) => {
-//     enemy.dena.json = undefined;
-//     enemy.dena.name = enemy.name + "";
-//     console.log(enemy.dena.enemyId)
-//     enemy.dena.id = parseInt(enemy.dena.enemyId)
+var missingItems = [];
+mongoose.model('Drop').find({rarity: {$gt: 2}, denaItemId: /4000/, battle: {$exists: true }})
+.then((drops) => {
+  console.log(`Drops count: ${drops.length}`)
+  const Drop = mongoose.model('Drop');
+  const Item = mongoose.model('Item');
+  return Promise.each(drops, (drop) => {
+    return mongoose.model('Item').findOne({'dena.id': drop.denaItemId})
+    .then((item) => {
+      if(item) {
+        drop.item = item;
+        drop.denaItemId = undefined;
+        delete drop.denaItemId;
+        return drop.save(); 
+      } else {
+        item = new Item();
+        item.dena = {
+          id: drop.denaItemId,
+          name: Drop.getName(drop.denaItemId),
+          image_path: Drop.getImgUrl(drop.denaItemId).replace(/https?:\/\/(^\/)+/,"")
+        }
 
-//     enemy.name = undefined;
-//     enemy.dena.enemyId = undefined;
+        item.dena.type_name = item.dena.image_path.match(/common_item/) ? "COMMON" 
+          : item.dena.image_path.match(/ability_material/) ? "ABILITY MATERIAL" 
+          : item.dena.image_path.match(/equipment_sp_material/) ? "EQUIPMENT_SP_MATERIAL"
+          : "";
 
-//     return enemy.save();
-//   })
-// }).then(console.log)
+        // console.log(item)
 
-// mongoose.model('Enemy').update({},
-//   {$unset: {'dena.json': true}},
-//   {multi: true, safe: true}).then(console.log)
+        missingItems.push(drop.denaItemId);
+      }
+    })
+  })
+  .then(() => {
+    console.log("Done with drops")
+    console.log(lodash.uniq(missingItems));
+  })
+});
+
+
+
+
 
 
 // User.findOne({hasValidSessionId: true, 'dena.name': 'SaltyNut' })
@@ -455,47 +492,4 @@ mongoose.model('Enemy').remove().then(console.log);
 //   delete json.party;
 //   // console.log(json)
 //   // console.log(util.inspect(json, false, null))
-// })
-
-// mongoose.model('Series').findOneOrCreate({'dena.id': 300001}, {
-//   dena: {
-//     id: 300001,
-//     formal_name: 'Other' 
-//   }
-// })
-// .then((series) => {
-//   return mongoose.model('World').findOneOrCreate({'dena.id': 800003}, {
-//     dena: {
-//       name: 'Daily Dungeon',
-//       bgm: 'bgm_04_011',
-//       id: 800003,
-//       type: 2
-//     },
-//     series: series
-//   });
-// })
-// .then((world) => {
-//   return console.log(world);
-// })  
-
-
-
-
-// User.find({hasValidSessionId: true, 'dena.name': 'SaltyNut'})
-// .then((users) => {
-//   return console.log(users.length);
-// });
-
-// Promise.all([
-//   mongoose.model('World').remove({}),
-//   mongoose.model('Series').remove({})
-// ])
-// .then(() => {
-  // return User.findOne({hasValidSessionId: true, 'dena.name': 'SaltyNut'})
-  // .then((user) => {
-  //   return user.buildWorlds();
-  // })
-  // .then((worlds) => {
-  //   return console.log(worlds)
-  // });
 // })

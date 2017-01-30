@@ -4,7 +4,7 @@
       <a class="nav-link dropdown-toggle" active data-toggle="dropdown" href="#" role="button" aria-haspopup="true" aria-expanded="false">Jump to a Series</a>
       <div class="dropdown-menu">
         {{#each series}}
-          <a class="dropdown-item" href="#{{dena.id}}">{{shortName}}</a>
+          <a class="dropdown-item" href="#{{_id}}">{{shortName}}</a>
         {{/each}}
       </div>
     </li>
@@ -12,7 +12,7 @@
   <br /><br />
 
   {{#each series}}
-    <h5 id="{{dena.id}}">{{dena.formal_name}} Worlds</h5>
+    <h5 id="{{_id}}">{{dena.formal_name}} Worlds</h5>
     <table class="table table-striped">
       <thead>
         <tr>

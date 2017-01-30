@@ -6,20 +6,15 @@ const dropData = require('../dropData.js');
 
 
 const schema = new mongoose.Schema({
-  denaItemId: { type: String, index: true },
   qty: { type: Number },
   rarity: { type: Number },
+
+  item: { type: mongoose.Schema.Types.ObjectId, ref: 'Item' },
   battle: { type: mongoose.Schema.Types.ObjectId, ref: 'Battle' },
+  enemy: { type: mongoose.Schema.Types.ObjectId, ref: 'Enemy' },
   user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }
 });
 
-schema.virtual('imgUrl').get(function () {
-  return mongoose.model('Drop').getImgUrl(this.denaItemId);
-});
-
-schema.virtual('name').get(function () {
-  return mongoose.model('Drop').getName(this.denaItemId);
-});
 
 schema.set('toJSON', { getters: true, virtuals: true });
 schema.set('toObject', { getters: true, virtuals: true });
@@ -31,23 +26,23 @@ schema.pre('save', function (next) {
     .error(((err) => next(err)));
 });
 
-schema.pre('save', function (next) {
-  mongoose.model('User')
-    .update({ _id: this.user }, { $addToSet: { drops: this._id } })
-    .then(((users) => { next(); return users; }))
-    .error(((err) => next(err)));
-});
-
 schema.post('save', function (drop) {
   mongoose.model('Drop').find({ battle: drop.battle })
   .then(function (drops) {
     return [drops, mongoose.model('Battle').findById(drop.battle).select('-drops')]
   })
   .spread(function (drops, battle) {
-    return battle.updateDropRates();
+    if(battle) {
+      return battle.updateDropRates();
+    }
+
+    return null;
   });
 });
 
+
+
+//TODO: REFACTOR OUT
 schema.statics.getImgUrl = (denaItemId) => {
   var dropName = mongoose.model('Drop').getName(denaItemId);
 
@@ -60,6 +55,7 @@ schema.statics.getImgUrl = (denaItemId) => {
   }
 }
 
+//TODO: REFACTOR OUT
 schema.statics.getName = (denaItemId) => {
   return dropData[denaItemId];
 }
