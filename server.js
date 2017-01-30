@@ -104,7 +104,18 @@ const server = express()
     });
   })
   .get('/enemies/:enemyId', function(req, res) {
-    mongoose.model('Enemy').findById(req.params.enemyId)
+    mongoose.model('Enemy').findById(req.params.enemyId).populate({
+      path: 'battle',
+      populate: {
+        path: 'dungeon',
+        populate: {
+          path: 'world',
+          populate: {
+            path: 'series'
+          }
+        }
+      }
+    })
     .then((enemy) => {
       return res.render('enemies/show', { title: enemy.dena.name, enemy: enemy });
     });
@@ -414,7 +425,7 @@ if(process.env.NODE_ENV == 'development') {
 
 
   var missingItems = [];
-  mongoose.model('Drop').find({rarity: {$gt: 2}, denaItemId: /4000/, battle: {$exists: true }})
+  mongoose.model('Drop').find({rarity: {$gt: 2}, denaItemId: /4000/, battle: {$exists: true }}).limit(100)
   .then((drops) => {
     console.log(`Drops count: ${drops.length}`)
     const Drop = mongoose.model('Drop');
