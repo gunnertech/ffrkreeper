@@ -7,6 +7,19 @@ const Drop = require('./drop.js');
 const dungeonsPerPage = 12;
 
 const schema = new mongoose.Schema({
+  dena: {
+    id: { type: Number, index: { unique: true } },
+    name: { type: String },
+    stamina: { type: Number }
+  },
+
+  dropRates: mongoose.Schema.Types.Mixed,
+  
+  drops: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Drop' }],
+  enemies: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Enemy' }],
+  dungeon: { type: mongoose.Schema.Types.ObjectId, ref: 'Dungeon' },
+
+  ////TODO: Refactor this out
 	denaBattleId: { type: String, index: true },
 	denaDungeonId: { type: String, index: true },
 	eventId: { type: String, index: true },
@@ -14,10 +27,7 @@ const schema = new mongoose.Schema({
 	realm: { type: String },  //categorize the FF realm...aka ff1, ff5, ff13
 	dungeonName: { type: String },
 	battleName: { type: String },  //part1, part2, part 3 boss stage etc...
-	stamina: { type: Number },  //with this we can compute the orb/stam ratio...not sure where to get it
-	dropRates: mongoose.Schema.Types.Mixed,
-	drops: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Drop' }],
-  enemies: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Enemy' }]
+	stamina: { type: Number }  //with this we can compute the orb/stam ratio...not sure where to get it
 });
 
 schema.statics.forDungeonIndex = function(pageNumber) {

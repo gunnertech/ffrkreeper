@@ -1,5 +1,6 @@
 const _ = require('lodash');
 const mongoose = require('mongoose');
+const Promise = require('bluebird');
 
 const schema = new mongoose.Schema({
   dena: {
@@ -53,6 +54,15 @@ schema.pre('save', function (next) {
     .then(((worlds) => { next(); return worlds; }))
     .error(((err) => next(err)));
 });
+
+schema.statics.findOneOrCreate = (conditions, data) => {
+  const model = mongoose.model('World');
+  data = data || conditions;
+  return model.findOne(conditions)
+  .then((instance) => {
+    return instance ? Promise.resolve(instance) : model.create(data);
+  });
+}
 
 
 

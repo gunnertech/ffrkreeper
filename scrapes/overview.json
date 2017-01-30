@@ -1,32 +1,34 @@
+//// series is top level boject
 {
-  ///// one of the following is a root level object, but I'm not sure if series has worlds or worlds have series or what
-  "series_id": "", //// series id identifies the FF series, I, II, III, IX, etc
-  "world_id": "", //// I'm not really sure what this is
-  "events": [
+  "worlds": [ //world is hard to describe. It loosely translates to events but not always.
     {
-      "dungeons": [
+      "events": [
         {
-          "battles": [
+          "dungeons": [
             {
-              "rounds": [
+              "battles": [
                 {
-                  "enemy": [
+                  "rounds": [
                     {
-                      "children": [
+                      "enemy": [
                         {
-                          "drop_item_list": [
-                            {}
+                          "children": [
+                            {
+                              "drop_item_list": [
+                                {}
+                              ]
+                            }
                           ]
                         }
+                      ],
+                      "drop_item_list": [
+                        {}
+                      ],
+
+                      "drop_materias": [
+                        {}
                       ]
                     }
-                  ],
-                  "drop_item_list": [
-                    {}
-                  ],
-
-                  "drop_materias": [
-                    {}
                   ]
                 }
               ]

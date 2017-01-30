@@ -345,12 +345,44 @@ User.update({phone: "undefined"}, { $unset: { phone: 1 }}).then(() => {})
 
 // User.findOne({hasValidSessionId: true, 'dena.name': 'SaltyNut' })
 // .then((user) => {
-//   return user.getBattleInitDataForEventId(95);
+//   // return user.getBattleInitDataForEventId(95);
+//   // return user.getWorldBattles();
+
+//   101001
+//   return user.getWorldDungeonData(800003)
 // })
 // .then((json) => {
-//   console.log(util.inspect(json.battle.score, false, null))
+//   // console.log(util.inspect(json.battle, false, null))
+//   delete json.assets;
+//   delete json.user;
+//   delete json.fellow_session;
+//   delete json.party;
 //   // console.log(json)
+//   console.log(util.inspect(json, false, null))
 // })
+
+// mongoose.model('Series').findOneOrCreate({'dena.id': 300001}, {
+//   dena: {
+//     id: 300001,
+//     formal_name: 'Other' 
+//   }
+// })
+// .then((series) => {
+//   return mongoose.model('World').findOneOrCreate({'dena.id': 800003}, {
+//     dena: {
+//       name: 'Daily Dungeon',
+//       bgm: 'bgm_04_011',
+//       id: 800003,
+//       type: 2
+//     },
+//     series: series
+//   });
+// })
+// .then((world) => {
+//   return console.log(world);
+// })  
+
+
 
 
 // User.find({hasValidSessionId: true, 'dena.name': 'SaltyNut'})
@@ -363,11 +395,11 @@ User.update({phone: "undefined"}, { $unset: { phone: 1 }}).then(() => {})
 //   mongoose.model('Series').remove({})
 // ])
 // .then(() => {
-  return User.findOne({hasValidSessionId: true, 'dena.name': 'SaltyNut'})
-  .then((user) => {
-    return user.buildWorlds();
-  })
-  .then((worlds) => {
-    return console.log(worlds)
-  });
+  // return User.findOne({hasValidSessionId: true, 'dena.name': 'SaltyNut'})
+  // .then((user) => {
+  //   return user.buildWorlds();
+  // })
+  // .then((worlds) => {
+  //   return console.log(worlds)
+  // });
 // })

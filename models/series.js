@@ -1,5 +1,6 @@
 const _ = require('lodash');
 const mongoose = require('mongoose');
+const Promise = require('bluebird');
 
 const schema = new mongoose.Schema({
   dena: {
@@ -15,6 +16,17 @@ schema.virtual('shortName').get(function () {
 
 schema.set('toJSON', { getters: true, virtuals: true });
 schema.set('toObject', { getters: true, virtuals: true });
+
+schema.statics.findOneOrCreate = (conditions, data) => {
+  const model = mongoose.model('Series');
+  data = data || conditions;
+  console.log(conditions)
+  return model.findOne(conditions)
+  .then((instance) => {
+    console.log(instance)
+    return instance ? Promise.resolve(instance) : model.create(data);
+  });
+}
 
 
 module.exports = mongoose.model('Series', schema);
