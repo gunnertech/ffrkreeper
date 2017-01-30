@@ -382,15 +382,28 @@ setInterval(() => {
   });
 }, 3600*3600*2)
 
-
-
 /// BEGIN AREA TO RUN ONE OFF SHIT
-
 if(process.env.NODE_ENV == 'development') {
   User.update({email: "null"}, { $unset: { email: 1 }}).then(() => {})
   User.update({email: "undefined"}, { $unset: { email: 1 }}).then(() => {})
   User.update({phone: "null"}, { $unset: { phone: 1 }}).then(() => {})
   User.update({phone: "undefined"}, { $unset: { phone: 1 }}).then(() => {})
+
+  User.findOne({hasValidSessionId: true, 'dena.name': 'SaltyNut' }).then((user) => {
+    return mongoose.model('Dungeon').find()
+    .then((dungeons) => {
+      return Promise.each(dungeons, (dungeon) => {
+        if(!dungeon.battles || dungeon.battles.length == 0) {
+          console.log(`Got one: ${dungeon._id}`);
+          return user.buildBattlesFromDungeon(dungeon.dena.id).return(dungeon);
+        } else {
+          return Promise.resolve(dungeon)
+        }
+      })
+    });
+  })
+  .then(console.log)
+  .catch(console.log)
 
 
   Battle.find({denaBattleId: {$exists: true}}).select("-drops")
@@ -439,7 +452,6 @@ if(process.env.NODE_ENV == 'development') {
           return drop.save(); 
         } else {
           item = new Item();
-          console.log(drop.denaItemId)
           item.dena = {
             id: drop.denaItemId,
             name: Drop.getName(drop.denaItemId),

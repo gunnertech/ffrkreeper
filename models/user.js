@@ -164,44 +164,8 @@ schema.methods.populateWorlds = function(worlds) {
     return self.getWorldDungeonData(world.dena.id)
     .then((json) => {
       return Promise.each(json.dungeons, (dungeonData) => {
-        return mongoose.model("Dungeon").findOneOrCreate({'dena.id': dungeonData.id}, { dena: dungeonData })
-        .then((dungeon) => {
-          if(dungeon.prizes && dungeon.prizes.length) {
-            return Promise.resolve([dungeonData, dungeon])
-          }
-
-          var prizeArray = [];
-
-          for(var i in dungeonData.prizes) {
-            dungeonData.prizes[i].forEach((prize) => {
-              prizeArray.push(Object.assign(prize, {category: i}));  
-            })
-            
-          }
-
-          dungeon.prizes = [];
-          
-          return Promise.each(prizeArray, (prizeData) => {
-            return mongoose.model("Item").findOneOrCreate({'dena.id': prizeData.id, 'dena.type_name': prizeData.type_name}, {dena: prizeData})
-            .then((item) => {
-              dungeon.prizes.push({
-                item: item,
-                category: prizeData.category,
-                num: prizeData.num
-              });
-            });
-          }).return([dungeonData, dungeon]);
-        })
-        .spread((dungeonData, dungeon) => {
-          return Promise.each(dungeonData.captures, (capture) => {
-            return mongoose.model('Enemy').findOneOrCreate({dungeon: dungeon._id, 'dena.id': capture.enemy_id, 'dena.name': capture.tip_battle.title}, {dungeon: dungeon._id, 'dena.id': capture.enemy_id, 'dena.name': capture.tip_battle.title})
-          }).return([dungeonData, dungeon]);
-        })
-        .spread((dungeonData, dungeon) => {
-          dungeon.world = world;
-          return dungeon.save();
-        })
-      });
+        return mongoose.model('Dungeon').findOneOrCreateFromJson(dungeonData);
+      });   
     });
   });
 }
@@ -341,6 +305,53 @@ schema.methods.getBattleInitDataForEventId = function(eventId) {
   });
 }
 
+schema.methods.drawARelic = function() {
+  return dena.api.authData({ sessionId: this.dena.sessionId })
+  .spread((sessionId, browserData, userSessionKey) => {
+    return dena.api.doGachaDraw({ sessionId: sessionId, userSessionKey: userSessionKey, csrfToken: browserData.csrfToken });
+  })
+}
+
+schema.methods.enterDungeon = function(dungeonId) {
+  return dena.api.authData({ sessionId: this.dena.sessionId })
+  .spread((sessionId, browserData, userSessionKey) => {
+    return dena.api.doEnterDungeon((process.env.DENA_CURRENT_EVENT_ID || 95), dungeonId, { sessionId: sessionId, userSessionKey: userSessionKey, csrfToken: browserData.csrfToken });
+  })
+}
+
+schema.methods.leaveDungeon = function(dungeonId) {
+  return dena.api.authData({ sessionId: this.dena.sessionId })
+  .spread((sessionId, browserData, userSessionKey) => {
+    return dena.api.doLeaveDungeon((process.env.DENA_CURRENT_EVENT_ID || 95), dungeonId, { sessionId: sessionId, userSessionKey: userSessionKey, csrfToken: browserData.csrfToken });
+  })
+}
+
+schema.methods.buildBattlesFromDungeon = function(dungeonId) {
+  var self = this;
+  return self.enterDungeon(dungeonId)
+  .then((json) => {
+    return self.getWorldBattles()
+  })
+  .then((json) => {
+    return mongoose.model('Dungeon').findOneOrCreateFromJson(json.user_dungeon)
+    .then((dungeon) => {
+      return Promise.each(json.battles, (battleData) => {
+        return mongoose.model('Battle').findOneOrCreate({'dena.id': battleData.id})
+        .then((battle) => {
+          battle.dena.name = battleData.name;
+          battle.dena.stamina = battleData.stamina;
+          battle.dungeon = dungeon;
+
+          return battle.save();
+        });
+      });
+    });
+  })
+  .then((dungeons) => {
+    return self.leaveDungeon(dungeonId);
+  })
+}
+
 schema.methods.updateData = function() {
   var self = this;
 
@@ -385,7 +396,7 @@ schema.methods.updateData = function() {
 
 			return self.save();
 		})
-		.catch((err) => { console.log(err); });
+		.catch((err) => console.log(err) );
 }
 
 schema.methods.sendEmail = function(message) {
@@ -454,7 +465,7 @@ schema.methods.getDropMessage = function() {
     notify: true
   };
 
-  return dena.api.getBattleInitDataForEventId((process.env.DENA_CURRENT_EVENT_ID || 94), { sessionId: self.dena.sessionId })
+  return dena.api.getBattleInitDataForEventId((process.env.DENA_CURRENT_EVENT_ID || 95), { sessionId: self.dena.sessionId })
 		.then(function(json) {
 			if(!json.success) {
 				self.inBattle = false;
