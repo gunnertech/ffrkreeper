@@ -11,6 +11,8 @@ const schema = new mongoose.Schema({
     stamina: { type: Number }
   },
   dropRates: mongoose.Schema.Types.Mixed,
+
+  denaBattleId: {type: String},
   
   drops: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Drop' }],
   enemies: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Enemy' }],

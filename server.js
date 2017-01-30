@@ -91,8 +91,9 @@ const server = express()
       for(var i in battle.dropRates) {
         promises.push(mongoose.model('Item').findById(i)
         .then((item) => {
+          var i = item._id.toString();
           battle.dropRates[i].item = item;
-          battle.dropRates[i].rate = Math.round(battle.dropRates[i].rate * 100)
+          battle.dropRates[i].rate = Math.round(battle.dropRates[i].rate *100)
         }));
       }
 
@@ -373,123 +374,97 @@ setInterval(() => {
 
 
 /// BEGIN AREA TO RUN ONE OFF SHIT
-User.update({email: "null"}, { $unset: { email: 1 }}).then(() => {})
-User.update({email: "undefined"}, { $unset: { email: 1 }}).then(() => {})
-User.update({phone: "null"}, { $unset: { phone: 1 }}).then(() => {})
-User.update({phone: "undefined"}, { $unset: { phone: 1 }}).then(() => {})
 
-Battle.find().populate('dungeon').select("-drops").then((battles) => {
-  return Promise.each(battles, (battle) => {
-    if(!battle.dungeon) {
-      return Promise.resolve(battle);
-    }
-    if(battle.dungeon.battles.length) {
-      return Promise.resolve(battle);
-    }
-    return battle.save();
-  })
-})
-
-Battle.find({denaBattleId: {$exists: true}}).select("-drops")
-.then((battles) => {
-  console.log(`Battles count: ${battles.length}`)
-  return Promise.each(battles, (battle) => {
-    battle.denaBattleId = undefined;
-    delete battle.denaBattleId;
-    // delte 
-    battle.denaDungeonId = undefined;
-    delete battle.denaDungeonId;
-    battle.eventId = undefined;
-    delete battle.eventId;
-    battle.eventType = undefined;
-    delete battle.eventType;
-    battle.realm = undefined;
-    delete battle.realm;
-    battle.dungeonName = undefined;
-    delete battle.dungeonName;
-    battle.battleName = undefined;
-    delete battle.battleName;
-    battle.stamina = undefined;
-    delete battle.stamina;
-
-    return battle.save();
-  })
-})
-
-mongoose.model('User').find({'dena.json': {$exists: true }})
-.then((users) => {
-  console.log(`User count: ${users.length}`)
-  return Promise.each(users, (user) => {
-    user.dena.json = undefined;
-    delete user.dena.json;
-    user.drops = undefined;
-    delete user.drops;
-
-    return user.save();
-  })
-})
+if(process.env.NODE_ENV == 'development') {
+  User.update({email: "null"}, { $unset: { email: 1 }}).then(() => {})
+  User.update({email: "undefined"}, { $unset: { email: 1 }}).then(() => {})
+  User.update({phone: "null"}, { $unset: { phone: 1 }}).then(() => {})
+  User.update({phone: "undefined"}, { $unset: { phone: 1 }}).then(() => {})
 
 
-
-
-var missingItems = [];
-mongoose.model('Drop').find({rarity: {$gt: 2}, denaItemId: /4000/, battle: {$exists: true }})
-.then((drops) => {
-  console.log(`Drops count: ${drops.length}`)
-  const Drop = mongoose.model('Drop');
-  const Item = mongoose.model('Item');
-  return Promise.each(drops, (drop) => {
-    return mongoose.model('Item').findOne({'dena.id': drop.denaItemId})
-    .then((item) => {
-      if(item) {
-        drop.item = item;
-        drop.denaItemId = undefined;
-        delete drop.denaItemId;
-        return drop.save(); 
-      } else {
-        item = new Item();
-        item.dena = {
-          id: drop.denaItemId,
-          name: Drop.getName(drop.denaItemId),
-          image_path: Drop.getImgUrl(drop.denaItemId).replace(/https?:\/\/(^\/)+/,"")
-        }
-
-        item.dena.type_name = item.dena.image_path.match(/common_item/) ? "COMMON" 
-          : item.dena.image_path.match(/ability_material/) ? "ABILITY MATERIAL" 
-          : item.dena.image_path.match(/equipment_sp_material/) ? "EQUIPMENT_SP_MATERIAL"
-          : "";
-
-        // console.log(item)
-
-        missingItems.push(drop.denaItemId);
+  Battle.find().populate('dungeon').select("-drops").then((battles) => {
+    return Promise.each(battles, (battle) => {
+      if(!battle.dungeon) {
+        return Promise.resolve(battle);
       }
+      if(battle.dungeon.battles.length) {
+        return Promise.resolve(battle);
+      }
+      return battle.save();
     })
   })
-  .then(() => {
-    console.log("Done with drops")
-    console.log(lodash.uniq(missingItems));
+
+  Battle.find({denaBattleId: {$exists: true}}).select("-drops")
+  .then((battles) => {
+    console.log(`Battles count: ${battles.length}`)
+    return Promise.each(battles, (battle) => {
+      battle.denaBattleId = undefined;
+      battle.denaDungeonId = undefined;
+      battle.eventId = undefined;
+      battle.eventType = undefined;
+      battle.realm = undefined;
+      battle.dungeonName = undefined;
+      battle.battleName = undefined;
+      battle.stamina = undefined;
+      
+      return battle.save();
+    })
   })
-});
+
+  mongoose.model('User').find({'dena.json': {$exists: true }})
+  .then((users) => {
+    console.log(`User count: ${users.length}`)
+    return Promise.each(users, (user) => {
+      user.dena.json = undefined;
+      user.drops = undefined;
+
+      return user.save();
+    })
+  })
 
 
 
 
+  var missingItems = [];
+  mongoose.model('Drop').find({rarity: {$gt: 2}, denaItemId: /4000/, battle: {$exists: true }})
+  .then((drops) => {
+    console.log(`Drops count: ${drops.length}`)
+    const Drop = mongoose.model('Drop');
+    const Item = mongoose.model('Item');
+    return Promise.each(drops, (drop) => {
+      return mongoose.model('Item').findOne({'dena.id': drop.denaItemId})
+      .then((item) => {
+        if(item) {
+          drop.item = item;
+          drop.denaItemId = undefined;
+          return drop.save(); 
+        } else {
+          item = new Item();
+          console.log(drop.denaItemId)
+          item.dena = {
+            id: drop.denaItemId,
+            name: Drop.getName(drop.denaItemId),
+            image_path: Drop.getImgUrl(drop.denaItemId).replace(/https?:\/\/(^\/)+/,"")
+          }
+
+          item.dena.type_name = item.dena.image_path.match(/common_item/) ? "COMMON" 
+            : item.dena.image_path.match(/ability_material/) ? "ABILITY MATERIAL" 
+            : item.dena.image_path.match(/equipment_sp_material/) ? "EQUIPMENT_SP_MATERIAL"
+            : "";
+
+          missingItems.push(drop.denaItemId);
+          return item.save().then((item) => {
+            drop.item = item;
+            return drop.save();
+          });
+        }
+      })
+    })
+    .then(() => {
+      console.log("Done with drops")
+      console.log(lodash.uniq(missingItems));
+    })
+  });
 
 
-// User.findOne({hasValidSessionId: true, 'dena.name': 'SaltyNut' })
-// .then((user) => {
-//   // return user.getBattleInitDataForEventId(95);
-//   // return user.getWorldBattles();
-
-//   800003
-//   return user.getWorldDungeonData(101001)
-// })
-// .then((json) => {
-//   // console.log(util.inspect(json.battle, false, null))
-//   delete json.assets;
-//   delete json.user;
-//   delete json.fellow_session;
-//   delete json.party;
-//   // console.log(json)
-//   // console.log(util.inspect(json, false, null))
-// })
+}

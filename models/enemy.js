@@ -31,7 +31,7 @@ schema.pre('save', function (next) {
 });
 
 schema.pre('save', function (next) {
-  if(!this.dungeon) {
+  if(!this.battle) {
     next();
     return;
   }

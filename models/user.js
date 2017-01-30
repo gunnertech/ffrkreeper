@@ -42,7 +42,9 @@ const schema = new mongoose.Schema({
     profile_message: String,
     mnd: Number,
     matk: Number,
-    atk: Number
+    atk: Number,
+
+    json: mongoose.Schema.Types.Mixed
   },
   hasValidSessionId: {
     type: Boolean,
@@ -117,7 +119,7 @@ schema.statics.buildDrops = (json, battle) => {
           drops.push(drop);
         });
         Promise.each(child.params, (param) => {
-          return mongoose.model('Enemy').findOneOrCreate({battle: battle._id, 'dena.id': child.enemy_id, 'dena.no': param.no, 'dena.name': param.disp_name}).then(() => null)   
+          return mongoose.model('Enemy').findOneOrCreate({battle: battle._id, 'dena.id': child.enemy_id, 'dena.no': param.no, 'dena.name': param.disp_name}).then((enemy) => null).catch(() => console.log(err))   
         })
       });
     });

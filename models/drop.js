@@ -6,6 +6,9 @@ const dropData = require('../dropData.js');
 
 
 const schema = new mongoose.Schema({
+  denaItemId: { type: String, index: true }, //TODO: REFACTOR THIS OUT
+
+
   qty: { type: Number },
   rarity: { type: Number },
 
