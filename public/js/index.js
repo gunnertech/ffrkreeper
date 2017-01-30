@@ -102,12 +102,11 @@
       email: email,
       alertLevel: alertLevel
     }, function(user) {
+      $(".signin-loading-wrapper").hide();
       if(user.name == 'Session Error') {
-        alert(message.name + ": " + message.message);
+        alert(user.name + ": " + user.message);
         return signout();
       }
-      
-      $(".signin-loading-wrapper").hide();
 
       createCookie('denaSessionId', user.dena.sessionId, 365);
       createCookie('phone', user.phone, 365);
@@ -170,6 +169,6 @@
 
   $("#signin-form").submit(signin);
   $("#signout-form").submit(signout);
-  $("#signout-form").show();
+  // $("#signout-form").show();
 
 })();

@@ -260,45 +260,60 @@ io.on('connection', (socket) => {
     }
 
     if(data.phone) {
+      data.phone = User.normalizePhone(data.phone);
       query.push({'phone': data.phone});
     }
 
-    User.findOne().or(query).select('-dena.json -drops')
-      .then((user) => {
-        if(user) {
-          return Promise.resolve(user);
-        } else {
-          return User.create({ 'dena.sessionId': data.sessionId });
-        }
-      })
-      .then((user) => {
-        if(data.phone) { user.phone = data.phone; }
-        if(data.email) { user.email = data.email; }
-        if(data.sessionId){ 
-          user.dena.sessionId = data.sessionId; 
-          user.hasValidSessionId = true;  
-        }
-        
-        user.alertLevel = parseInt(data.alertLevel) || 0;
+    console.log(query);
 
-        return user.save().return(user);
-      })
-      .then((user) => {
-        if(!user.hasValidSessionId) { return Promise.resolve(user); }
-        //// IF THEY HAVEN'T BEEN UPDATED IN A WHILE, LET'S UPDATE THEM
-        if(!user.dena.updatedAt || moment(user.dena.updatedAt).add(5, 'hours').toDate() < moment(new Date()).toDate()) {
-          return user.updateData().return(user);
-        } else {
-          return Promise.resolve(user);
-        }
-      })
-      .catch((err) => {
-        fn({name: 'Session Error', message: 'That session Id is not valid'});
-      })
-      .then((user) => {
-        socket.join(`/${user.dena.sessionId}`);
-        fn(user);
-      });
+    if(!query.length) {
+      console.log("end it")
+      fn({name: 'Session Error', message: 'That session Id is not valid'});
+    } else {
+      User.findOne().or(query).select('-dena.json -drops')
+        .then((user) => {
+          console.log("\n\n")
+          console.log(user)
+          console.log("\n\n")
+          if(user) {
+            return Promise.resolve(user);
+          } else {
+            if(data.sessionId) {
+              return User.create({ 'dena.sessionId': data.sessionId });
+            }
+
+            throw new Error('Whoops!')
+          }
+        })
+        .then((user) => {
+          if(data.phone) { user.phone = data.phone; }
+          if(data.email) { user.email = data.email; }
+          if(data.sessionId){ 
+            user.dena.sessionId = data.sessionId; 
+            user.hasValidSessionId = true;  
+          }
+          
+          user.alertLevel = parseInt(data.alertLevel) || 0;
+
+          return user.save().return(user);
+        })
+        .then((user) => {
+          if(!user.hasValidSessionId) { return Promise.resolve(user); }
+          //// IF THEY HAVEN'T BEEN UPDATED IN A WHILE, LET'S UPDATE THEM
+          if(!user.dena.updatedAt || moment(user.dena.updatedAt).add(5, 'hours').toDate() < moment(new Date()).toDate()) {
+            return user.updateData().return(user);
+          } else {
+            return Promise.resolve(user);
+          }
+        })
+        .then((user) => {
+          socket.join(`/${user.dena.sessionId}`);
+          fn(user);
+        })
+        .catch((err) => {
+          fn({name: 'Session Error', message: 'That session Id is not valid'});
+        });
+    }
   });
 
   socket.on('/signout', (data, fn) => {
@@ -313,22 +328,25 @@ io.on('connection', (socket) => {
     }
 
     if(data.phone) {
+      data.phone = User.normalizePhone(data.phone);
       query.push({'phone': data.phone});
     }
 
-    User.findOne().or(query).select('-dena.json -drops')
-      .then((user) => {
-        if(!user) {
-          return Promise.resolve(null);
-        }
+    if(query.length) {
+      User.findOne().or(query).select('-dena.json -drops')
+        .then((user) => {
+          if(!user) {
+            return Promise.resolve(null);
+          }
 
-        user.alertLevel = 0;
+          user.alertLevel = 0;
 
-        return user.save().return(user);
-      })
-      .then((user) => {
-        fn(user);
-      });
+          return user.save().return(user);
+        })
+        .then((user) => {
+          fn(user);
+        });
+    }
   });
 
   socket.on('/drops', (sessionId, fn) => {
@@ -383,14 +401,33 @@ setInterval(() => {
 }, 3600*3600*2)
 
 
+User.update({email: "null"}, { $unset: { email: 1 }}, {multi: true}).then(() => {})
+User.update({email: null}, { $unset: { email: 1 }}, {multi: true}).then(() => {})
+User.update({email: "undefined"}, { $unset: { email: 1 }}, {multi: true}).then(() => {})
+User.update({email: ""}, { $unset: { email: 1 }}, {multi: true}).then(() => {})
+// User.update({email: "saimonsilveira@outlook.com"}, { $unset: { email: 1 }}, {multi: true}).then(() => {})
+User.update({phone: "+14082425732"}, { $unset: { phone: 1 }}, {multi: true}).then(() => {})
+User.update({phone: "null"}, { $unset: { phone: 1 }}, {multi: true}).then(() => {})
+User.update({phone: "undefined"}, { $unset: { phone: 1 }}, {multi: true}).then(() => {})
+User.update({phone: ""}, { $unset: { phone: 1 }}, {multi: true}).then(() => {})
+
+
+// User.count({email: 'dulmage.4@gmail.com', hasValidSessionId: true}).then((count) => {
+//   console.log("\n\n")  
+//   console.log(count)
+//   console.log("\n\n")
+// })
+
+
+// User.ensureIndexes(function (err) {
+//     if (err) return console.log(err);
+// });
+
 
 /// BEGIN AREA TO RUN ONE OFF SHIT
 
-if(process.env.NODE_ENV == 'development') {
-  User.update({email: "null"}, { $unset: { email: 1 }}).then(() => {})
-  User.update({email: "undefined"}, { $unset: { email: 1 }}).then(() => {})
-  User.update({phone: "null"}, { $unset: { phone: 1 }}).then(() => {})
-  User.update({phone: "undefined"}, { $unset: { phone: 1 }}).then(() => {})
+if(false && process.env.NODE_ENV == 'development') {
+  
 
 
   Battle.find({denaBattleId: {$exists: true}}).select("-drops")
