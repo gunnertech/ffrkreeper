@@ -272,7 +272,8 @@ function doSimpleGet(path, options) {
     }, function(err, response, body) {
 			try {
 				 if(err) throw err;
-         return resolve(body);   
+				 var json = JSON.parse(body);
+				 resolve(json); 
         } catch(e) {
           reject({
             message: "invalid session id",
