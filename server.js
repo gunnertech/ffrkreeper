@@ -400,7 +400,7 @@ setInterval(() => {
 
 
 /// BEGIN AREA TO RUN ONE OFF SHIT
-if(process.env.NODE_ENV == 'development') {
+if(process.env.NODE_ENV === 'development') {
   // User.ensureIndexes(function (err) {
 //     if (err) return console.log(err);
 // });
