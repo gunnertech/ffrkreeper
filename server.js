@@ -264,17 +264,12 @@ io.on('connection', (socket) => {
       query.push({'phone': data.phone});
     }
 
-    console.log(query);
-
     if(!query.length) {
       console.log("end it")
       fn({name: 'Session Error', message: 'That session Id is not valid'});
     } else {
       User.findOne().or(query).select('-dena.json -drops')
         .then((user) => {
-          console.log("\n\n")
-          console.log(user)
-          console.log("\n\n")
           if(user) {
             return Promise.resolve(user);
           } else {
@@ -311,6 +306,7 @@ io.on('connection', (socket) => {
           fn(user);
         })
         .catch((err) => {
+					console.log(err)
           fn({name: 'Session Error', message: 'That session Id is not valid'});
         });
     }
