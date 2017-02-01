@@ -193,16 +193,17 @@ function getUserSessionKey(sessionId, csrfToken) {
     var post_data = JSON.stringify({});
     request.post({
 			  url: 'http://ffrk.denagames.com/dff/update_user_session',
-		   	proxy: process.env.PROXY_URL,
+				proxy: process.env.PROXY_URL,
+				json: true,
         headers: {
           'Content-Type': 'application/json',
           'X-CSRF-Token': csrfToken,
           'Cookie': 'http_session_sid='+sessionId
         }
-    }, post_data, function(err, res, data) {
+    }, post_data, function(err, response, body) {
 			try {
-				var json = JSON.parse(data);
-        resolve(json.user_session_key);
+				if(err) throw err;		
+        return resolve(body.user_session_key);
 			} catch (e) {
 				reject({
 					message: "invalid session id",
@@ -233,10 +234,11 @@ function doSimplePost(path, json, options) {
     request.post({
 			  url: 'http://ffrk.denagames.com/' + path,
 		   	proxy: process.env.PROXY_URL,
-        headers: headers
-    }, post_data, function(err,data) {
-				try {
-					var json = JSON.parse(data);
+				headers: headers
+    }, post_data, function(err, response, body) {
+			try {
+				  if(err) throw err;
+					var json = JSON.parse(body);
 					resolve(json);
 				} catch(e) {
 					reject({
@@ -266,10 +268,12 @@ function doSimpleGet(path, options) {
     request.get({
 		  	url: 'http://ffrk.denagames.com/' + path,
 		   	proxy: process.env.PROXY_URL,
-        headers: headers
-    }, function(data) {
-        try {
-          var json = JSON.parse(data);   
+				headers: headers,
+    }, function(err, response, body) {
+			try {
+				 if(err) throw err;
+				 var json = JSON.parse(body);
+				 resolve(json); 
         } catch(e) {
           reject({
             message: "invalid session id",

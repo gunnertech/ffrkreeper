@@ -574,6 +574,17 @@ schema.methods.getDropMessage = function() {
 			self.inBattle = false;
 			self.hasValidSessionId = false;
 			return self.save().then(() => {
+
+				if(err.name === 'MongoError') {  //need this so we don't alert real errors to the client
+					return {
+						error: true,
+						message: errmsg,
+						name: err.name,
+						notificationMessage: errmsg,
+						notify: false
+					};
+				}
+
 				return {
 					error: true,
 					message: "Session Id Expired: Your session id no longer valid! Please reset it.",
