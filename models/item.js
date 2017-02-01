@@ -21,7 +21,7 @@ schema.virtual('imgUrl').get(function () {
 
   // return `/dff/static/lang/ww/compile/en/image/${formatted_type}/${this.dena.id}/${this.dena.id}_112.png`;
 
-  return `https://ffrk.static.denagames.com${this.dena.image_path}`;
+  return this.dena.image_path.match(/ffrk\.static/) ? this.dena.image_path : `https://ffrk.static.denagames.com${this.dena.image_path}`;
 });
 
 schema.statics.findOneOrCreate = (conditions, data) => {
