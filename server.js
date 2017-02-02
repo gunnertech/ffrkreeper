@@ -39,6 +39,7 @@ const Dugeon = require('./models/dungeon.js');
 const Item = require('./models/item.js');
 const Image = require('./models/image.js');
 const AudioFile = require('./models/audioFile.js');
+const Run = require('./models/run.js');
 
 
 const server = express()
@@ -400,7 +401,7 @@ setInterval(() => {
 
 
 /// BEGIN AREA TO RUN ONE OFF SHIT
-if(process.env.NODE_ENV === 'development') {
+if(false && process.env.NODE_ENV === 'development') {
   // User.ensureIndexes(function (err) {
 //     if (err) return console.log(err);
 // });

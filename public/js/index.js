@@ -75,7 +75,7 @@
         }
         html += '</h5>';
         if(drop.dropRate) {
-          html += '<p>Drop Rate: ' + Math.round(drop.dropRate.rate * 100) + '% - ' + (drop.dropRate.hits) + ' out of ' + (drop.dropRate.total) + ' drops for <a href="/battles/'+drop.battle+'">this battle</a> have been for this item.</p>';
+          html += '<p>This item has dropped in <a href="/battles/'+drop.battle+'">' + drop.dropRate.hits + ' out of ' + drop.dropRate.total + ' runs (' + Math.round(drop.dropRate.rate * 100) + '%)</a>.</p>';
         }
         html += '</div>';
         html += '</li>';

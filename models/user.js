@@ -6,7 +6,6 @@ try {
   // ignore it
 }
 
-//const util = require('util');
 const twilio = require('twilio')(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
 const mongoose = require('mongoose');
 const Promise = require('bluebird');
@@ -15,16 +14,12 @@ const request = require('request');
 const hash = require('json-hash');
 const util = require('util');
 
-const CURRENT_PATH = '/dff/event/challenge/94/get_battle_init_data';
-//const CURRENT_PATH = '/dff/event/suppress/2025/single/get_battle_init_data';
-
 const Drop = require('./drop.js');
 const Battle = require('./battle.js');
 const Enemy = require('./enemy.js');
 const World = require('./world.js');
 const Series = require('./series.js');
 
-const getDropInfo = require('../drops.js');
 const utils = require('../utils.js');
 const dena = require('../dena.js');
 
@@ -529,6 +524,9 @@ schema.methods.getDropMessage = function() {
               });
             });
 					})
+          .then((drops) => {
+            return battle.recordRun(self, drops, lodash.uniq(lodash.map(drops, 'item')))
+          })
 				}).return(battle);
 			})
 			.then((battle) => {
@@ -571,19 +569,20 @@ schema.methods.getDropMessage = function() {
 			});
 		})
 		.catch(function(err) {
+      if(err.name === 'MongoError' || err.name == 'TypeError') {  //need this so we don't alert real errors to the client
+        return {
+          error: true,
+          message: errmsg,
+          name: err.name,
+          notificationMessage: errmsg,
+          notify: false
+        };
+      }
+
 			self.inBattle = false;
 			self.hasValidSessionId = false;
-			return self.save().then(() => {
 
-				if(err.name === 'MongoError') {  //need this so we don't alert real errors to the client
-					return {
-						error: true,
-						message: errmsg,
-						name: err.name,
-						notificationMessage: errmsg,
-						notify: false
-					};
-				}
+			return self.save().then(() => {
 
 				return {
 					error: true,
