@@ -229,24 +229,29 @@ function doSimplePost(path, json, options) {
   }
 
   return new Promise(function(resolve, reject) {
+
     var post_data = JSON.stringify(json);
 
-    request.post({
-			  url: 'http://ffrk.denagames.com/' + path,
-		   	proxy: process.env.PROXY_URL,
-				headers: headers
-    }, post_data, function(err, response, body) {
-			try {
-				  if(err) throw err;
-					var json = JSON.parse(body);
-					resolve(json);
-				} catch(e) {
-					reject({
-            message: "invalid session id",
-            name: "Authorization Error"
-          });
-				}
+    var req = require('http').request({
+        host: 'ffrk.denagames.com',
+        port: 80,
+        path: path,
+        method: 'POST',
+        headers: headers
+    }, function(res) {
+      var data = "";
+
+      res.on('data', (chunk) => { data += chunk; });
+
+      res.on("end", () => {
+        var json = JSON.parse(data); 
+
+        resolve(json);
+      });
     });
+
+    req.write(post_data);
+    req.end();
   });
 }
 

@@ -266,7 +266,6 @@ io.on('connection', (socket) => {
     }
 
     if(!query.length) {
-      console.log("end it")
       fn({name: 'Session Error', message: 'That session Id is not valid'});
     } else {
       User.findOne().or(query).select('-dena.json -drops')
@@ -307,7 +306,6 @@ io.on('connection', (socket) => {
           fn(user);
         })
         .catch((err) => {
-					console.log(err)
           fn({name: 'Session Error', message: 'That session Id is not valid'});
         });
     }
@@ -401,16 +399,16 @@ setInterval(() => {
 
 
 /// BEGIN AREA TO RUN ONE OFF SHIT
-if(false && process.env.NODE_ENV === 'development') {
+if(process.env.NODE_ENV === 'development') {
+  
   // User.ensureIndexes(function (err) {
-//     if (err) return console.log(err);
-// });
+  //   if (err) return console.log(err);
+  // });
 
   User.update({email: "null"}, { $unset: { email: 1 }}, {multi: true}).then(() => {})
   User.update({email: null}, { $unset: { email: 1 }}, {multi: true}).then(() => {})
   User.update({email: "undefined"}, { $unset: { email: 1 }}, {multi: true}).then(() => {})
   User.update({email: ""}, { $unset: { email: 1 }}, {multi: true}).then(() => {})
-  // User.update({email: "saimonsilveira@outlook.com"}, { $unset: { email: 1 }}, {multi: true}).then(() => {})
   User.update({phone: "+14082425732"}, { $unset: { phone: 1 }}, {multi: true}).then(() => {})
   User.update({phone: "null"}, { $unset: { phone: 1 }}, {multi: true}).then(() => {})
   User.update({phone: "undefined"}, { $unset: { phone: 1 }}, {multi: true}).then(() => {})
@@ -458,49 +456,6 @@ if(false && process.env.NODE_ENV === 'development') {
       user.drops = undefined;
 
       return user.save();
-    })
-  })
-
-
-
-
-  var missingItems = [];
-  mongoose.model('Drop').find({rarity: {$gt: 2}, denaItemId: /4000/, battle: {$exists: true }}).limit(100)
-  .then((drops) => {
-    console.log(`Drops count: ${drops.length}`)
-    const Drop = mongoose.model('Drop');
-    const Item = mongoose.model('Item');
-    return Promise.each(drops, (drop) => {
-      return mongoose.model('Item').findOne({'dena.id': drop.denaItemId})
-      .then((item) => {
-        if(item) {
-          drop.item = item;
-          drop.denaItemId = undefined;
-          return drop.save(); 
-        } else {
-          item = new Item();
-          item.dena = {
-            id: drop.denaItemId,
-            name: Drop.getName(drop.denaItemId),
-            image_path: Drop.getImgUrl(drop.denaItemId).replace(/https?:\/\/(^\/)+/,"")
-          }
-
-          item.dena.type_name = item.dena.image_path.match(/common_item/) ? "COMMON" 
-            : item.dena.image_path.match(/ability_material/) ? "ABILITY MATERIAL" 
-            : item.dena.image_path.match(/equipment_sp_material/) ? "EQUIPMENT_SP_MATERIAL"
-            : "";
-
-          missingItems.push(drop.denaItemId);
-          return item.save().then((item) => {
-            drop.item = item;
-            return drop.save();
-          });
-        }
-      })
-    })
-    .then(() => {
-      console.log("Done with drops")
-      console.log(lodash.uniq(missingItems));
     })
   });
 
