@@ -498,11 +498,11 @@ schema.methods.getDropMessage = function() {
         })
       })
       .then(function(battle) {
-				// if(self.inBattle) {
-				// 	//// DON'T RECORD THE SAME DROPS AGAIN
-				// 	/// But we still need to keep going to build the drop rate
-				// 	return Promise.resolve(battle);
-				// }
+				if(self.inBattle) {
+					//// DON'T RECORD THE SAME DROPS AGAIN
+					/// But we still need to keep going to build the drop rate
+					return Promise.resolve(battle);
+				}
 
 				self.inBattle = true;
 
