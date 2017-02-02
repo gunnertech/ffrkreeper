@@ -29,14 +29,15 @@ schema.post('save', function (run) {
         itemIds
       ])
       .spread((battle, runCount, itemIds) => {
-        battle.dropRate = battle.dropRate || {};
+        battle.dropRates = battle.dropRates || {};
         
-        itemIds = lodash.uniq(itemIds.concat(Object.keys(battle.dropRate)));
+        itemIds = lodash.uniq(itemIds.concat(Object.keys(battle.dropRates)));
 
         return Promise.each(itemIds, (item) => {
-          return mongoose.model('Run').count({items: item})
+
+          return mongoose.model('Run').count({battle: self.battle, items: item})
           .then((hitCount) => {
-            battle.dropRate[item] = {
+            battle.dropRates[item] = {
               hits: (hitCount||0),
               total: runCount,
               rate: ((hitCount * 1.0) / (runCount * 1.0) || 0.0)
@@ -44,7 +45,7 @@ schema.post('save', function (run) {
           });
         }).return(battle)
         .then((battle) => {
-          return mongoose.model('Battle').update({_id: battle._id},{dropRate: battle.dropRate});
+          return mongoose.model('Battle').update({_id: battle._id},{dropRates: battle.dropRates});
         });
       });
     });
