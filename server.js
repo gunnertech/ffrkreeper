@@ -58,7 +58,7 @@ const server = express()
 	.engine('hbs', engine.__express)
 	.set('view engine', 'hbs')
   .get('/drop-rates', function(req, res) {
-    DropRate.find().populate(['battle', 'item'])
+    DropRate.find().populate(['battle', 'item']).sort('battle')
     .then((dropRates) => {
       return res.render('drop-rates/index', { title: 'Drop Rates', dropRates: dropRates });
     });
@@ -381,7 +381,8 @@ let buildBattles = () => {
   ])
   .spread((dungeons, user) => {
     return Promise.each(dungeons, (dungeon) => {
-      if(!dungeon.battles || dungeon.battles.length == 0) {
+      /// if the dungeon doesn't have any battles or has any battles without stamina, build the data for it.
+      if(!dungeon.battles || dungeon.battles.length == 0 || lodash.findIndex(dungeon.battles, (battle) => !battle.stamina) != -1 ) {
         console.log(`Got one: ${dungeon._id}`);
         return user.buildBattlesFromDungeon(dungeon.dena.id).return(dungeon);
       } else {
