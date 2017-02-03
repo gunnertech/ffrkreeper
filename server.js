@@ -239,7 +239,6 @@ const server = express()
 
 const io = socketIO(server);
 
-// automation.begin();
 
 io.on('connection', (socket) => {
   console.log('Client connected');
@@ -248,7 +247,6 @@ io.on('connection', (socket) => {
     console.log('Client disconnected');
   });
 
-  ///FAUX routing
   socket.on('/signin', (data, fn) => { ////ALLOW THEM TO SIGN IN WITH EITHER A SESSIONID, PHONE OR EMAIL
     var query = [];
 
@@ -266,7 +264,7 @@ io.on('connection', (socket) => {
     }
 
     if(!query.length) {
-      fn({name: 'Session Error', message: 'That session Id is not valid'});
+      fn({name: 'SessionError', message: 'That session Id is not valid'});
     } else {
       User.findOne().or(query).select('-dena.json -drops')
         .then((user) => {
@@ -277,7 +275,7 @@ io.on('connection', (socket) => {
               return User.create({ 'dena.sessionId': data.sessionId });
             }
 
-            throw new Error('Whoops!')
+            return Promise.reject({name: "SessionError", message: "You must provide a session id"})
           }
         })
         .then((user) => {
@@ -294,6 +292,7 @@ io.on('connection', (socket) => {
         })
         .then((user) => {
           if(!user.hasValidSessionId) { return Promise.resolve(user); }
+          //// TODO: implement elsewhere
           //// IF THEY HAVEN'T BEEN UPDATED IN A WHILE, LET'S UPDATE THEM
           if(!user.dena.updatedAt || moment(user.dena.updatedAt).add(5, 'hours').toDate() < moment(new Date()).toDate()) {
             return user.updateData().return(user);
@@ -303,10 +302,10 @@ io.on('connection', (socket) => {
         })
         .then((user) => {
           socket.join(`/${user.dena.sessionId}`);
-          fn(user);
+          return fn(user);
         })
         .catch((err) => {
-          fn({name: 'Session Error', message: 'That session Id is not valid'});
+          return fn({name: 'SessionError', message: 'That session Id is not valid'});
         });
     }
   });
@@ -344,75 +343,45 @@ io.on('connection', (socket) => {
     }
   });
 
-  socket.on('/drops', (sessionId, fn) => {
-    User.findOne({'dena.sessionId': sessionId}).select('-dena.json -drops')
-    .then((user) => {
-      return [user, user.getDropMessage()];
-    })
-    .spread((user, message) => {
-      // io.sockets.in(`/${user.dena.sessionId}`).emit(`/drops/${user.dena.sessionId}`, message); /// Send it to the browser
-      fn(message);
-
-      return [user, message];
-    })
-    .spread((user, message) => {
-      var hashedMessage = message.notificationMessage;
-      if(message.notify && hashedMessage != user.lastMessage) {
-        user.lastMessage = hashedMessage;
-        
-        return user.save()
-        .then(() => {
-          var promises = [];
-
-          if(user.email && message.notificationMessage) {
-            promises.push(user.sendEmail(message.notificationMessage));
-          }
-          if(user.phone && message.notificationMessage) {
-            promises.push(user.sendSms(message.notificationMessage));
-          }
-
-          return Promise.all(promises).return(user);
-        });
-      } else {
-        if(user.lastMessage != hashedMessage) {
-          user.lastMessage = hashedMessage;
-          return user.save().return(user);
-        }
-        return Promise.resolve(user);
-      }   
-        
-    });
-
-  });
-
 });
 
-setInterval(() => {
-  utils.runInBg(Event.generateEvents);
-  User.findOne({hasValidSessionId: true, 'dena.name': 'SaltyNut' }).then((user) => {
-    utils.runInBg(user.buildWorlds);  
-    return user;
-  });
-}, 3600*3600*2)
+let pushDrops = () => {
+  return User.find({hasValidSessionId: true}).select('-drops -dena.json').limit(1)
+  .then((users) => {
+    return Promise.map(users, (user) => {
+      return user.pullDrops((process.env.DENA_CURRENT_EVENT_ID||96))
+      .then((drops) => {
+        return Promise.all([
+          user.pushDropsToSocket(drops, io),
+          user.pushDropsToPhone(drops),
+          user.pushDropsToEmail(drops)
+        ])
+      })
+      .catch((err) => {
+        return user.handleDropError(err, io);
+      })
+    })
+  })
+}
 
-
+setInterval(pushDrops, 6000)
 
 
 /// BEGIN AREA TO RUN ONE OFF SHIT
-if(process.env.NODE_ENV === 'development') {
+/// TODO: Refactor
+if(false && process.env.NODE_ENV === 'development') {
+  setInterval(() => {
+    utils.runInBg(Event.generateEvents);
+    User.findOne({hasValidSessionId: true, 'dena.name': 'SaltyNut' }).then((user) => {
+      utils.runInBg(user.buildWorlds);  
+      return user;
+    });
+  }, 3600*3600*2)
+  // require('./models/dropRate.js').calculate().then(console.log)
   
   // User.ensureIndexes(function (err) {
   //   if (err) return console.log(err);
   // });
-
-  User.update({email: "null"}, { $unset: { email: 1 }}, {multi: true}).then(() => {})
-  User.update({email: null}, { $unset: { email: 1 }}, {multi: true}).then(() => {})
-  User.update({email: "undefined"}, { $unset: { email: 1 }}, {multi: true}).then(() => {})
-  User.update({email: ""}, { $unset: { email: 1 }}, {multi: true}).then(() => {})
-  User.update({phone: "+14082425732"}, { $unset: { phone: 1 }}, {multi: true}).then(() => {})
-  User.update({phone: "null"}, { $unset: { phone: 1 }}, {multi: true}).then(() => {})
-  User.update({phone: "undefined"}, { $unset: { phone: 1 }}, {multi: true}).then(() => {})
-  User.update({phone: ""}, { $unset: { phone: 1 }}, {multi: true}).then(() => {})
 
   User.findOne({hasValidSessionId: true, 'dena.name': 'SaltyNut' }).then((user) => {
     return mongoose.model('Dungeon').find()
@@ -429,35 +398,5 @@ if(process.env.NODE_ENV === 'development') {
   })
   .then(console.log)
   .catch(console.log)
-
-
-  Battle.find({denaBattleId: {$exists: true}}).select("-drops")
-  .then((battles) => {
-    console.log(`Battles count: ${battles.length}`)
-    return Promise.each(battles, (battle) => {
-      battle.denaBattleId = undefined;
-      battle.denaDungeonId = undefined;
-      battle.eventId = undefined;
-      battle.eventType = undefined;
-      battle.realm = undefined;
-      battle.dungeonName = undefined;
-      battle.battleName = undefined;
-      battle.stamina = undefined;
-      
-      return battle.save();
-    })
-  })
-
-  mongoose.model('User').find({'dena.json': {$exists: true }})
-  .then((users) => {
-    console.log(`User count: ${users.length}`)
-    return Promise.each(users, (user) => {
-      user.dena.json = undefined;
-      user.drops = undefined;
-
-      return user.save();
-    })
-  });
-
 
 }

@@ -28,6 +28,7 @@ const schema = new mongoose.Schema({
   phone: { type: String, index: { unique: true, sparse: true } },
   dena: {
     sessionId: { type: String, index: { unique: true, sparse: true } },
+    user_session: { type: String, index: { unique: true, sparse: true } }, //TODO: Implement
     accessToken: String,
     name: String,
     id: { type: String, index: true },
@@ -37,9 +38,7 @@ const schema = new mongoose.Schema({
     profile_message: String,
     mnd: Number,
     matk: Number,
-    atk: Number,
-
-    json: mongoose.Schema.Types.Mixed
+    atk: Number
   },
   hasValidSessionId: {
     type: Boolean,
@@ -57,7 +56,7 @@ const schema = new mongoose.Schema({
   },
   lastMessage: String,
   buddy: { type: mongoose.Schema.Types.ObjectId, ref: 'Buddy' },
-  drops: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Drop' }]
+  currentRun: { type: mongoose.Schema.Types.ObjectId, ref: 'Run' }
 });
 
 schema.pre('save', function(next) {
@@ -100,29 +99,6 @@ schema.statics.findForIndex = () => {
 		});
 }
 
-schema.statics.buildDrops = (json, battle) => {
-  var drops = [];
-
-  json.battle.rounds.forEach(function(round) {
-    round.drop_item_list.forEach(function(drop) {
-      drops.push(drop);
-    });
-
-    round.enemy.forEach(function(enemy) {
-      enemy.children.forEach(function(child) {
-        child.drop_item_list.forEach(function(drop) {
-          drops.push(drop);
-        });
-        Promise.each(child.params, (param) => {
-          return mongoose.model('Enemy').findOneOrCreate({battle: battle._id, 'dena.id': child.enemy_id, 'dena.no': param.no, 'dena.name': param.disp_name}).then((enemy) => null).catch(() => console.log(err))   
-        })
-      });
-    });
-  });
-
-  return drops;
-}
-
 schema.statics.normalizePhone = (phone) => {
   if(phone) {
     ///Strip out any non numeric characters
@@ -154,6 +130,7 @@ schema.statics.findValidWithEmail = () => {
   return mongoose.model('User').find(query).select('-dena.json -drops')
 }
 
+//TODO: implement
 schema.methods.populateWorlds = function(worlds) {
   return Promise.each(worlds, (world) => {
     return self.getWorldDungeonData(world.dena.id)
@@ -165,6 +142,7 @@ schema.methods.populateWorlds = function(worlds) {
   });
 }
 
+//TODO: implement
 schema.methods.buildWorlds = function() {
   const self = this;
   const World = mongoose.model('World');
@@ -263,6 +241,7 @@ schema.methods.cacheAudioFiles = function(audioFiles) {
 		});
 }
 
+//TODO: Implement
 schema.methods.generateUsersFromRelationships = function() {
   var self = this;
 
@@ -294,10 +273,7 @@ schema.methods.getWorldDungeonData = function(worldId) {
 }
 
 schema.methods.getBattleInitDataForEventId = function(eventId) {
-  return dena.api.authData({ sessionId: this.dena.sessionId })
-  .spread((sessionId, browserData, userSessionKey) => {
-    return dena.api.getBattleInitDataForEventId(eventId, { sessionId: sessionId });
-  });
+  return dena.api.getBattleInitDataForEventId(eventId, { sessionId: this.dena.sessionId });
 }
 
 schema.methods.drawARelic = function() {
@@ -347,6 +323,8 @@ schema.methods.buildBattlesFromDungeon = function(dungeonId) {
   })
 }
 
+
+//TODO: REFACTOR
 schema.methods.updateData = function() {
   var self = this;
 
@@ -452,147 +430,236 @@ schema.methods.sendSms = function(message) {
   });
 };
 
-schema.methods.getDropMessage = function() {
+schema.methods.handleDropError = function(err, io) {
   let self = this;
 
-  var message = {
-    notificationMessage: "",
-    notify: true
-  };
+  if(err.name === "OutOfBattleError") {
+    return mongoose.model('User').update({_id: this._id}, {currentRun: null})
+    .then(() => {
+      return Promise.all([
+        self.pushErrorToSocket(err, io)
+      ])
+    }).return(self)
 
-  return dena.api.getBattleInitDataForEventId((process.env.DENA_CURRENT_EVENT_ID || 95), { sessionId: self.dena.sessionId })
-		.then(function(json) {
-			if(!json.success) {
-				self.inBattle = false;
-				return self.save().then(() => {
-					return {
-						error: true,
-						message: "Not in Battle: Go join a battle to see your drops!",
-						notificationMessage: "Not in Battle: Go join a battle to see your drops!",
-						name: "Out of Battle Error",
-						notify: false
-					};
-				});
-			}
+  } else if(err.name === 'MongoError' || err.name == 'TypeError') {  //need this so we don't alert real errors to the client
+    return self;
 
-			// let images = dena.api.extraFilesFromBlob('png', JSON.stringify(json));
-			// let audioFiles = dena.api.extraFilesFromBlob('m4a', JSON.stringify(json));
+  } else {
+    console.log(err);
 
-			// self.cacheAudioFiles(audioFiles);
-			// self.cacheImages(images);
+    return mongoose.model('User').update({_id: this._id}, {currentRun: null, hasValidSessionId: false})
+    .then(() => {
+      let err = {
+        message: "Session Id Expired: Your session id no longer valid! Please sign out and sign back in with a new session id.",
+        name: "SessionError"
+      };
 
-			var drops = [];
-
-			return Battle.findOneOrCreate({ 'dena.id': json.battle.battle_id })
-			.then(function(battle) {
-        drops = mongoose.model('User').buildDrops(json, battle);
-
-        if(battle.dungeon) {
-          return Promise.resolve(battle);
-        }
-
-        return mongoose.model('Dungeon').findOne({'dena.id': json.battle.dungeon.dungeon_id})
-        .then((dungeon) => {
-          battle.dungeon = dungeon;
-          return battle.save();
-        })
-      })
-      .then(function(battle) {
-				if(self.inBattle) {
-					//// DON'T RECORD THE SAME DROPS AGAIN
-					/// But we still need to keep going to build the drop rate
-					return Promise.resolve(battle);
-				}
-
-				self.inBattle = true;
-
-				return self.save()
-				.then(() => {
-					return Promise.map(drops, (d) => { //IF IT HAS AN item_id, it's woth saving to the db
-						if(!d.item_id) {
-							return Promise.resolve(null);
-						}
-
-            return mongoose.model('Item').findOneOrCreate({'dena.id': d.item_id})
-            .then((item) => {
-              return  Drop.create({
-                battle: battle._id,
-                user: self._id,
-                qty: d.num,
-                rarity: d.rarity,
-                item: item
-              });
-            });
-					})
-          .then((drops) => {
-            return battle.recordRun(self, drops, lodash.uniq(lodash.map(drops, 'item')))
-          })
-				}).return(battle);
-			})
-			.then((battle) => {
-				/// the battle will now have the drops, let's get the drop rate;
-				return Battle.findOne({ _id: battle._id }).select('-drops');
-			})
-			.then((battle) => {
-        return Promise.map(lodash.filter(drops, (drop) => !!drop.item_id), (d) => {
-          return mongoose.model('Item').findOne({'dena.id': d.item_id})
-          .then((item) => {
-            d.item = item;
-            return d;
-          })
-        })
-        .then((drops) => {
-          drops.forEach((d) => {
-            if(battle.dropRates && battle.dropRates[d.item._id]) {
-              d.dropRate = battle.dropRates[d.item._id];
-              d.battle = battle._id;
-            }
-          });
-
-          message.drops = drops;
-
-          const userAlertLevel = self.alertLevel || 1000; /// If not set, default to a high number that rarity won't reach
-
-          message.drops.forEach((drop) => {
-            if(parseInt(drop.rarity || 0) >= userAlertLevel) {
-              message.notificationMessage = ` ${message.notificationMessage}${drop.item.dena.name} x${drop.num}`;
-            }
-          });
-
-          if(message.notificationMessage) {
-            message.notificationMessage = `Your Drops: ${message.notificationMessage}`;
-          }
-
-          return message;
-
-        })
-			});
-		})
-		.catch(function(err) {
-      if(err.name === 'MongoError' || err.name == 'TypeError') {  //need this so we don't alert real errors to the client
-        return {
-          error: true,
-          message: errmsg,
-          name: err.name,
-          notificationMessage: errmsg,
-          notify: false
-        };
-      }
-
-			self.inBattle = false;
-			self.hasValidSessionId = false;
-
-			return self.save().then(() => {
-
-				return {
-					error: true,
-					message: "Session Id Expired: Your session id no longer valid! Please reset it.",
-					name: "Session Error",
-					notificationMessage: "Session Id Expired: Your session id no longer valid! Please reset it.",
-					notify: true
-				};
-			});
-		});
+      return Promise.all([
+        self.pushErrorToSocket(err, io),
+        self.pushErrorToEmail(err),
+        self.pushErrorToPhone(err)
+      ])
+    }).return(self)
+    
+  }
 }
+
+schema.methods.pushDropsToSocket = function(drops, io) {
+  let self = this;
+  
+  for(var i in io.sockets.adapter.rooms) {
+    let testRoom = `/${i}`;
+    if(i === `/${self.dena.sessionId}`) {
+      io.sockets.in(`/${self.dena.sessionId}`).emit(`/battle_message`, {drops: drops});
+      return self;
+    }
+  }
+
+  return self;
+}
+
+schema.methods.pushDropsToPhone = function(drops) {
+  let self = this;
+  
+  if(!self.phone) {
+    return self;
+  }
+
+  let userAlertLevel = self.alertLevel || 1000;
+  var message = "";
+
+  drops.forEach((drop) => {
+    if(parseInt(drop.rarity || 0) >= userAlertLevel) {
+      message = ` ${message}${drop.item.dena.name} x${drop.qty}`;
+    }
+  });
+
+  if(!message) {
+    return self;
+  }
+
+  message = `Your Drops: ${message.notificationMessage}`;
+  
+  return self.sendSms(message).return(self);
+}
+
+schema.methods.pushDropsToEmail = function(drops) {
+  let self = this;
+  
+  if(!self.email) {
+    return self;
+  }
+
+  let userAlertLevel = self.alertLevel || 1000;
+  var message = "";
+
+  drops.forEach((drop) => {
+    if(parseInt(drop.rarity || 0) >= userAlertLevel) {
+      message = ` ${message}${drop.item.dena.name} x${drop.qty}`;
+    }
+  });
+
+  if(!message) {
+    return self;
+  }
+
+  message = `Your Drops: ${message.notificationMessage}`;
+  
+  return self.sendEmail(message).return(self);
+}
+
+schema.methods.pushErrorToSocket = function(err, io) {
+  let self = this;
+    
+  for(var i in io.sockets.adapter.rooms) {
+    let testRoom = `/${i}`;
+    if(i === `/${self.dena.sessionId}`) {
+      io.sockets.in(`/${self.dena.sessionId}`).emit(`/battle_message`, err);
+      return self;
+    }
+  }
+
+  return self;
+}
+
+schema.methods.pushErrorToPhone = function(err) {
+  let self = this;
+
+  if(!self.phone) {
+    return self;
+  }
+
+  return self.sendSms(err.message).return(self)
+}
+
+schema.methods.pushErrorToEmail = function(err) {
+  let self = this;
+
+  if(!self.email) {
+    return self;
+  }
+
+  return self.sendEmail(err.message).return(self)
+}
+
+schema.methods.startNewRun = function(json) {
+  let self = this;
+  let Run = mongoose.model("Run");
+  let run = new Run();
+
+  run.user = self;
+  run.drops = [];
+
+  return Battle.findOneOrCreate({ 'dena.id': json.battle.battle_id }) 
+  .then(function(battle) {
+    if(battle.dungeon) {
+      return Promise.resolve(battle);
+    }
+
+    return mongoose.model('Dungeon').findOne({'dena.id': json.battle.dungeon.dungeon_id})
+    .then((dungeon) => {
+      battle.dungeon = dungeon;
+      return battle.save();
+    })
+  })
+  .then(function(battle) { 
+    run.battle = battle;
+
+    var drops = [];
+    var enemies = [];
+
+    json.battle.rounds.forEach((round) => {
+      round.drop_item_list.forEach((drop) => {
+        drops.push(drop);
+      });
+
+      round.enemy.forEach((enemy) => {
+        enemy.children.forEach((child) => {
+          child.drop_item_list.forEach((drop) => {
+            drops.push(drop);
+          });
+
+          child.params.forEach((param) => {
+            param.enemy_id = child.enemy_id;
+            enemies.push(param);
+          });
+        });
+      });
+    });
+
+    return [Promise.resolve(lodash.filter(drops, (d) => !!d.item_id)), Promise.resolve(enemies)];
+  })
+  .spread((dropData, enemyData) => {
+    return Promise.all([
+      Promise.map(enemyData, (e) => {
+        return Enemy.findOneOrCreate({battle: run.battle._id, 'dena.id': e.enemy_id, 'dena.no': e.no, 'dena.name': e.disp_name})
+      }),
+      Promise.map(dropData, (d) => { 
+        return mongoose.model('Item').findOneOrCreate({'dena.id': d.item_id})
+        .then((item) => {
+          return  Drop.create({
+            battle: run.battle._id,
+            user: self._id,
+            qty: d.num,
+            rarity: d.rarity,
+            item: item,
+            run: run
+          })
+          .then((drop) => {
+            run.drops.push(drop);
+          })
+        });
+      })
+    ])
+  })
+  .then(() => {
+    return run.save()
+  })
+}
+
+schema.methods.pullDrops = function(eventId) {
+  let self = this;
+  let User = mongoose.model("User");
+
+  return self.getBattleInitDataForEventId(eventId)
+  .then((json) => {
+    if(!json.success) {
+      return Promise.reject({
+        name: "OutOfBattleError",
+        message: "Not in Battle: Go join a battle to see your drops!"
+      });
+    }
+
+    if(self.currentRun) {
+      return Promise.resolve(self.currentRun);
+    }
+
+    return self.startNewRun(json);
+  })
+  .then((run) => {
+    return mongoose.model('Drop').find({run: run}).populate('item').populate({path: 'battle', select: '-drops'});
+  })
+}
+
 
 module.exports = mongoose.model('User', schema);

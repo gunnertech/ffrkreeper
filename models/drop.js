@@ -20,24 +20,17 @@ schema.set('toObject', { getters: true, virtuals: true });
 
 schema.pre('save', function (next) {
   mongoose.model('Battle')
-    .update({ _id: this.battle }, { $addToSet: { drops: this._id } })
-    .then(((battles) => { next(); return battles; }))
-    .error(((err) => next(err)));
+  .update({ _id: this.battle }, { $addToSet: { drops: this._id } })
+  .then(((battles) => { next(); return battles; }))
+  .error(((err) => next(err)));
 });
 
-// schema.post('save', function (drop) {
-//   mongoose.model('Drop').find({ battle: drop.battle })
-//   .then(function (drops) {
-//     return [drops, mongoose.model('Battle').findById(drop.battle).select('-drops')]
-//   })
-//   .spread(function (drops, battle) {
-//     if(battle) {
-//       return battle.updateDropRates();
-//     }
-
-//     return null;
-//   });
-// });
+schema.pre('save', function (next) {
+  mongoose.model('Run')
+  .update({ _id: (this.run._id || this.run) }, { $addToSet: { drops: this._id } })
+  .then(((runs) => next() ))
+  .error(((err) => next(err) ));
+});
 
 
 

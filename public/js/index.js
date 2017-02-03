@@ -27,22 +27,6 @@
     createCookie(name, "", -1);
   }
 
-  function getDropMessageFor(user) {
-    $(".drop-loading-wrapper").show();
-
-    socket.emit('/drops', user.dena.sessionId, function(message) {
-      $(".drop-loading-wrapper").hide();
-      if(message.name == 'Session Error') {
-        alert(message.name + ": " + message.message);
-        return signout();
-      }
-
-      console.log(message);
-
-      $('#attach-point').prepend(renderDrops(message));
-      setTimeout(function(){ getDropMessageFor(user) }, LOOP_FREQUENCY)
-    });
-  }
 
   var messages = [];
   function renderDrops(message) {
@@ -69,13 +53,13 @@
         html += '<img class="d-flex mr-3" src="' + drop.item.imgUrl + '" alt="' + drop.item.dena.name + '">';
         html += '<div class="media-body">';
         html += '<h5 class="mt-0">';
-        html += (drop.item.dena.name + ' x' + drop.num);
+        html += (drop.item.dena.name + ' x' + drop.qty);
         if(drop.round) {
           html += ' - Round ' + drop.round;
         }
         html += '</h5>';
-        if(drop.dropRate) {
-          html += '<p>This item has dropped in <a href="/battles/'+drop.battle+'">' + drop.dropRate.hits + ' out of ' + drop.dropRate.total + ' runs (' + Math.round(drop.dropRate.rate * 100) + '%)</a>.</p>';
+        if(drop.battle.dropRates) {
+          html += '<p>This item has dropped in <a href="/battles/'+drop.battle_id+'">' + drop.battle.dropRates[drop.item._id].hits + ' out of ' + drop.battle.dropRates[drop.item._id].total + ' runs (' + Math.round(drop.battle.dropRates[drop.item._id].rate * 100) + '%)</a>.</p>';
         }
         html += '</div>';
         html += '</li>';
@@ -103,7 +87,7 @@
       alertLevel: alertLevel
     }, function(user) {
       $(".signin-loading-wrapper").hide();
-      if(user.name == 'Session Error') {
+      if(user.name == 'SessionError') {
         alert(user.name + ": " + user.message);
         return signout();
       }
@@ -117,11 +101,10 @@
       $("#drops").show();
       $("#signout-form").show();
 
-      // socket.on('/drops/' + user.dena.sessionId, function(message) {
-      //   $('#attach-point').prepend(renderDrops(message));
-      // });
+      socket.on('/battle_message', function(message) {
+        $('#attach-point').prepend(renderDrops(message));
+      });
       
-      getDropMessageFor(user);
     });
   }
 

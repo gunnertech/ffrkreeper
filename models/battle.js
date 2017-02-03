@@ -11,7 +11,6 @@ const schema = new mongoose.Schema({
     stamina: { type: Number }
   },
   dropRates: mongoose.Schema.Types.Mixed,
-  runCount: { type: Number, default: 0 },
   
   drops: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Drop' }],
   enemies: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Enemy' }],

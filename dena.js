@@ -87,7 +87,7 @@ function getBrowserData(sessionId) {
           'Cookie': 'http_session_sid='+sessionId
         }
     }, function(err, data, dataAsStr) {
-			var matchData = dataAsStr.match(/FFEnv\.csrfToken="([^"]+)";/);
+			var matchData = (dataAsStr||"").match(/FFEnv\.csrfToken="([^"]+)";/);
 
         if(!matchData) {
           reject({

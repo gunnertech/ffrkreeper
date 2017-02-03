@@ -12,9 +12,20 @@ const schema = new mongoose.Schema({
 schema.set('toJSON', { getters: true, virtuals: true });
 schema.set('toObject', { getters: true, virtuals: true });
 
+schema.pre('save', function (next) {
+  let self = this;
+  mongoose.model('User').findById(this.user)
+  .then((user) => {
+    user.currentRun = self;
+    return user.save() 
+  })
+  .then((user) => {
+    return next();
+  })
+});
+
 schema.post('save', function (run) {
   var self = run;
-
 
   mongoose.model('Drop').update({ _id: { $in : self.drops } }, { run: self._id })
   .then(() => {
