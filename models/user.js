@@ -434,7 +434,7 @@ schema.methods.handleDropError = function(err, io) {
   let self = this;
 
   if(err.name === "OutOfBattleError") {
-    return mongoose.model('User').update({_id: this._id}, {currentRun: null})
+    return mongoose.model('User').update({_id: this._id}, {currentRun: null, lastMessage: null})
     .then(() => {
       return Promise.all([
         self.pushErrorToSocket(err, io)
@@ -498,9 +498,13 @@ schema.methods.pushDropsToPhone = function(drops) {
     return self;
   }
 
-  message = `Your Drops: ${message.notificationMessage}`;
-  
-  return self.sendSms(message).return(self);
+  message = `Your Drops: ${message}`;
+  if(message == self.lastMessage) {
+    return self;
+  }
+  self.lastMessage = message;
+
+  return self.sendSms(message).return(self.save());
 }
 
 schema.methods.pushDropsToEmail = function(drops) {
@@ -523,9 +527,13 @@ schema.methods.pushDropsToEmail = function(drops) {
     return self;
   }
 
-  message = `Your Drops: ${message.notificationMessage}`;
+  message = `Your Drops: ${message}`;
+  if(message == self.lastMessage) {
+    return self;
+  }
+  self.lastMessage = message;
   
-  return self.sendEmail(message).return(self);
+  return self.sendEmail(message).return(self.save());
 }
 
 schema.methods.pushErrorToSocket = function(err, io) {

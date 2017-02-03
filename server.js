@@ -352,10 +352,9 @@ let pushDrops = () => {
       return user.pullDrops((process.env.DENA_CURRENT_EVENT_ID||96))
       .then((drops) => {
         return Promise.all([
-          user.pushDropsToSocket(drops, io)
-          // ,
-          // user.pushDropsToPhone(drops),
-          // user.pushDropsToEmail(drops)
+          user.pushDropsToSocket(drops, io),
+          user.pushDropsToPhone(drops),
+          user.pushDropsToEmail(drops)
         ])
       })
       .catch((err) => {
