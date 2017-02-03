@@ -1,5 +1,3 @@
-//ww/compile/en
-
 const mongoose = require('mongoose');
 const request = require('request');
 const Promise = require('bluebird');
@@ -35,27 +33,29 @@ schema.statics.generateEvents = () => {
     });
     
     return Promise.each(newEventIds, (key) => {
-      return new Promise(((resolve, reject) => {
-        request(`https://ffrk.static.denagames.com/dff/static/lang/ww/compile/en/image/event/${key}.png`, function (error, response, body) {
-          if (!error && response.statusCode == 200) {
-            Event.count({'dena.event_id': key})
-            .then((count) => {
-              if(count){ return resolve(null); }
-
-              return Event.create({dena: {event_id: key}})
-              .then((event) => {
-                return resolve(event);
-              })
-              .catch((err) => {
-                return resolve(null);
-              })
-            })
-          } else {
-            resolve(null);
+      return new Promise((resolve, reject) => {
+        request(`https://ffrk.static.denagames.com/dff/static/lang/ww/compile/en/image/event/${key}.png`, (error, response, body) => {
+          if (error || response.statusCode != 200) {
+            return reject(error||{name: '404', message: 'That Event does not exist'});
           }
-        });
-      }));
-    });
+
+          return resolve(key);
+        })
+      })
+      .then((key) => {
+        return Event.findOneOrCreate({'dena.event_id': key})
+      })
+      .catch((err) => null )
+    })
+  });
+}
+
+schema.statics.findOneOrCreate = (conditions, data) => {
+  const model = mongoose.model('Event');
+  data = data || conditions;
+  return model.findOne(conditions)
+  .then((instance) => {
+    return instance ? Promise.resolve(instance) : model.create(data);
   });
 }
 

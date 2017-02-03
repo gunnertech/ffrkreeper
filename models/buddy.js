@@ -56,6 +56,15 @@ schema.statics.createFromRelationship = (json) => {
   
 }
 
+schema.statics.findOneOrCreate = (conditions, data) => {
+  const model = mongoose.model('Buddy');
+  data = data || conditions;
+  return model.findOne(conditions)
+  .then((instance) => {
+    return instance ? Promise.resolve(instance) : model.create(data);
+  });
+}
+
 schema.statics.checkForNewOnes = (profileJson) => {
   mongoose.model('Buddy').find().distinct('dena.buddy_id')
   .then((buddyIds) => {

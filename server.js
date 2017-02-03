@@ -21,6 +21,7 @@ const engine = hbs.create(handlebars.create());
 const moment = require('moment');
 const lodash = require('lodash');
 const util = require('util');
+const request = require('request');
 
 //load all template partials
 fs.readdirSync(path.join(__dirname, 'views/partials')).forEach(function(file) {
@@ -31,15 +32,17 @@ require('./config/mongoose.js').setup(mongoose);
 
 const dena = require('./dena.js');
 const utils = require('./utils.js');
+
+/* Models */
 const User = require('./models/user.js');
 const Event = require('./models/event.js');
 const Buddy = require('./models/buddy.js');
 const Battle = require('./models/battle.js');
-const Dugeon = require('./models/dungeon.js');
+const Dungeon = require('./models/dungeon.js');
 const Item = require('./models/item.js');
+const Run = require('./models/run.js');
 const Image = require('./models/image.js');
 const AudioFile = require('./models/audioFile.js');
-const Run = require('./models/run.js');
 
 
 const server = express()
@@ -133,12 +136,6 @@ const server = express()
     User.findForIndex()
     .then((users) => {
       return res.render('users/index', { title: 'Users', users: users });
-    });
-  })
-  .get('/users/:userId', function(req, res) {
-    User.findById(req.params.userId).populate('drops')
-    .then((user) => {
-      return res.render('users/show', { title: user.dena.name, user: user });
     });
   })
   .get('/buddies', function(req, res) {
@@ -266,7 +263,7 @@ io.on('connection', (socket) => {
     if(!query.length) {
       fn({name: 'SessionError', message: 'That session Id is not valid'});
     } else {
-      User.findOne().or(query).select('-dena.json -drops')
+      User.findOne().or(query)
         .then((user) => {
           if(user) {
             return Promise.resolve(user);
@@ -289,16 +286,6 @@ io.on('connection', (socket) => {
           user.alertLevel = parseInt(data.alertLevel) || 0;
 
           return user.save().return(user);
-        })
-        .then((user) => {
-          if(!user.hasValidSessionId) { return Promise.resolve(user); }
-          //// TODO: implement elsewhere
-          //// IF THEY HAVEN'T BEEN UPDATED IN A WHILE, LET'S UPDATE THEM
-          if(!user.dena.updatedAt || moment(user.dena.updatedAt).add(5, 'hours').toDate() < moment(new Date()).toDate()) {
-            return user.updateData().return(user);
-          } else {
-            return Promise.resolve(user);
-          }
         })
         .then((user) => {
           socket.join(`/${user.dena.sessionId}`);
@@ -327,7 +314,7 @@ io.on('connection', (socket) => {
     }
 
     if(query.length) {
-      User.findOne().or(query).select('-dena.json -drops')
+      User.findOne().or(query)
         .then((user) => {
           if(!user) {
             return Promise.resolve(null);
@@ -346,7 +333,7 @@ io.on('connection', (socket) => {
 });
 
 let pushDrops = () => {
-  return User.find({hasValidSessionId: true}).select('-drops -dena.json')
+  return User.find({hasValidSessionId: true})
   .then((users) => {
     return Promise.map(users, (user) => {
       return user.pullDrops((process.env.DENA_CURRENT_EVENT_ID||96))
@@ -364,39 +351,68 @@ let pushDrops = () => {
   })
 }
 
-setInterval(pushDrops, 6000)
+let updateUserData = () => {
+  let cutoff = moment().add(5, 'hours').toDate();
+
+  return User.find({hasValidSessionId: true, 'dena.updatedAt': {$lt: cutoff}})
+  .then((users) => {
+    return Promise.map(users, (user) => {
+      return user.updateData()
+      .catch((err) => {
+        user.hasValidSessionId = false;
+        return user.save();
+      })
+    })
+  })
+}
+
+//DO THIS WITH CODY'S ACCOUNT SINCE IT MAY LOG OUT THE USER AND CODY HAS UNLOCKED ALL CONTENT
+let buildBattles = () => {
+  return Promise.all([
+    Dungeon.find(),
+    User.findOne({hasValidSessionId: true, 'dena.name': 'SaltyNut'})
+  ])
+  .spread((dungeons, user) => {
+    return Promise.each(dungeons, (dungeon) => {
+      if(!dungeon.battles || dungeon.battles.length == 0) {
+        console.log(`Got one: ${dungeon._id}`);
+        return user.buildBattlesFromDungeon(dungeon.dena.id).return(dungeon);
+      } else {
+        return Promise.resolve(dungeon)
+      }
+    })
+  });
+}
+
+//DO THIS WITH CODY'S ACCOUNT SINCE IT MAY LOG OUT THE USER AND CODY HAS UNLOCKED ALL CONTENT
+let buildWorlds = () => {
+  return User.findOne({hasValidSessionId: true, 'dena.name': 'SaltyNut'})
+  .then((user) => {
+    return user.buildWorlds().return(user)
+    .catch((err) => {
+      return console.log(err);
+      // user.hasValidSessionId = false;
+      // return user.save();
+    })
+  })
+}
+
+
+setInterval(pushDrops, 6000); // Every six seconds
+setInterval(updateUserData, (1000 * 60 * 60)); // Every hour
+setInterval(buildBattles, (1000 * 60 * 60)); // Every hour
+setInterval(buildWorlds, (1000 * 60 * 60 * 24)); // Every day
+
+setTimeout(buildBattles, 1000);
+setTimeout(buildWorlds, 10000);
+setTimeout(updateUserData, 20000);
+
+
+utils.runInBg(Event.generateEvents);
+
 
 
 /// BEGIN AREA TO RUN ONE OFF SHIT
-/// TODO: Refactor
-if(false && process.env.NODE_ENV === 'development') {
-  setInterval(() => {
-    utils.runInBg(Event.generateEvents);
-    User.findOne({hasValidSessionId: true, 'dena.name': 'SaltyNut' }).then((user) => {
-      utils.runInBg(user.buildWorlds);  
-      return user;
-    });
-  }, 3600*3600*2)
-  // require('./models/dropRate.js').calculate().then(console.log)
-  
-  // User.ensureIndexes(function (err) {
-  //   if (err) return console.log(err);
-  // });
-
-  User.findOne({hasValidSessionId: true, 'dena.name': 'SaltyNut' }).then((user) => {
-    return mongoose.model('Dungeon').find()
-    .then((dungeons) => {
-      return Promise.each(dungeons, (dungeon) => {
-        if(!dungeon.battles || dungeon.battles.length == 0) {
-          console.log(`Got one: ${dungeon._id}`);
-          return user.buildBattlesFromDungeon(dungeon.dena.id).return(dungeon);
-        } else {
-          return Promise.resolve(dungeon)
-        }
-      })
-    });
-  })
-  .then(console.log)
-  .catch(console.log)
-
-}
+// User.ensureIndexes(function (err) {
+//   if (err) return console.log(err);
+// });

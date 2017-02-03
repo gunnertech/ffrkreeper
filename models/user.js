@@ -28,7 +28,8 @@ const schema = new mongoose.Schema({
   phone: { type: String, index: { unique: true, sparse: true } },
   dena: {
     sessionId: { type: String, index: { unique: true, sparse: true } },
-    user_session: { type: String, index: { unique: true, sparse: true } }, //TODO: Implement
+    user_session: { type: String, index: { unique: true, sparse: true } },
+    csrfToken: String,
     accessToken: String,
     name: String,
     id: { type: String, index: true },
@@ -94,7 +95,7 @@ schema.statics.findForIndex = () => {
   return mongoose.model('User').find({ hasValidSessionId: true, buddy: { $exists: true } }).distinct('dena.id')
 		.then((denaIds) => {
 			return Promise.map(denaIds, (denaId) => {
-				return mongoose.model('User').findOne({ 'dena.id': denaId, hasValidSessionId: true, buddy: { $exists: true } }).select('-dena.json -drops').populate('buddy');
+				return mongoose.model('User').findOne({ 'dena.id': denaId, hasValidSessionId: true, buddy: { $exists: true } }).populate('buddy');
 			});
 		});
 }
@@ -119,7 +120,7 @@ schema.statics.findValidWithPhone = () => {
     hasValidSessionId: true,
     phone: { $nin: [null, ""] }
   }
-  return mongoose.model('User').find(query).select('-dena.json -drops')
+  return mongoose.model('User').find(query);
 }
 
 schema.statics.findValidWithEmail = () => {
@@ -127,14 +128,17 @@ schema.statics.findValidWithEmail = () => {
     hasValidSessionId: true,
     email: { $nin: [null, ""] }
   }
-  return mongoose.model('User').find(query).select('-dena.json -drops')
+  return mongoose.model('User').find(query);
 }
 
-//TODO: implement
 schema.methods.populateWorlds = function(worlds) {
+  var self = this;
   return Promise.each(worlds, (world) => {
     return self.getWorldDungeonData(world.dena.id)
     .then((json) => {
+      if(!json.dungeons) {
+        return Promise.resolve([])
+      }
       return Promise.each(json.dungeons, (dungeonData) => {
         return mongoose.model('Dungeon').findOneOrCreateFromJson(dungeonData);
       });   
@@ -142,7 +146,6 @@ schema.methods.populateWorlds = function(worlds) {
   });
 }
 
-//TODO: implement
 schema.methods.buildWorlds = function() {
   const self = this;
   const World = mongoose.model('World');
@@ -241,14 +244,10 @@ schema.methods.cacheAudioFiles = function(audioFiles) {
 		});
 }
 
-//TODO: Implement
 schema.methods.generateUsersFromRelationships = function() {
   var self = this;
 
-  return dena.api.authData({ sessionId: this.dena.sessionId })
-  .spread((sessionId, browserData, userSessionKey) => {
-    return dena.api.getFolloweeAndFollowersData({ sessionId: sessionId, userSessionKey: userSessionKey, csrfToken: browserData.csrfToken });
-  })
+  return self.getFolloweeAndFollowersData()
   .then((json) => {
     utils.runInBg(mongoose.model('Buddy').createFromRelationship, json.followees.target_profiles);
     return self;
@@ -259,17 +258,35 @@ schema.methods.generateUsersFromRelationships = function() {
 }
 
 schema.methods.getWorldBattles = function() {
-  return dena.api.authData({ sessionId: this.dena.sessionId })
-  .spread((sessionId, browserData, userSessionKey) => {
-    return dena.api.getWorldBattles({ sessionId: sessionId, userSessionKey: userSessionKey });
-  });
+  return this.auth() 
+  .then((authData) => {
+    return dena.api.getFolloweeAndFollowersData(authData);
+  })
+  .catch(this.resetAuth);
+}
+
+schema.methods.getWorldBattles = function() {
+  return this.auth() 
+  .then((authData) => {
+    return dena.api.getWorldBattles(authData);
+  })
+  .catch(this.resetAuth);
 }
 
 schema.methods.getWorldDungeonData = function(worldId) {
-  return dena.api.authData({ sessionId: this.dena.sessionId })
-  .spread((sessionId, browserData, userSessionKey) => {
-    return dena.api.getWorldDungeonData(worldId, { sessionId: sessionId, userSessionKey: userSessionKey });
-  });
+  return this.auth() 
+  .then((authData) => {
+    return dena.api.getWorldDungeonData(worldId, authData);
+  })
+  .catch(this.resetAuth);
+}
+
+schema.methods.getProfileData = function() {
+  return this.auth() 
+  .then((authData) => {
+    return dena.api.getProfileData(authData);
+  })
+  .catch(this.resetAuth);
 }
 
 schema.methods.getBattleInitDataForEventId = function(eventId) {
@@ -277,23 +294,53 @@ schema.methods.getBattleInitDataForEventId = function(eventId) {
 }
 
 schema.methods.drawARelic = function() {
-  return dena.api.authData({ sessionId: this.dena.sessionId })
-  .spread((sessionId, browserData, userSessionKey) => {
-    return dena.api.doGachaDraw({ sessionId: sessionId, userSessionKey: userSessionKey, csrfToken: browserData.csrfToken });
+  return this.auth() 
+  .then((authData) => {
+    return dena.api.doGachaDraw(authData);
   })
+  .catch(this.resetAuth);
 }
 
 schema.methods.enterDungeon = function(dungeonId) {
-  return dena.api.authData({ sessionId: this.dena.sessionId })
-  .spread((sessionId, browserData, userSessionKey) => {
-    return dena.api.doEnterDungeon((process.env.DENA_CURRENT_EVENT_ID || 95), dungeonId, { sessionId: sessionId, userSessionKey: userSessionKey, csrfToken: browserData.csrfToken });
+  return this.auth() 
+  .then((authData) => {
+    return dena.api.doEnterDungeon((process.env.DENA_CURRENT_EVENT_ID || 95), dungeonId, authData);
   })
+  .catch(this.resetAuth);
 }
 
 schema.methods.leaveDungeon = function(dungeonId) {
+  return this.auth() 
+  .then((authData) => {
+    return dena.api.doLeaveDungeon((process.env.DENA_CURRENT_EVENT_ID || 95), dungeonId, authData);
+  })
+  .catch(this.resetAuth);
+}
+
+schema.methods.resetAuth = function(err) {
+  this.dena.user_session = null;
+  this.dena.csrfToken = null;
+
+  return this.save().return(err);
+}
+
+schema.methods.hasAuth = function() {
+  return (this.dena.sessionId && this.dena.user_session && this.dena.csrfToken);
+}
+
+schema.methods.auth = function() {
+  let self = this;
+
+  if(this.hasAuth()) {
+    return Promise.resolve({ sessionId: this.dena.sessionId, userSessionKey: this.dena.user_session, csrfToken: this.dena.csrfToken });
+  }
+
   return dena.api.authData({ sessionId: this.dena.sessionId })
   .spread((sessionId, browserData, userSessionKey) => {
-    return dena.api.doLeaveDungeon((process.env.DENA_CURRENT_EVENT_ID || 95), dungeonId, { sessionId: sessionId, userSessionKey: userSessionKey, csrfToken: browserData.csrfToken });
+    self.dena.csrfToken = browserData.csrfToken;
+    self.dena.user_session = userSessionKey;
+
+    return self.save().return({ sessionId: self.dena.sessionId, userSessionKey: self.dena.user_session, csrfToken: self.dena.csrfToken });
   })
 }
 
@@ -301,9 +348,15 @@ schema.methods.buildBattlesFromDungeon = function(dungeonId) {
   var self = this;
   return self.enterDungeon(dungeonId)
   .then((json) => {
+    if(!json.success) {
+      return Promise.resolve(json)
+    }
     return self.getWorldBattles()
   })
   .then((json) => {
+    if(!json.success) {
+      return Promise.resolve([])
+    }
     return mongoose.model('Dungeon').findOneOrCreateFromJson(json.user_dungeon)
     .then((dungeon) => {
       return Promise.each(json.battles, (battleData) => {
@@ -324,52 +377,36 @@ schema.methods.buildBattlesFromDungeon = function(dungeonId) {
 }
 
 
-//TODO: REFACTOR
 schema.methods.updateData = function() {
   var self = this;
 
-  return dena.api.authData({ sessionId: this.dena.sessionId })
-		.spread((sessionId, browserData, userSessionKey) => {
-			return dena.api.getProfileData({ sessionId: sessionId, userSessionKey: userSessionKey, csrfToken: browserData.csrfToken });
-		})
-		.then((profileJson) => {
-      utils.runInBg(mongoose.model('Buddy').checkForNewOnes, profileJson);
-      
-			self.dena.updatedAt = new Date();
-			self.dena.invite_id = profileJson.invite_id;
+  return self.getProfileData()
+	.then((profileJson) => {
+    utils.runInBg(mongoose.model('Buddy').checkForNewOnes, profileJson);
 
-			if(profileJson.profile) {
-				self.dena.name = profileJson.profile.nickname;
-				self.dena.id = profileJson.profile.user_id;
-				self.dena.profile_message = profileJson.profile.profile_message;
-				self.dena.supporter_buddy_soul_strike_name = profileJson.profile.supporter_buddy_soul_strike_name;
-        self.dena.mnd = profileJson.profile.supporter_buddy_mnd;
-        self.dena.matk = profileJson.profile.supporter_buddy_matk;
-        self.dena.atk = profileJson.profile.supporter_buddy_atk;
-			}
+		self.dena.updatedAt = new Date();
+		self.dena.invite_id = profileJson.invite_id;
 
-			if(profileJson.user_supporter_buddy) {
-				return mongoose.model('Buddy').findOne({ 'dena.buddy_id': profileJson.user_supporter_buddy.buddy_id })
-					.then((buddy) => {
-						if(buddy) {
-							return Promise.resolve(buddy);
-						}
+		if(profileJson.profile) {
+			self.dena.name = profileJson.profile.nickname;
+			self.dena.id = profileJson.profile.user_id;
+			self.dena.profile_message = profileJson.profile.profile_message;
+			self.dena.supporter_buddy_soul_strike_name = profileJson.profile.supporter_buddy_soul_strike_name;
+      self.dena.mnd = profileJson.profile.supporter_buddy_mnd;
+      self.dena.matk = profileJson.profile.supporter_buddy_matk;
+      self.dena.atk = profileJson.profile.supporter_buddy_atk;
+		}
 
-						return mongoose.model('Buddy').create({
-							'dena.buddy_id': profileJson.user_supporter_buddy.buddy_id,
-							'dena.name': profileJson.user_supporter_buddy.name
-						});
-					})
-					.then((buddy) => {
-						self.buddy = buddy._id;
-						return self.save();
-					})
-					.return(self);
-			}
+		if(!profileJson.user_supporter_buddy) {
+      return self.save();
+    }
 
+		return mongoose.model('Buddy').findOneOrCreate({ 'dena.buddy_id': profileJson.user_supporter_buddy.buddy_id, 'dena.name': profileJson.user_supporter_buddy.name })
+		.then((buddy) => {
+			self.buddy = buddy._id;
 			return self.save();
-		})
-		.catch((err) => console.log(err) );
+		});
+	})
 }
 
 schema.methods.sendEmail = function(message) {
@@ -445,7 +482,6 @@ schema.methods.handleDropError = function(err, io) {
     return self;
 
   } else {
-    console.log(err);
 
     return mongoose.model('User').update({_id: this._id}, {currentRun: null, hasValidSessionId: false})
     .then(() => {

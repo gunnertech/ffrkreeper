@@ -290,6 +290,7 @@ function doSimpleGet(path, options) {
 }
 
 function doEnterDungeon(challengeId, dungeonId, options) {
+  console.log(options)
   return doSimplePost("/dff/event/challenge/"+challengeId+"/enter_dungeon", {dungeon_id: dungeonId}, options);
 }
 
@@ -355,13 +356,15 @@ function getWdayDataForEvent(id) {
 
 function authData(options) {
   options = options || {}
+  options.for = options.for || 'read';
+
   return getSessionId(
-    (options.userId || process.env.DENA_USER_ID),
-    (options.accessToken || process.env.DENA_ACCESS_TOKEN),
-    (options.sessionId || process.env.DENA_SESSION_ID)
+    options.userId,
+    options.accessToken,
+    options.sessionId
   )
   .then((sessionId) => {
-    return [sessionId, getBrowserData(sessionId)];
+    return [sessionId, getBrowserData(sessionId) ];
   })
   .spread((sessionId, browserData) => {
     return [sessionId, browserData, getUserSessionKey(sessionId, browserData.csrfToken)];
