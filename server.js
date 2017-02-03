@@ -58,7 +58,7 @@ const server = express()
 	.engine('hbs', engine.__express)
 	.set('view engine', 'hbs')
   .get('/drop-rates', function(req, res) {
-    DropRate.find().populate(['battle', 'item']).sort('battle')
+    DropRate.find().populate(['battle', 'item']).sort('runCount')
     .then((dropRates) => {
       return res.render('drop-rates/index', { title: 'Drop Rates', dropRates: dropRates });
     });
