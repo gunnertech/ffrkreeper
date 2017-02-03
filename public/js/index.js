@@ -58,7 +58,7 @@
           html += ' - Round ' + drop.round;
         }
         html += '</h5>';
-        if(drop.battle.dropRates) {
+        if(drop.battle.dropRates && drop.battle.dropRates[drop.item._id]) {
           html += '<p>This item has dropped in <a href="/battles/'+drop.battle_id+'">' + drop.battle.dropRates[drop.item._id].hits + ' out of ' + drop.battle.dropRates[drop.item._id].total + ' runs (' + Math.round(drop.battle.dropRates[drop.item._id].rate * 100) + '%)</a>.</p>';
         }
         html += '</div>';
