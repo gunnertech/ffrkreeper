@@ -346,7 +346,7 @@ io.on('connection', (socket) => {
 });
 
 let pushDrops = () => {
-  return User.find({hasValidSessionId: true}).select('-drops -dena.json').limit(1)
+  return User.find({hasValidSessionId: true}).select('-drops -dena.json')
   .then((users) => {
     return Promise.map(users, (user) => {
       return user.pullDrops((process.env.DENA_CURRENT_EVENT_ID||96))
