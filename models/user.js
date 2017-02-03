@@ -526,7 +526,7 @@ schema.methods.pushDropsToPhone = function(drops) {
 
   drops.forEach((drop) => {
     if(parseInt(drop.rarity || 0) >= userAlertLevel) {
-      message = ` ${message}${drop.item.dena.name} x${drop.qty}`;
+      message = `${message} ${drop.item.dena.name} x${drop.qty}`;
     }
   });
 
@@ -701,7 +701,7 @@ schema.methods.pullDrops = function(eventId) {
     return self.startNewRun(json);
   })
   .then((run) => {
-    return mongoose.model('Drop').find({run: run}).populate('item').populate({path: 'battle', select: '-drops'});
+    return mongoose.model('Drop').find({run: run}).populate('item').populate({path: 'battle', select: '-drops', populate: { path: 'dropRateModels' }});
   })
 }
 

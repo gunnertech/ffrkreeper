@@ -88,7 +88,8 @@ const server = express()
     });
   })
   .get('/battles/:battleId', function(req, res) {
-    mongoose.model('Battle').findById(req.params.battleId).populate('enemies').populate({
+    mongoose.model('Battle').findById(req.params.battleId).populate(['enemies']).populate([
+    {
       path: 'dungeon',
       populate: {
         path: 'world',
@@ -96,7 +97,14 @@ const server = express()
           path: 'series'
         }
       }
-    })
+    },
+    {
+      path: 'dropRateModels',
+      populate: {
+        path: 'item'
+      }
+    }
+    ])
     .then((battle) => {
       var promises = [];
       for(var i in battle.dropRates) {
@@ -345,6 +353,7 @@ let pushDrops = () => {
     return Promise.map(users, (user) => {
       return user.pullDrops((process.env.DENA_CURRENT_EVENT_ID||96))
       .then((drops) => {
+        // console.log(drops);
         return Promise.all([
           user.pushDropsToSocket(drops, io),
           user.pushDropsToPhone(drops),
@@ -383,7 +392,6 @@ let buildBattles = () => {
     return Promise.each(dungeons, (dungeon) => {
       /// if the dungeon doesn't have any battles or has any battles without stamina, build the data for it.
       if(!dungeon.battles || dungeon.battles.length == 0 || lodash.findIndex(dungeon.battles, (battle) => !battle.stamina) != -1 ) {
-        console.log(`Got one: ${dungeon._id}`);
         return user.buildBattlesFromDungeon(dungeon.dena.id).return(dungeon);
       } else {
         return Promise.resolve(dungeon)
@@ -398,7 +406,7 @@ let buildWorlds = () => {
   .then((user) => {
     return user.buildWorlds().return(user)
     .catch((err) => {
-      return console.log(err);
+      // return console.log(err);
       // user.hasValidSessionId = false;
       // return user.save();
     })
@@ -415,14 +423,12 @@ setTimeout(buildBattles, 1000);
 setTimeout(buildWorlds, 10000);
 setTimeout(updateUserData, 20000);
 
-DropRate.calculate();
-
 
 utils.runInBg(Event.generateEvents);
-
 
 
 /// BEGIN AREA TO RUN ONE OFF SHIT
 // User.ensureIndexes(function (err) {
 //   if (err) return console.log(err);
 // });
+DropRate.calculate();

@@ -16,6 +16,10 @@ schema.virtual('imgUrl').get(function () {
   return !this.dena.image_path ? null : this.dena.image_path.match(/ffrk\.static/) ? this.dena.image_path : `https://ffrk.static.denagames.com${this.dena.image_path}`;
 });
 
+schema.virtual('name').get(function () {
+  return this.dena.name || `Item ${this.dena.id}`;
+});
+
 schema.statics.findOneOrCreate = (conditions, data) => {
   const model = mongoose.model('Item');
   data = data || conditions;

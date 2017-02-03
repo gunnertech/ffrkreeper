@@ -48,19 +48,29 @@
       html = '<ul class="list-unstyled">';
       $.each(message.drops, function(i, drop) {
         var rarity = parseInt(drop.rarity);
+        var dropRate = _.find((drop.battle.dropRateModels||[]), function(dropRate) {
+          return dropRate.item == drop.item._id;
+        });
 
         html += '<li class="media">';
         html += '<img class="d-flex mr-3" src="' + drop.item.imgUrl + '" alt="' + drop.item.dena.name + '">';
         html += '<div class="media-body">';
-        html += '<h5 class="mt-0">';
+        html += '<h6 class="mt-0">';
         html += (drop.item.dena.name + ' x' + drop.qty);
         if(drop.round) {
           html += ' - Round ' + drop.round;
         }
-        html += '</h5>';
-        if(drop.battle.dropRates && drop.battle.dropRates[drop.item._id]) {
-          html += '<p>This item has dropped in <a href="/battles/'+drop.battle._id+'">' + drop.battle.dropRates[drop.item._id].hits + ' out of ' + drop.battle.dropRates[drop.item._id].total + ' runs (' + Math.round(drop.battle.dropRates[drop.item._id].rate * 100) + '%)</a>.</p>';
+        html += '</h6>';
+        html += '<ul class="list-unstyled">'
+        html += '<li>Battle: <a href="/battles/'+drop.battle._id+'">' + drop.battle.name + '</a></li>';
+        if(dropRate) {
+          html += '<li>Dropped in ' + (dropRate.runCount*dropRate.successRate) + ' out of ' + dropRate.runCount + ' runs ('+(Math.round(dropRate.successRate * 100))+'%)</li>';
+          html += '<li>Avg/Run: ' + (Math.round(dropRate.perRun * 100) / 100) + '</li>';
+          if(dropRate.perStamina) {
+            html += '<li>Avg/Stam: ' + (Math.round(dropRate.perStamina * 100) / 100) + '</li>';
+          }
         }
+        html += '</ul>'
         html += '</div>';
         html += '</li>';
       });
