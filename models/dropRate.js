@@ -12,20 +12,23 @@ const schema = new mongoose.Schema({
 
 schema.statics.calculate = () => {
   return Promise.all([
-    mongoose.model('Battle').find({'dena.stamina': {$exists:true}}).select('-drops'),
-    mongoose.model('Item').find(),
+    mongoose.model('Run').distinct('battle').then((battleIds) => { return mongoose.model('Battle').find({_id: {$in: battleIds}, 'dena.stamina': {$exists:true}}).select('-drops') }),
+    mongoose.model('Item').find()
   ])
   .spread((battles, items) => {
+    console.log(battles.length);
+    console.log(items.length);
     return Promise.each(battles, (battle) => {
-      // console.log(battle);
       return Promise.each(items, (item) => {
         return Promise.all([
           mongoose.model('Run').count({battle: battle._id}),
           mongoose.model('Run').count({battle: battle._id, items: item._id})
         ])
         .spread((runCount, successCount) => {
-          console.log(runCount);
-          console.log(successCount);
+          if(successCount == 0) {
+            return Promise.resolve(null);
+          }
+
           return mongoose.model('DropRate').create({
             runCount: runCount,
             perRun: (((successCount*1.0)/runCount*1.0)||0.0),

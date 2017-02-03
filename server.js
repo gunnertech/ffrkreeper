@@ -41,6 +41,7 @@ const Battle = require('./models/battle.js');
 const Dungeon = require('./models/dungeon.js');
 const Item = require('./models/item.js');
 const Run = require('./models/run.js');
+const DropRate = require('./models/dropRate.js');
 const Image = require('./models/image.js');
 const AudioFile = require('./models/audioFile.js');
 
@@ -56,6 +57,12 @@ const server = express()
 
 	.engine('hbs', engine.__express)
 	.set('view engine', 'hbs')
+  .get('/drop-rates', function(req, res) {
+    DropRate.find().populate(['battle', 'item'])
+    .then((dropRates) => {
+      return res.render('drop-rates/index', { title: 'Drop Rates', dropRates: dropRates });
+    });
+  })
   .get('/series', function(req, res) {
     mongoose.model('Series').find().sort('dena.formal_name').populate({path: 'worlds', options: { sort: { 'dena.type': 1 } } })
     .then((series) => {
@@ -406,6 +413,8 @@ setInterval(buildWorlds, (1000 * 60 * 60 * 24)); // Every day
 setTimeout(buildBattles, 1000);
 setTimeout(buildWorlds, 10000);
 setTimeout(updateUserData, 20000);
+
+DropRate.calculate();
 
 
 utils.runInBg(Event.generateEvents);

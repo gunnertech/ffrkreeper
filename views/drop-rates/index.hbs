@@ -1,0 +1,16 @@
+<div class="container-fluid enemies index">
+  <ul class="list-unstyled">
+  {{#each dropRates}}
+    <li class="media">
+      <img class="d-flex mr-3" src="{{item.imgUrl}}" alt="{{item.dena.name}}" onerror="this.onerror=null;this.src='https://placeholdit.imgix.net/~text?txtsize=100&txt=%3F&w=100&h=100&txttrack=0';">
+      <div class="media-body">
+        <h5 class="mt-0 mb-1"><a href="/battles/{{battle._id}}">{{battle.name}}</a> - {{item.dena.name}}</h5>
+        <ul>
+          <li><strong>Runs: </strong> {{runCount}}</li>
+          <li><strong>Rate per run: </strong> {{perRun}}</li>
+          <li><strong>Rate per stamina: </strong> {{perStamina}}</li>
+        </ul>
+      </div>
+    </li>
+  {{/each}}
+</div>

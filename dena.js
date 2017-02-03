@@ -290,7 +290,6 @@ function doSimpleGet(path, options) {
 }
 
 function doEnterDungeon(challengeId, dungeonId, options) {
-  console.log(options)
   return doSimplePost("/dff/event/challenge/"+challengeId+"/enter_dungeon", {dungeon_id: dungeonId}, options);
 }
 
