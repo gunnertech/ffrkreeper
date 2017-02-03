@@ -221,7 +221,7 @@ const server = express()
     });
   })
   .get('/enemies', function(req, res) {
-    mongoose.model('Enemy').find().sort('name').select('-dena.json').populate('battle', 'denaDungeonId')
+    mongoose.model('Enemy').find().sort('name').populate('battle', 'denaDungeonId')
     .then((enemies) => {
       return res.render('enemies/index', { title: "Enemies", enemies: lodash.uniqBy(enemies,'name') });
     });
