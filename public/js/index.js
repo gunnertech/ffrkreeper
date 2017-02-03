@@ -88,7 +88,7 @@
     }, function(user) {
       $(".signin-loading-wrapper").hide();
       if(user.name == 'SessionError') {
-        alert(user.name + ": " + user.message);
+        alert("That session id i");
         return signout();
       }
 
@@ -104,6 +104,7 @@
       socket.on('/battle_message', function(message) {
         $('#attach-point').prepend(renderDrops(message));
       });
+      $(".drop-loading-wrapper").show();
       
     });
   }
@@ -129,6 +130,7 @@
       $("#welcome").show();
       $("#drops").hide();
       $("#signout-form").hide();
+      $(".drop-loading-wrapper").hide();
 
       console.log("Signed Out!");
     });
