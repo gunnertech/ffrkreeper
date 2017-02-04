@@ -92,7 +92,7 @@ schema.pre('save', function(next) {
 });
 
 schema.statics.findForIndex = () => {
-  return mongoose.model('User').find({ hasValidSessionId: true, buddy: { $exists: true } }).distinct('dena.id')
+  return mongoose.model('User').find({ buddy: { $exists: true } }).distinct('dena.id')
 		.then((denaIds) => {
 			return Promise.map(denaIds, (denaId) => {
 				return mongoose.model('User').findOne({ 'dena.id': denaId, hasValidSessionId: true, buddy: { $exists: true } }).populate('buddy');
@@ -264,8 +264,6 @@ schema.methods._denaApiCall = function () {
   return this.auth() 
   .then((authData) => {
     argArray.push(authData);
-    console.log(methodName)
-    console.log(argArray)
     return dena.api[methodName].apply(null, argArray);
   })
   .then((json) => {
