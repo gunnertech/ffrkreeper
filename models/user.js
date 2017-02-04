@@ -270,7 +270,7 @@ schema.methods._denaApiCall = function () {
   })
   .then((json) => {
     if(json.error == 'INVALID_USER_SESSION') {
-      return this.resetAuth({}).then(this[methodName].call(this, arguments))  
+      return this.resetAuth({}).then(() => this[methodName].apply(this, Array.prototype.slice.call(arguments)))  
     }
     return Promise.resolve(json);
   })

@@ -447,7 +447,7 @@ let buildAbilities = () => {
   })
 }
 
-// buildAbilities();
+buildAbilities();
 
 setInterval(pushDrops, 6000); // Every six seconds
 // setInterval(updateUserData, (1000 * 60 * 60)); // Every hour
