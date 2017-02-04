@@ -264,6 +264,8 @@ schema.methods._denaApiCall = function () {
   return this.auth() 
   .then((authData) => {
     argArray.push(authData);
+    console.log(methodName)
+    console.log(argArray)
     return dena.api[methodName].apply(null, argArray);
   })
   .then((json) => {
