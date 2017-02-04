@@ -496,7 +496,6 @@ let buildRecordMaterias = () => {
     return Promise.map(users, (user) => {
       return user.getPartyList()
       .then((json) => {
-        console.log(json);
         return Promise.each(json.record_materias, (itemData) => {
           return RecordMateria.findOneOrCreate({'dena.id': itemData.id}, {
             dena: {
@@ -596,7 +595,6 @@ let buildSoulStrikes = () => {
     return Promise.map(users, (user) => {
       return user.getPartyList()
       .then((json) => {
-        console.log(json)
         return Promise.each(json.soul_strikes, (itemData) => {
           return SoulStrike.findOneOrCreate({'dena.id': itemData.id}, {
             dena: {
@@ -646,56 +644,6 @@ setInterval(buildBattles,   (1000 * 60 * 60 * 24)); // Every day
 setInterval(buildWorlds,    (1000 * 60 * 60 * 24)); // Every day
 setInterval(buildInventory, (1000 * 60 * 60 * 24)); // Every day
 
-buildInventory()
-.then(() => {
-  return Buddy.find()
-  .then((buddies) => {
-    return Promise.map(buddies, (buddy) => {
-      if(buddy.dena.buddy_id) {
-        buddy.dena.id = buddy.dena.buddy_id;
-        buddy.dena.buddy_id = undefined;
-        return buddy.save();
-      }
-      return buddy;
-    })
-  })
-  .then(() => {
-    return RecordMateria.find()
-    .then((rms) => {
-      return Promise.map(rms, (rm) => {
-        return rm.save();
-      })
-    })
-  })
-  .then(() => {
-    return Buddy.findOne({'dena.name': 'Alphinaud'})
-    .then((buddy) => {
-      buddy.dena.id = 11400600;
-      return buddy.save();
-    })
-
-    
-  })
-})
-.then(() => {
-  return Item.update({type_name: "ABILITY MATERIAL"}, {type_name: "ABILITY_MATERIAL"}, {multi: true})
-})
-.then(() => {
-  return console.log("FIN!!!!!!!!")
-})
-
-
-
-
-
-// setTimeout(buildBattles, 1000);
-// setTimeout(buildWorlds, 10000);
-// setTimeout(updateUserData, 20000);
-
-// buildWorlds();
-
-// updateUserData();
-// pushDrops();
 
 utils.runInBg(Event.generateEvents);
 

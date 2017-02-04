@@ -41,6 +41,7 @@ schema.pre('save', function (next) {
 });
 
 schema.post('save', function (soulStrike) {
+  console.log('saved a soul strike!')
   let self = soulStrike;
 
   if(self.buddy || !self.dena.allowed_buddy_id) {
@@ -49,6 +50,7 @@ schema.post('save', function (soulStrike) {
 
   mongoose.model('Buddy').findOne({'dena.id': self.dena.allowed_buddy_id})
   .then((buddy) => {
+    console.log(buddy)
     if(!buddy) {
       return Promise.resolve(null)
     }
