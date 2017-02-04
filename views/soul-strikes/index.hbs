@@ -1,0 +1,22 @@
+<table class="table table-responsive">
+  <thead>
+    <tr>
+      <th></th>
+      <th>Name</th>
+      <th>Buddy</th>
+      <th>Description</th>
+    </tr>
+  </thead>
+  <tbody>
+  {{#each soulStrikes}}
+    <tr>
+      <th scope="row">
+        <img src="{{imgUrl}}" alt="{{dena.name}}" />
+      </th>
+      <td>{{dena.name}}</td>
+      <td>{{buddy.dena.name}}</td>
+      <td>{{dena.description}}</td>
+    </tr>
+  {{/each}}
+  </tbody>
+</table>\

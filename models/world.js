@@ -18,7 +18,7 @@ schema.virtual('bgImgUrl').get(function () {
 });
 
 schema.virtual('bannerImgUrl').get(function () {
-  if(this.dena.type == 2) {
+  if(this.dena.type == 2 && this.dena.id < 800000) {
     return `https://ffrk.static.denagames.com/dff/static/lang/ww/compile/en/image/event/${this.dena.event_id}.png`;  
   }
 

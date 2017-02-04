@@ -5,7 +5,8 @@ const schema = new mongoose.Schema({
     id: { type: Number, index: { unique: true } },
     name: { type: String },
     image_path: { type: String },
-    type_name: { type: String }
+    type_name: { type: String },
+    rarity: Number
   }
 });
 
@@ -25,8 +26,8 @@ schema.statics.findOneOrCreate = (conditions, data) => {
   data = data || conditions;
   return model.findOne(conditions)
   .then((instance) => {
-    return instance ? Promise.resolve(instance) : model.create(data);
-  });
+    return instance ? model.update(conditions, data).then(() => model.findOne(conditions)) : model.create(data);
+  })
 }
 
 

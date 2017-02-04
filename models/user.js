@@ -249,8 +249,7 @@ schema.methods.generateUsersFromRelationships = function() {
 
   return self.getFolloweeAndFollowersData()
   .then((json) => {
-    utils.runInBg(mongoose.model('Buddy').createFromRelationship, json.followees.target_profiles);
-    return self;
+    return mongoose.model('Buddy').createFromRelationship(json.followees.target_profiles);
   })
   .catch((err) => {
     return self;
