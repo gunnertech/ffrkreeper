@@ -95,7 +95,7 @@ schema.statics.findForIndex = () => {
   return mongoose.model('User').find({ buddy: { $exists: true } }).distinct('dena.id')
 		.then((denaIds) => {
 			return Promise.map(denaIds, (denaId) => {
-				return mongoose.model('User').findOne({ 'dena.id': denaId, hasValidSessionId: true, buddy: { $exists: true } }).populate('buddy');
+				return mongoose.model('User').findOne({ 'dena.id': denaId, buddy: { $exists: true } }).populate('buddy');
 			});
 		});
 }
