@@ -41,6 +41,7 @@ const Battle = require('./models/battle.js');
 const Dungeon = require('./models/dungeon.js');
 const Item = require('./models/item.js');
 const Run = require('./models/run.js');
+const Ability = require('./models/ability.js');
 const DropRate = require('./models/dropRate.js');
 const Image = require('./models/image.js');
 const AudioFile = require('./models/audioFile.js');
@@ -57,6 +58,13 @@ const server = express()
 
 	.engine('hbs', engine.__express)
 	.set('view engine', 'hbs')
+  
+  .get('/abilities', function(req, res) {
+    Ability.find()
+    .then((abilities) => {
+      return res.render('abilities/index', { title: 'Abilities', abilities: abilities });
+    });
+  })
   .get('/drop-rates', function(req, res) {
     DropRate.find().populate(['battle', 'item']).sort('runCount')
     .then((dropRates) => {
@@ -413,16 +421,47 @@ let buildWorlds = () => {
   })
 }
 
+let buildAbilities = () => {
+  return User.find({hasValidSessionId: true, 'dena.name': 'SaltyNut'})
+  .then((users) => {
+    return Promise.map(users, (user) => {
+      return user.getPartyList()
+      .then((json) => {
+        return Promise.each(json.abilities, (abilityData) => {
+          return Ability.findOneOrCreate({'dena.id': abilityData.ability_id}, {
+            dena: {
+              id: abilityData.ability_id,
+              category_type: abilityData.category_type,
+              category_name: abilityData.category_name,
+              command_icon_path: abilityData.command_icon_path,
+              name: abilityData.name,
+              description: abilityData.description,
+              image_path: abilityData.image_path,
+              rarity: abilityData.rarity
+            }
+          })
+        })
+      })
+    })
+
+  })
+}
+
+buildAbilities();
 
 setInterval(pushDrops, 6000); // Every six seconds
-setInterval(updateUserData, (1000 * 60 * 60)); // Every hour
-setInterval(buildBattles, (1000 * 60 * 60)); // Every hour
-setInterval(buildWorlds, (1000 * 60 * 60 * 24)); // Every day
+// setInterval(updateUserData, (1000 * 60 * 60)); // Every hour
+// setInterval(buildBattles, (1000 * 60 * 60)); // Every hour
+// setInterval(buildWorlds, (1000 * 60 * 60 * 24)); // Every day
 
 setTimeout(buildBattles, 1000);
 setTimeout(buildWorlds, 10000);
 setTimeout(updateUserData, 20000);
 
+// buildWorlds();
+
+// updateUserData();
+// pushDrops();
 
 utils.runInBg(Event.generateEvents);
 
@@ -431,4 +470,4 @@ utils.runInBg(Event.generateEvents);
 // User.ensureIndexes(function (err) {
 //   if (err) return console.log(err);
 // });
-DropRate.calculate();
+// DropRate.calculate();

@@ -1,0 +1,24 @@
+<table class="table">
+  <thead>
+    <tr>
+      <th></th>
+      <th>Name</th>
+      <th>Rarity</th>
+      <th>Category</th>
+      <th>Description</th>
+    </tr>
+  </thead>
+  <tbody>
+  {{#each abilities}}
+    <tr>
+      <th scope="row">
+        <img src="{{imgUrl}}" alt="{{dena.name}}" />
+      </th>
+      <td>{{dena.name}}</td>
+      <td>{{dena.rarity}}</td>
+      <td>{{dena.category_name}}</td>
+      <td>{{dena.description}}</td>
+    </tr>
+  {{/each}}
+  </tbody>
+</table>

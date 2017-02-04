@@ -316,6 +316,10 @@ function doGachaDraw(options) {
   return doSimplePost("/dff/gacha/execute", {entry_point_id: 16008101}, options);
 }
 
+function getPartyList(options) {
+  return doSimpleGet("/dff/party/list", options);
+}
+
 function getRootData(options) {
   return doSimpleGet("/dff/get_root_data", options);
 }
@@ -373,6 +377,7 @@ function authData(options) {
 
 module.exports = {
   api: {
+    getPartyList: getPartyList,
     doEnterDungeon: doEnterDungeon,
     doLeaveDungeon: doLeaveDungeon,
     doGachaDraw: doGachaDraw,

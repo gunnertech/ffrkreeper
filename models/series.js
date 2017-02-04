@@ -23,7 +23,6 @@ schema.statics.findOneOrCreate = (conditions, data) => {
   console.log(conditions)
   return model.findOne(conditions)
   .then((instance) => {
-    console.log(instance)
     return instance ? Promise.resolve(instance) : model.create(data);
   });
 }

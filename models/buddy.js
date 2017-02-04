@@ -92,9 +92,6 @@ schema.statics.checkForNewOnes = (profileJson) => {
     });
     return mongoose.model('Buddy').create(lodash.uniqBy(buddiesToCreate, (b) => { return b.dena.buddy_id}));
   })
-  .then((buddies) => {
-    return console.log(buddies)
-  })
 }
 
 

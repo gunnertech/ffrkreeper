@@ -257,64 +257,57 @@ schema.methods.generateUsersFromRelationships = function() {
   })
 }
 
-schema.methods.getWorldBattles = function() {
+schema.methods._denaApiCall = function () {
+  let methodName = [].shift.apply(arguments);
+  let argArray = Array.prototype.slice.call(arguments);
+
   return this.auth() 
   .then((authData) => {
-    return dena.api.getFolloweeAndFollowersData(authData);
+    argArray.push(authData);
+    return dena.api[methodName].apply(null, argArray);
   })
-  .catch(this.resetAuth);
+  .then((json) => {
+    if(json.error == 'INVALID_USER_SESSION') {
+      return this.resetAuth({}).then(this[methodName].call(this, arguments))  
+    }
+    return Promise.resolve(json);
+  })
+}
+
+schema.methods.getPartyList = function() {
+  return this._denaApiCall('getPartyList');
+}
+
+schema.methods.getFolloweeAndFollowersData = function() {
+  return this._denaApiCall('getFolloweeAndFollowersData');
 }
 
 schema.methods.getWorldBattles = function() {
-  return this.auth() 
-  .then((authData) => {
-    return dena.api.getWorldBattles(authData);
-  })
-  .catch(this.resetAuth);
+  return this._denaApiCall('getWorldBattles');
 }
 
 schema.methods.getWorldDungeonData = function(worldId) {
-  return this.auth() 
-  .then((authData) => {
-    return dena.api.getWorldDungeonData(worldId, authData);
-  })
-  .catch(this.resetAuth);
+  return this._denaApiCall('getWorldDungeonData', worldId);
 }
 
 schema.methods.getProfileData = function() {
-  return this.auth() 
-  .then((authData) => {
-    return dena.api.getProfileData(authData);
-  })
-  .catch(this.resetAuth);
+  return this._denaApiCall('getProfileData');
 }
 
 schema.methods.getBattleInitDataForEventId = function(eventId) {
   return dena.api.getBattleInitDataForEventId(eventId, { sessionId: this.dena.sessionId });
 }
 
-schema.methods.drawARelic = function() {
-  return this.auth() 
-  .then((authData) => {
-    return dena.api.doGachaDraw(authData);
-  })
-  .catch(this.resetAuth);
+schema.methods.doGachaDraw = function() {
+  return this._denaApiCall('doGachaDraw');
 }
 
-schema.methods.enterDungeon = function(dungeonId) {
-  return this.auth() 
-  .then((authData) => {
-    return dena.api.doEnterDungeon((process.env.DENA_CURRENT_EVENT_ID || 95), dungeonId, authData);
-  })
-  .catch(this.resetAuth);
+schema.methods.doEnterDungeon = function(eventId, dungeonId) {
+  return this._denaApiCall('doEnterDungeon', eventId, dungeonId);
 }
 
-schema.methods.leaveDungeon = function(dungeonId) {
-  return this.auth() 
-  .then((authData) => {
-    return dena.api.doLeaveDungeon((process.env.DENA_CURRENT_EVENT_ID || 95), dungeonId, authData);
-  })
-  .catch(this.resetAuth);
+schema.methods.doLeaveDungeon = function(eventId, dungeonId) {
+  return this._denaApiCall('doLeaveDungeon', eventId, dungeonId);
 }
 
 schema.methods.resetAuth = function(err) {
@@ -346,7 +339,7 @@ schema.methods.auth = function() {
 
 schema.methods.buildBattlesFromDungeon = function(dungeonId) {
   var self = this;
-  return self.enterDungeon(dungeonId)
+  return self.doEnterDungeon((process.env.DENA_CURRENT_EVENT_ID || 95), dungeonId)
   .then((json) => {
     if(!json.success) {
       return Promise.resolve(json)
@@ -372,7 +365,7 @@ schema.methods.buildBattlesFromDungeon = function(dungeonId) {
     });
   })
   .then((dungeons) => {
-    return self.leaveDungeon(dungeonId);
+    return self.doLeaveDungeon((process.env.DENA_CURRENT_EVENT_ID || 95), dungeonId);
   })
 }
 
