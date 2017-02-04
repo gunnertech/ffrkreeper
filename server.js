@@ -447,16 +447,14 @@ let buildAbilities = () => {
   })
 }
 
-buildAbilities();
-
 setInterval(pushDrops, 6000); // Every six seconds
-// setInterval(updateUserData, (1000 * 60 * 60)); // Every hour
-// setInterval(buildBattles, (1000 * 60 * 60)); // Every hour
-// setInterval(buildWorlds, (1000 * 60 * 60 * 24)); // Every day
+setInterval(updateUserData, (1000 * 60 * 60)); // Every hour
+setInterval(buildBattles, (1000 * 60 * 60)); // Every hour
+setInterval(buildWorlds, (1000 * 60 * 60 * 24)); // Every day
 
-setTimeout(buildBattles, 1000);
-setTimeout(buildWorlds, 10000);
-setTimeout(updateUserData, 20000);
+// setTimeout(buildBattles, 1000);
+// setTimeout(buildWorlds, 10000);
+// setTimeout(updateUserData, 20000);
 
 // buildWorlds();
 
