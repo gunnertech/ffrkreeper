@@ -196,7 +196,7 @@ const server = express()
       return res.render('banners/index', { 
         title: "Banners", 
         gachas: [...Array(700).keys()], 
-        gachas: [...Array(700).keys()], 
+        events: [...Array(700).keys()], 
         characters: lodash.range(501004, 501200)
       });
     })
