@@ -195,7 +195,7 @@ const server = express()
       event_ids = lodash.sortBy(event_ids, [function(id) { return parseInt(id); }]);
       return res.render('banners/index', { 
         title: "Banners", 
-        gachas: [...Array(400).keys()], 
+        gachas: [...Array(700).keys()], 
         events: event_ids,
         characters: lodash.range(501004, 501200)
       });
