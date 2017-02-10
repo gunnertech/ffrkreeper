@@ -483,9 +483,7 @@ schema.methods.handleDropError = function(err, io) {
       };
 
       return Promise.all([
-        self.pushErrorToSocket(err, io),
-        self.pushErrorToEmail(err),
-        self.pushErrorToPhone(err)
+        self.pushErrorToSocket(err, io)
       ])
     }).return(self)
     
