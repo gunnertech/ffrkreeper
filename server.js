@@ -98,7 +98,7 @@ const server = express()
     });
   })
   .get('/worlds/:worldId', function(req, res) {
-    mongoose.model('World').findById(req.params.worldId).populate({path: 'dungeons'}).populate('series')
+    mongoose.model('World').findById(req.params.worldId).populate({path: 'dungeons', options: { sort: { 'dena.name': 1 }}}).populate('series')
     .then((world) => {
       return res.render('worlds/show', { title: world.dena.name, world: world });
     });
@@ -134,19 +134,7 @@ const server = express()
     }
     ])
     .then((battle) => {
-      var promises = [];
-      for(var i in battle.dropRates) {
-        promises.push(mongoose.model('Item').findById(i)
-        .then((item) => {
-          var i = item._id.toString();
-          battle.dropRates[i].item = item;
-          battle.dropRates[i].rate = Math.round(battle.dropRates[i].rate *100)
-        }));
-      }
-
-      return Promise.all(promises).return(battle);
-    })
-    .then((battle) => {
+      console.log(battle);
       return res.render('battles/show', { title: battle.name, battle: battle });
     });
   })
