@@ -26,7 +26,7 @@ schema.pre('save', function (next) {
 
   mongoose.model('Dungeon')
     .update({ _id: this.dungeon }, { $addToSet: { enemies: this._id } })
-    .then(((dungeons) => next() ))
+    .then(((dungeons) => {return next()} ))
     .error(((err) => next(err)));
 });
 

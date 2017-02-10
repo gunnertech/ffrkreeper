@@ -11,13 +11,19 @@
   <div class="card">
     <div class="card-block">
       <ul class="list-unstyled">
-        {{#each battle.dropRates}}
+        {{#each battle.dropRateModels}}
 
         <li class="media">
           <img class="d-flex mr-3" src="{{item.imgUrl}}">
           <div class="media-body">
-            <h5 class="mt-0 mb-1">{{item.name}}</h5>
-            Drop Rate: {{rate}}% - {{hits}} out of {{total}} drops for this battle have been for this item
+            <h5 class="mt-0 mb-1">{{item.dena.name}}</h5>
+            <ul class="list-unstyled">
+              <li>Dropped in {{hits}} out of {{runCount}} runs ({{successPct}}%)</li>
+              <li>Avg/Run: {{roundedPerRun}}</li>
+              {{#if roundedPerStamina}}
+                <li>Avg/Stam: {{roundedPerStamina}}</li>
+              {{/if}}
+            </ul>
           </div>
         </li>
         {{/each}}

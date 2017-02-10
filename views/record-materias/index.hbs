@@ -1,0 +1,26 @@
+<table class="table table-responsive">
+  <thead>
+    <tr>
+      <th></th>
+      <th>Name</th>
+      <th>Buddy</th>
+      <th>Step</th>
+      <th>Description</th>
+      <th>Condition</th>
+    </tr>
+  </thead>
+  <tbody>
+  {{#each recordMaterias}}
+    <tr>
+      <th scope="row">
+        <img src="{{imgUrl}}" alt="{{dena.name}}" />
+      </th>
+      <td>{{dena.name}}</td>
+      <td>{{buddy.dena.name}}</td>
+      <td>{{dena.step}}</td>
+      <td>{{dena.description}}</td>
+      <td>{{dena.cond_description}}</td>
+    </tr>
+  {{/each}}
+  </tbody>
+</table>\

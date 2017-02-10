@@ -32,7 +32,7 @@ try {
 
 
 const querystring = require('querystring');
-const http = require('http');
+const request = require('request');
 const rp = require('request-promise');
 const Promise = require('bluebird');
 const util = require('util');
@@ -54,51 +54,40 @@ function getSessionId(userId, accessToken, sessionId) {
       accessToken: accessToken
     });
 
-    var req = http.request({
-        host: 'ffrk.denagames.com',
-        port: 80,
-        path: "/dff/_api_create_session",
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-          'Content-Length': Buffer.byteLength(post_data)
-        }
-    }, function(res) {
-      res.setEncoding('utf8');
+		var options = {
+			url: 'http://ffrk.denagames.com/dff/_api_create_session',
+		  proxy: process.env.PROXY_URL,
+		  headers: {
+			  'Content-Type': 'application/x-www-form-urlencoded',
+			  //'Content-Length': Buffer.byteLength(post_data)  //pretty sure request does this for us
+		  }
+		};
+
+		request.post(options, post_data, function(err, data, headersMightBeHere) {
       var sessionId = null;
-      res.rawHeaders.forEach((header) => {
+
+      data.rawHeaders.forEach((header) => {   //todo fix this
         if(header.match(/http_session_sid=/)) {
           sessionId = header.match(/http_session_sid=([^;]+)/)[1];
         }
       });
       resolve(sessionId);
-    });
+		})
 
-    req.write(post_data);
-    req.end();
+
   });
 }
 
 function getBrowserData(sessionId) {
   return new Promise(function(resolve, reject) {
-
-    var req = http.request({
-        host: 'ffrk.denagames.com',
-        port: 80,
-        path: "/dff/",
-        method: 'GET',
+    request.get({
+        url: 'http://ffrk.denagames.com/dff/',
+		    proxy: process.env.PROXY_URL,
         headers: {
           'Cookie': 'http_session_sid='+sessionId
         }
-    }, function(res) {
-      res.setEncoding('utf8');
-
-      var data = "";
-
-      res.on('data', (chunk) => { data += chunk; });
-
-      res.on("end", () => {
-        var matchData = data.match(/FFEnv\.csrfToken="([^"]+)";/);
+    }, function(err, data, dataAsStr) {
+			var matchData = (dataAsStr||"").match(/FFEnv\.csrfToken="([^"]+)";/);
 
         if(!matchData) {
           reject({
@@ -109,72 +98,45 @@ function getBrowserData(sessionId) {
           return;
         }
 
+		    var beginBattleToken;
         var csrfToken = matchData[1];
-        var beginBattleToken = data.match(/"begin_battle_token":"([^"]+)"/)[1];
+
+				var found = dataAsStr.match(/"begin_battle_token":"([^"]+)"/);
+			  if (found && found[1]) {
+					beginBattleToken = found[1];
+				}
+
         resolve({
           csrfToken: csrfToken,
           beginBattleToken: beginBattleToken
-        });
-      });
-
+        });  
     });
-
-    req.end();
   });
 }
 
 function scrapeSplashScreen() {
   return new Promise(function(resolve, reject) {
-
-    var req = http.request({
-        host: 'ffrk.denagames.com',
-        port: 80,
-        path: "/dff/splash",
-        method: 'GET'
-    }, function(res) {
-      res.setEncoding('utf8');
-
-      var data = "";
-
-      res.on('data', (chunk) => { data += chunk; });
-
-      res.on("end", () => {
-        resolve(data);
-      });
-
-    });
-
-    req.end();
+    request.get({
+			  url: 'http://ffrk.denagames.com/dff/splash',
+		    proxy: process.env.PROXY_URL
+    }, function(err, data) {
+			resolve(data);
+    });	
   });
 }
 
 function scrapeIndexScreen(sessionId) {
   sessionId = sessionId;
-
   return new Promise(function(resolve, reject) {
-
-    var req = http.request({
-        host: 'ffrk.denagames.com',
-        port: 80,
-        path: "/dff/",
-        method: 'GET',
+    request.get({
+			  url: 'http://ffrk.denagames.com/dff/',
+		    proxy: process.env.PROXY_URL,
         headers: {
           'Cookie': 'http_session_sid='+sessionId
         }
-    }, function(res) {
-      res.setEncoding('utf8');
-
-      var data = "";
-
-      res.on('data', (chunk) => { data += chunk; });
-
-      res.on("end", () => {
+    }, function(err, data) {
         resolve(data);
-      });
-
     });
-
-    req.end();
   });
 }
 
@@ -228,33 +190,27 @@ function getAudioFiles(sessionId) {
 
 function getUserSessionKey(sessionId, csrfToken) {
   return new Promise(function(resolve, reject) {
-
     var post_data = JSON.stringify({});
-
-    var req = http.request({
-        host: 'ffrk.denagames.com',
-        port: 80,
-        path: "/dff/update_user_session",
-        method: 'POST',
+    request.post({
+			  url: 'http://ffrk.denagames.com/dff/update_user_session',
+				proxy: process.env.PROXY_URL,
+				json: true,
         headers: {
           'Content-Type': 'application/json',
           'X-CSRF-Token': csrfToken,
           'Cookie': 'http_session_sid='+sessionId
         }
-    }, function(res) {
-      var data = "";
-
-      res.on('data', (chunk) => { data += chunk; });
-
-      res.on("end", () => {
-        var json = JSON.parse(data); 
-
-        resolve(json.user_session_key);
-      });
+    }, post_data, function(err, response, body) {
+			try {
+				if(err) throw err;		
+        return resolve(body.user_session_key);
+			} catch (e) {
+				reject({
+					message: "invalid session id",
+					name: "Authorization Error"
+				});
+			}       
     });
-
-    req.write(post_data);
-    req.end();
   });
 }
 
@@ -276,7 +232,7 @@ function doSimplePost(path, json, options) {
 
     var post_data = JSON.stringify(json);
 
-    var req = http.request({
+    var req = require('http').request({
         host: 'ffrk.denagames.com',
         port: 80,
         path: path,
@@ -314,33 +270,22 @@ function doSimpleGet(path, options) {
   }
 
   return new Promise(function(resolve, reject) {
-    var req = http.request({
-        host: 'ffrk.denagames.com',
-        port: 80,
-        path: path,
-        method: 'GET',
-        headers: headers
-    }, function(res) {
-      var data = "";
-
-      res.on('data', (chunk) => { data += chunk; });
-
-      res.on("end", () => {
-        try {
-          var json = JSON.parse(data);   
+    request.get({
+		  	url: 'http://ffrk.denagames.com/' + path,
+		   	proxy: process.env.PROXY_URL,
+				headers: headers,
+    }, function(err, response, body) {
+			try {
+				 if(err) throw err;
+				 var json = JSON.parse(body);
+				 resolve(json); 
         } catch(e) {
           reject({
             message: "invalid session id",
             name: "Authorization Error"
           });
         }
-        
-
-        resolve(json);
-      });
     });
-
-    req.end();
   });
 }
 
@@ -369,6 +314,10 @@ function getFolloweeAndFollowersData(options) {
 
 function doGachaDraw(options) {
   return doSimplePost("/dff/gacha/execute", {entry_point_id: 16008101}, options);
+}
+
+function getPartyList(options) {
+  return doSimpleGet("/dff/party/list", options);
 }
 
 function getRootData(options) {
@@ -410,13 +359,15 @@ function getWdayDataForEvent(id) {
 
 function authData(options) {
   options = options || {}
+  options.for = options.for || 'read';
+
   return getSessionId(
-    (options.userId || process.env.DENA_USER_ID),
-    (options.accessToken || process.env.DENA_ACCESS_TOKEN),
-    (options.sessionId || process.env.DENA_SESSION_ID)
+    options.userId,
+    options.accessToken,
+    options.sessionId
   )
   .then((sessionId) => {
-    return [sessionId, getBrowserData(sessionId)];
+    return [sessionId, getBrowserData(sessionId) ];
   })
   .spread((sessionId, browserData) => {
     return [sessionId, browserData, getUserSessionKey(sessionId, browserData.csrfToken)];
@@ -426,6 +377,7 @@ function authData(options) {
 
 module.exports = {
   api: {
+    getPartyList: getPartyList,
     doEnterDungeon: doEnterDungeon,
     doLeaveDungeon: doLeaveDungeon,
     doGachaDraw: doGachaDraw,

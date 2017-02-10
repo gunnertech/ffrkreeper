@@ -1,4 +1,3 @@
-const _ = require('lodash');
 const mongoose = require('mongoose');
 
 const schema = new mongoose.Schema({
@@ -6,7 +5,8 @@ const schema = new mongoose.Schema({
     id: { type: Number, index: { unique: true } },
     name: { type: String },
     image_path: { type: String },
-    type_name: { type: String }
+    type_name: { type: String },
+    rarity: Number
   }
 });
 
@@ -14,14 +14,11 @@ schema.set('toJSON', { getters: true, virtuals: true });
 schema.set('toObject', { getters: true, virtuals: true });
 
 schema.virtual('imgUrl').get(function () {
-  // if(!this.dena.bgm) {
-  //   return null;
-  // }
-  // var formatted_type = this.type_name == "GROW_EGG" ? "growegg" : this.type_name == "COMMON" ? "common" : this.type_name.toLowerCase();
+  return !this.dena.image_path ? null : this.dena.image_path.match(/ffrk\.static/) ? this.dena.image_path : `https://ffrk.static.denagames.com${this.dena.image_path}`;
+});
 
-  // return `/dff/static/lang/ww/compile/en/image/${formatted_type}/${this.dena.id}/${this.dena.id}_112.png`;
-
-  return `https://ffrk.static.denagames.com${this.dena.image_path}`;
+schema.virtual('name').get(function () {
+  return this.dena.name || `Item ${this.dena.id}`;
 });
 
 schema.statics.findOneOrCreate = (conditions, data) => {
@@ -29,8 +26,8 @@ schema.statics.findOneOrCreate = (conditions, data) => {
   data = data || conditions;
   return model.findOne(conditions)
   .then((instance) => {
-    return instance ? Promise.resolve(instance) : model.create(data);
-  });
+    return instance ? model.update(conditions, data).then(() => model.findOne(conditions)) : model.create(data);
+  })
 }
 
 

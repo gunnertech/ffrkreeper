@@ -1,3 +1,4 @@
+"use strict";
 const _ = require('lodash');
 const mongoose = require('mongoose');
 const lodash = require('lodash');
@@ -6,12 +7,14 @@ const Promise = require('bluebird');
 const schema = new mongoose.Schema({
   dena: {
     name: { type: String, index: true },
-    buddy_id: { type: Number, index: { unique: true } }
-  }
+    buddy_id: Number,
+    id: { type: Number, index: { unique: true } }
+  },
+  recordMaterias: [{ type: mongoose.Schema.Types.ObjectId, ref: 'RecordMateria' }],
 });
 
 schema.virtual('imgUrl').get(function () {
-  return `https://ffrk.static.denagames.com/dff/static/lang/ww/compile/en/image/buddy/${this.dena.buddy_id}/${this.dena.buddy_id}.png`;
+  return `https://ffrk.static.denagames.com/dff/static/lang/ww/compile/en/image/buddy/${this.dena.id}/${this.dena.id}.png`;
 });
 
 schema.set('toJSON', { getters: true, virtuals: true });
@@ -41,7 +44,7 @@ schema.statics.createFromRelationship = (json) => {
       return user.save();
     })
     .then((user) => {
-      return mongoose.model('Buddy').findOne({'dena.buddy_id': data.supporter_buddy_id})
+      return mongoose.model('Buddy').findOne({'dena.id': data.supporter_buddy_id})
       .then((buddy) => {
         user.buddy = buddy;
 
@@ -55,8 +58,17 @@ schema.statics.createFromRelationship = (json) => {
   
 }
 
+schema.statics.findOneOrCreate = (conditions, data) => {
+  const model = mongoose.model('Buddy');
+  data = data || conditions;
+  return model.findOne(conditions)
+  .then((instance) => {
+    return instance ? Promise.resolve(instance) : model.create(data);
+  });
+}
+
 schema.statics.checkForNewOnes = (profileJson) => {
-  mongoose.model('Buddy').find().distinct('dena.buddy_id')
+  mongoose.model('Buddy').find().distinct('dena.id')
   .then((buddyIds) => {
     var buddiesToCreate = [];
     (profileJson.buddies||[]).forEach( (buddyData) => {
@@ -75,15 +87,12 @@ schema.statics.checkForNewOnes = (profileJson) => {
         buddiesToCreate.push({
           dena: {
             name: name,
-            buddy_id: buddyData.buddy_id
+            id: buddyData.buddy_id
           }
         });
       }
     });
-    return mongoose.model('Buddy').create(lodash.uniqBy(buddiesToCreate, (b) => { return b.dena.buddy_id}));
-  })
-  .then((buddies) => {
-    return console.log(buddies)
+    return mongoose.model('Buddy').create(lodash.uniqBy(buddiesToCreate, (b) => { return b.dena.id}));
   })
 }
 

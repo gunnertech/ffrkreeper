@@ -27,22 +27,6 @@
     createCookie(name, "", -1);
   }
 
-  function getDropMessageFor(user) {
-    $(".drop-loading-wrapper").show();
-
-    socket.emit('/drops', user.dena.sessionId, function(message) {
-      $(".drop-loading-wrapper").hide();
-      if(message.name == 'Session Error') {
-        alert(message.name + ": " + message.message);
-        return signout();
-      }
-
-      console.log(message);
-
-      $('#attach-point').prepend(renderDrops(message));
-      setTimeout(function(){ getDropMessageFor(user) }, LOOP_FREQUENCY)
-    });
-  }
 
   var messages = [];
   function renderDrops(message) {
@@ -64,19 +48,29 @@
       html = '<ul class="list-unstyled">';
       $.each(message.drops, function(i, drop) {
         var rarity = parseInt(drop.rarity);
+        var dropRate = _.find((drop.battle.dropRateModels||[]), function(dropRate) {
+          return dropRate.item == drop.item._id;
+        });
 
         html += '<li class="media">';
         html += '<img class="d-flex mr-3" src="' + drop.item.imgUrl + '" alt="' + drop.item.dena.name + '">';
         html += '<div class="media-body">';
-        html += '<h5 class="mt-0">';
-        html += (drop.item.dena.name + ' x' + drop.num);
+        html += '<h6 class="mt-0">';
+        html += (drop.item.dena.name + ' x' + drop.qty);
         if(drop.round) {
           html += ' - Round ' + drop.round;
         }
-        html += '</h5>';
-        if(drop.dropRate) {
-          html += '<p>Drop Rate: ' + Math.round(drop.dropRate.rate * 100) + '% - ' + (drop.dropRate.hits) + ' out of ' + (drop.dropRate.total) + ' drops for <a href="/battles/'+drop.battle+'">this battle</a> have been for this item.</p>';
+        html += '</h6>';
+        html += '<ul class="list-unstyled">'
+        html += '<li>Battle: <a href="/battles/'+drop.battle._id+'">' + drop.battle.name + '</a></li>';
+        if(dropRate) {
+          html += '<li>Dropped in ' + (dropRate.runCount*dropRate.successRate) + ' out of ' + dropRate.runCount + ' runs ('+(Math.round(dropRate.successRate * 100))+'%)</li>';
+          html += '<li>Avg/Run: ' + (Math.round(dropRate.perRun * 100) / 100) + '</li>';
+          if(dropRate.perStamina) {
+            html += '<li>Avg/Stam: ' + (Math.round(dropRate.perStamina * 100) / 100) + '</li>';
+          }
         }
+        html += '</ul>'
         html += '</div>';
         html += '</li>';
       });
@@ -102,12 +96,11 @@
       email: email,
       alertLevel: alertLevel
     }, function(user) {
-      if(user.name == 'Session Error') {
-        alert(message.name + ": " + message.message);
+      $(".signin-loading-wrapper").hide();
+      if(user.name == 'SessionError') {
+        alert("That session id i");
         return signout();
       }
-      
-      $(".signin-loading-wrapper").hide();
 
       createCookie('denaSessionId', user.dena.sessionId, 365);
       createCookie('phone', user.phone, 365);
@@ -118,11 +111,11 @@
       $("#drops").show();
       $("#signout-form").show();
 
-      // socket.on('/drops/' + user.dena.sessionId, function(message) {
-      //   $('#attach-point').prepend(renderDrops(message));
-      // });
+      socket.on('/battle_message', function(message) {
+        $('#attach-point').prepend(renderDrops(message));
+      });
+      $(".drop-loading-wrapper").show();
       
-      getDropMessageFor(user);
     });
   }
 
@@ -147,6 +140,7 @@
       $("#welcome").show();
       $("#drops").hide();
       $("#signout-form").hide();
+      $(".drop-loading-wrapper").hide();
 
       console.log("Signed Out!");
     });
@@ -170,6 +164,6 @@
 
   $("#signin-form").submit(signin);
   $("#signout-form").submit(signout);
-  $("#signout-form").show();
+  // $("#signout-form").show();
 
 })();

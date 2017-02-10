@@ -5,15 +5,14 @@
   </ol>
 
   <h3>{{world.dena.name}} - {{world.typeName}}</h3>
-  
 
   <img class="img-fluid" src="{{world.doorImgUrl}}" onerror="this.onerror=null;$(this).remove();" />
 
-  <img class="img-fluid" src="{{world.bgImgUrl}}" onerror="this.onerror=null;$(this).remove();" />
+  <img class="img-fluid" src="{{world.bannerImgUrl}}" onerror="this.onerror=null;$(this).remove();" />
 
   {{#if world.audioUrl}}
-  <audio style="width: 100%;" controls="controls" preload="none"> 
-    <source src="{{world.audioUrl}}" type="audio/mp4"> 
+  <audio style="width: 100%;" controls preload="none"> 
+    <source src="{{world.audioUrl}}" type="audio/mp4" loop="loop" /> 
   </audio>
   {{/if}}
 

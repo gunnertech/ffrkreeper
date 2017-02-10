@@ -17,9 +17,25 @@ schema.virtual('bgImgUrl').get(function () {
   return `https://ffrk.static.denagames.com/dff/static/lang/ww/compile/en/image/world/${this.dena.id}.png`;  
 });
 
+schema.virtual('bannerImgUrl').get(function () {
+  if(this.dena.type == 2 && this.dena.id < 800000) {
+    return `https://ffrk.static.denagames.com/dff/static/lang/ww/compile/en/image/event/${this.dena.event_id}.png`;  
+  }
+
+  return this.bgImgUrl;
+});
+
 schema.virtual('doorImgUrl').get(function () {
   return `https://ffrk.static.denagames.com/dff/static/lang/ww/compile/en/image/world/${this.dena.id}_door.png`;  
 });
+
+schema.virtual('dena.event_id').get(function () {
+  let stringId = this.dena.id.toString();
+
+  return parseInt(stringId.substr(stringId.length - 3));
+});
+
+
 
 schema.virtual('typeName').get(function () {
   switch (this.dena.type) {
