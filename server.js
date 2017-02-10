@@ -59,7 +59,7 @@ const server = express()
     });
   })
   .get('/worlds/:worldId', function(req, res) {
-    mongoose.model('World').findById(req.params.worldId).populate({path: 'dungeons'}).populate('series')
+    mongoose.model('World').findById(req.params.worldId).populate({path: 'dungeons', options: { sort: { 'dena.name': 1 }}}).populate('series')
     .then((world) => {
       return res.render('worlds/show', { title: world.dena.name, world: world });
     });
