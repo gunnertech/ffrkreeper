@@ -70,6 +70,7 @@ schema.statics.calculateFor = (battle, items) => {
         battle: battle._id
       })
       .then((dropRate) => {
+        // console.log(dropRate)
         return dropRate.save(); // force it to run pre save hook
       })
     })
