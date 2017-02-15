@@ -134,8 +134,8 @@ function scrapeIndexScreen(sessionId) {
         headers: {
           'Cookie': 'http_session_sid='+sessionId
         }
-    }, function(err, data) {
-        resolve(data);
+    }, function(err, data, body) {
+        resolve(body);
     });
   });
 }
@@ -158,7 +158,6 @@ function extraFilesFromBlob(fileType, blob) {
 function getJsonBlobs(sessionId) {
   return (process.env.IS_TEST ? readFile("./scrapes/index.html", "utf8") : scrapeIndexScreen(sessionId))
   .then((data) => {
-    data = data.toString();
     data = data.replace(/,"dungeon_status_summary":\{\}/g,"")
     data = data.replace(/,"dungeon_status_summary":\{[\}\}]+\}\}/g,"")
     data = data.replace(/,"dungeon_term_list":\[[^\]]+\]/g,"")

@@ -160,7 +160,6 @@ schema.methods.buildWorlds = function() {
         const worldId = parseInt(data[4]);
         const seriesId = parseInt(parseInt(data[7]));
         var promise = null;
-
         if(worldIds.indexOf(worldId) == -1) {        
           promise = World.create({
             dena: {
@@ -354,11 +353,17 @@ schema.methods.buildBattlesFromDungeon = function(dungeonId) {
       return Promise.each(json.battles, (battleData) => {
         return mongoose.model('Battle').findOneOrCreate({'dena.id': battleData.id})
         .then((battle) => {
+          console.log(dungeon.dena.name)
+          battle.dena = battle.dena || {}
+          battle.dena.id = battleData.id;
           battle.dena.name = battleData.name;
           battle.dena.stamina = battleData.stamina;
-          battle.dungeon = dungeon;
+          battle.dungeon = dungeon._id;
+          // console.log(battle.dena)
 
-          return battle.save();
+          return Battle.update({_id: battle.id}, {dena: battle.dena, dungeon: dungeon._id}).catch(console.log)
+
+          // return battle.save()//.then((battle) => console.log(battle));
         });
       });
     });

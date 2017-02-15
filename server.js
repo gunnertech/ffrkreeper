@@ -42,6 +42,7 @@ const Dungeon = require('./models/dungeon.js');
 const Item = require('./models/item.js');
 const SoulStrike = require('./models/soulStrike.js');
 const Run = require('./models/run.js');
+const World = require('./models/world.js');
 const Ability = require('./models/ability.js');
 const RecordMateria = require('./models/recordMateria.js');
 const DropRate = require('./models/dropRate.js');
@@ -98,7 +99,7 @@ const server = express()
     });
   })
   .get('/worlds/:worldId', function(req, res) {
-    mongoose.model('World').findById(req.params.worldId).populate({path: 'dungeons', options: { sort: { 'dena.name': 1 }}}).populate('series')
+    World.findById(req.params.worldId).populate({path: 'dungeons', options: { sort: { 'dena.name': 1 }}}).populate('series')
     .then((world) => {
       return res.render('worlds/show', { title: world.dena.name, world: world });
     });
@@ -134,7 +135,6 @@ const server = express()
     }
     ])
     .then((battle) => {
-      console.log(battle);
       return res.render('battles/show', { title: battle.name, battle: battle });
     });
   })
@@ -401,13 +401,13 @@ let updateUserData = () => {
 //DO THIS WITH CODY'S ACCOUNT SINCE IT MAY LOG OUT THE USER AND CODY HAS UNLOCKED ALL CONTENT
 let buildBattles = () => {
   return Promise.all([
-    Dungeon.find(),
+    Dungeon.find().populate('battles'),
     User.findOne({hasValidSessionId: true, 'dena.name': 'SaltyNut'})
   ])
   .spread((dungeons, user) => {
     return Promise.each(dungeons, (dungeon) => {
       /// if the dungeon doesn't have any battles or has any battles without stamina, build the data for it.
-      if(!dungeon.battles || dungeon.battles.length == 0 || lodash.findIndex(dungeon.battles, (battle) => !battle.stamina) != -1 ) {
+      if(!dungeon.battles || dungeon.battles.length == 0 || lodash.some(dungeon.battles, (battle) => !battle.dena || !battle.dena.stamina) ) {
         return user.buildBattlesFromDungeon(dungeon.dena.id).return(dungeon);
       } else {
         return Promise.resolve(dungeon)
@@ -420,11 +420,6 @@ let buildWorlds = () => {
   return User.findOne({hasValidSessionId: true, 'dena.name': 'SaltyNut'})
   .then((user) => {
     return user.buildWorlds().return(user)
-    .catch((err) => {
-      // return console.log(err);
-      // user.hasValidSessionId = false;
-      // return user.save();
-    })
   })
 }
 
@@ -632,12 +627,17 @@ setInterval(buildBattles,   (1000 * 60 * 60 * 24)); // Every day
 setInterval(buildWorlds,    (1000 * 60 * 60 * 24)); // Every day
 setInterval(buildInventory, (1000 * 60 * 60 * 24)); // Every day
 
+buildWorlds();
+buildBattles();
+
+
+
 
 utils.runInBg(Event.generateEvents);
 
 
 /// BEGIN AREA TO RUN ONE OFF SHIT
-// User.ensureIndexes(function (err) {
+// Battle.ensureIndexes(function (err) {
 //   if (err) return console.log(err);
 // });
 
