@@ -45,13 +45,16 @@ schema.statics.calculateFor = (battle, items) => {
   
   return Promise.each(items, (item) => {
     return Promise.all([
-      mongoose.model('Run').count({battle: battle._id}),
-      mongoose.model('Run').count({battle: battle._id, items: item}),
-      mongoose.model('Drop').find({battle: battle._id, item: item}).select('qty'),
+      mongoose.model('Run').count({battle: battle}),
+      mongoose.model('Run').count({battle: battle, items: item}),
+      mongoose.model('Drop').find({battle: battle, item: item}).select('qty'),
+      mongoose.model('Battle').findById(battle)
     ])
-    .spread((runCount, successCount, drops) => {
+    .spread((runCount, successCount, drops, battle) => {
+      console.log([runCount, successCount, drops, battle])
+      
       if(successCount == 0) {
-        return Promise.resolve(null);
+        successCount++;
       }
 
       let summedCount = drops.length ? drops.reduce((accumulator,currentValue) => {
@@ -60,7 +63,7 @@ schema.statics.calculateFor = (battle, items) => {
 
       return mongoose.model('DropRate').findOneOrCreate({
         item: item,
-        battle: battle._id
+        battle: battle
       },{
         runCount: runCount,
         successRate: (((successCount*1.0)/runCount*1.0)||0.0),
@@ -70,7 +73,6 @@ schema.statics.calculateFor = (battle, items) => {
         battle: battle._id
       })
       .then((dropRate) => {
-        // console.log(dropRate)
         return dropRate.save(); // force it to run pre save hook
       })
     })

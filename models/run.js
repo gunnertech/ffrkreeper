@@ -29,19 +29,17 @@ schema.pre('save', function (next) {
     })
   ])
   .then((user) => {
+    return mongoose.model('Drop').find({battle: (self.battle._id || self.battle)}).distinct('item');
+  })
+  .then((itemIds) => {
+    itemIds.push(self.items)
+    return mongoose.model('DropRate').calculateFor(self.battle, lodash.uniq(lodash.flatten(itemIds)));
+  })
+  .then((user) => {
     return next();
   })
 });
 
-schema.post('save', function (run) {
-  mongoose.model('Run').findById(run._id).populate('items').populate({path: 'battle', select: "-drops"})
-  .then((run) => {
-    return mongoose.model('Drop').find({battle: run.battle._id}).distinct('item');
-  })
-  .then((itemIds) => {
-    return mongoose.model('DropRate').calculateFor(run.battle, itemIds);
-  });
-})
 
 
 module.exports = mongoose.model('Run', schema);
