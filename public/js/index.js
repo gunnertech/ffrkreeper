@@ -64,7 +64,7 @@
         html += '<ul class="list-unstyled">'
         html += '<li>Battle: <a href="/battles/'+drop.battle._id+'">' + drop.battle.name + '</a></li>';
         if(dropRate) {
-          html += '<li>Dropped in ' + (dropRate.runCount*dropRate.successRate) + ' out of ' + dropRate.runCount + ' runs ('+(Math.round(dropRate.successRate * 100))+'%)</li>';
+          html += '<li>Dropped in ' + (dropRate.successCount) + ' out of ' + dropRate.runCount + ' runs ('+(Math.round(dropRate.successRate * 100))+'%)</li>';
           html += '<li>Avg/Run: ' + (Math.round(dropRate.perRun * 100) / 100) + '</li>';
           if(dropRate.perStamina) {
             html += '<li>Avg/Stam: ' + (Math.round(dropRate.perStamina * 100) / 100) + '</li>';

@@ -4,6 +4,7 @@ const Promise = require('bluebird');
 
 const schema = new mongoose.Schema({
   runCount: { type: Number },
+  successCount: {type: Number},
   perRun: { type: Number },
   perStamina: {type: Number},
   successRate: {type: Number},
@@ -19,7 +20,7 @@ schema.pre('save', function (next) {
 });
 
 schema.virtual('hits').get(function () {
-  return this.runCount * this.successRate;
+  return this.successCount || (this.runCount * this.successRate);
 });
 
 schema.virtual('successPct').get(function () {
@@ -51,6 +52,8 @@ schema.statics.calculateFor = (battle, items) => {
       mongoose.model('Battle').findById(battle)
     ])
     .spread((runCount, successCount, drops, battle) => {
+
+      console.log(successCount)
       
       if(successCount == 0) {
         successCount++;
@@ -63,14 +66,13 @@ schema.statics.calculateFor = (battle, items) => {
       let perRun = (summedCount*1.0)/(runCount*1.0) || 0.0
       let perStamina = battle.dena.stamina ? (perRun / (battle.dena.stamina * 1.0)) : 0.0;
 
-      console.log(perStamina)
-
       return mongoose.model('DropRate').findOneOrCreate({
         item: item,
         battle: battle
       },{
         runCount: runCount,
         successRate: (((successCount*1.0)/runCount*1.0)||0.0),
+        successCount: successCount,
         perRun: perRun,
         perStamina: perStamina,
         item: item,
