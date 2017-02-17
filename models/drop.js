@@ -20,7 +20,7 @@ schema.set('toObject', { getters: true, virtuals: true });
 
 schema.pre('save', function (next) {
   mongoose.model('Battle')
-  .update({ _id: this.battle }, { $addToSet: { drops: this._id } })
+  .update({ _id: (this.battle._id || this.battle) }, { $addToSet: { drops: this._id } })
   .then(((battles) => { next(); return battles; }))
   .error(((err) => next(err)));
 });

@@ -46,15 +46,12 @@ schema.statics.calculateFor = (battle, items) => {
   
   return Promise.each(items, (item) => {
     return Promise.all([
-      mongoose.model('Run').count({battle: battle}),
-      mongoose.model('Run').count({battle: battle, items: item}),
-      mongoose.model('Drop').find({battle: battle, item: item}).select('qty'),
-      mongoose.model('Battle').findById(battle)
+      mongoose.model('Run').count({battle: battle._id}),
+      mongoose.model('Run').count({battle: battle._id, items: item}),
+      mongoose.model('Drop').find({battle: battle._id, item: item}).select('qty')
     ])
-    .spread((runCount, successCount, drops, battle) => {
+    .spread((runCount, successCount, drops) => {
 
-      console.log(successCount)
-      
       if(successCount == 0) {
         successCount++;
       }

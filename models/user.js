@@ -359,11 +359,9 @@ schema.methods.buildBattlesFromDungeon = function(dungeonId) {
           battle.dena.name = battleData.name;
           battle.dena.stamina = battleData.stamina;
           battle.dungeon = dungeon._id;
-          // console.log(battle.dena)
 
-          return Battle.update({_id: battle.id}, {dena: battle.dena, dungeon: dungeon._id}).catch(console.log)
+          return Battle.update({_id: battle.id}, {dena: battle.dena, dungeon: dungeon._id})
 
-          // return battle.save()//.then((battle) => console.log(battle));
         });
       });
     });
@@ -609,8 +607,8 @@ schema.methods.startNewRun = function(json) {
   run.user = self;
   run.drops = [];
 
-  return Battle.findOneOrCreate({ 'dena.id': json.battle.battle_id }) 
-  .then(function(battle) {
+  return Battle.findOneOrCreate({ 'dena.id': json.battle.battle_id })
+  .then((battle) => {
     if(battle.dungeon) {
       return Promise.resolve(battle);
     }
@@ -618,7 +616,7 @@ schema.methods.startNewRun = function(json) {
     return mongoose.model('Dungeon').findOne({'dena.id': json.battle.dungeon.dungeon_id})
     .then((dungeon) => {
       battle.dungeon = dungeon;
-      return battle.save();
+      return battle.save().return(battle);
     })
   })
   .then(function(battle) { 
@@ -646,9 +644,9 @@ schema.methods.startNewRun = function(json) {
       });
     });
 
-    return [Promise.resolve(lodash.filter(drops, (d) => !!d.item_id)), Promise.resolve(enemies)];
+    return [Promise.resolve(lodash.filter(drops, (d) => !!d.item_id)), Promise.resolve(enemies), run.save()];
   })
-  .spread((dropData, enemyData) => {
+  .spread((dropData, enemyData, r) => {
     return Promise.all([
       Promise.map(enemyData, (e) => {
         return Enemy.findOneOrCreate({battle: run.battle._id, 'dena.id': e.enemy_id, 'dena.no': e.no, 'dena.name': e.disp_name})
@@ -656,17 +654,18 @@ schema.methods.startNewRun = function(json) {
       Promise.map(dropData, (d) => { 
         return mongoose.model('Item').findOneOrCreate({'dena.id': d.item_id})
         .then((item) => {
+
           return  Drop.create({
             battle: run.battle._id,
             user: self._id,
             qty: d.num,
             rarity: d.rarity,
-            item: item,
+            item: item._id,
             run: run
           })
-          // .then((drop) => {
-          //   run.drops.push(drop);
-          // })
+          .then((drop) => {
+            run.drops.push(drop);
+          })
         });
       })
     ])
