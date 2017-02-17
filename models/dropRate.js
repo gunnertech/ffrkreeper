@@ -46,8 +46,8 @@ schema.statics.calculateFor = (battle, items) => {
   return Promise.each(items, (item) => {
     return Promise.all([
       mongoose.model('Run').count({battle: battle._id}),
-      mongoose.model('Run').count({battle: battle._id, items: item._id}),
-      mongoose.model('Drop').find({battle: battle._id, item: item._id}).select('qty'),
+      mongoose.model('Run').count({battle: battle._id, items: item}),
+      mongoose.model('Drop').find({battle: battle._id, item: item}).select('qty'),
     ])
     .spread((runCount, successCount, drops) => {
       if(successCount == 0) {
@@ -59,14 +59,14 @@ schema.statics.calculateFor = (battle, items) => {
       },0) : 0;
 
       return mongoose.model('DropRate').findOneOrCreate({
-        item: item._id,
+        item: item,
         battle: battle._id
       },{
         runCount: runCount,
         successRate: (((successCount*1.0)/runCount*1.0)||0.0),
         perRun: (((summedCount*1.0)/runCount*1.0)||0.0),
         perStamina: (battle.dena.stamina ? (((summedCount*1.0)/battle.dena.stamina*1.0)||0.0) : 0),
-        item: item._id,
+        item: item,
         battle: battle._id
       })
       .then((dropRate) => {
@@ -77,18 +77,7 @@ schema.statics.calculateFor = (battle, items) => {
   })
 }
 
-schema.statics.calculate = () => {
-  //, 'dena.stamina': {$exists:true}
-  return Promise.all([
-    mongoose.model('Run').distinct('battle').then((battleIds) => { return mongoose.model('Battle').find({_id: {$in: battleIds}}).select('-drops') }),
-    mongoose.model('Item').find()
-  ])
-  .spread((battles, items) => {
-    return Promise.each(battles, (battle) => {
-      return mongoose.model('DropRate').calculateFor(battle, items)
-    });
-  });
-}
+
 
 schema.statics.findOneOrCreate = (conditions, data) => {
   const model = mongoose.model('DropRate');

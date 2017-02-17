@@ -34,10 +34,13 @@ schema.pre('save', function (next) {
 });
 
 schema.post('save', function (run) {
-  mongoose.model('Run').findById(run._id).populate('items').populate({path: 'battle', select: "-drops"}).populate({path: 'drops'})
+  mongoose.model('Run').findById(run._id).populate('items').populate({path: 'battle', select: "-drops"})
   .then((run) => {
-    return mongoose.model('DropRate').calculateFor(run.battle, run.items);
+    return mongoose.model('Drop').find({battle: run.battle._id}).distinct('item');
   })
+  .then((itemIds) => {
+    return mongoose.model('DropRate').calculateFor(run.battle, itemIds);
+  });
 })
 
 

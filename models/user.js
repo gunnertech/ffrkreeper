@@ -664,9 +664,9 @@ schema.methods.startNewRun = function(json) {
             item: item,
             run: run
           })
-          .then((drop) => {
-            run.drops.push(drop);
-          })
+          // .then((drop) => {
+          //   run.drops.push(drop);
+          // })
         });
       })
     ])

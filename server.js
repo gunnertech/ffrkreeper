@@ -627,8 +627,8 @@ setInterval(buildBattles,   (1000 * 60 * 60 * 24)); // Every day
 setInterval(buildWorlds,    (1000 * 60 * 60 * 24)); // Every day
 setInterval(buildInventory, (1000 * 60 * 60 * 24)); // Every day
 
-buildWorlds();
-buildBattles();
+// buildWorlds();
+// buildBattles();
 
 
 
@@ -637,7 +637,7 @@ utils.runInBg(Event.generateEvents);
 
 
 /// BEGIN AREA TO RUN ONE OFF SHIT
-// Battle.ensureIndexes(function (err) {
-//   if (err) return console.log(err);
-// });
+Battle.ensureIndexes(function (err) {
+  if (err) return console.log(err);
+});
 
