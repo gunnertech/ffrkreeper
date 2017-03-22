@@ -277,6 +277,10 @@ io.on('connection', (socket) => {
     console.log('Client disconnected');
   });
 
+  socket.on('message', (data, fn) => { 
+    socket.emit('message', Object.assign({}, {'socketId': socket.id}, data);    
+  });
+
   socket.on('/signin', (data, fn) => { ////ALLOW THEM TO SIGN IN WITH EITHER A SESSIONID, PHONE OR EMAIL
     var query = [];
 
