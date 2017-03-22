@@ -271,6 +271,8 @@ const io = socketIO(server);
 io.on('connection', (socket) => {
   console.log('Client connected');
 
+  socket.emit('socketId', {'socketId': socket.id, 'connectTime': Date.now()});
+
   socket.on('disconnect', () => {
     console.log('Client disconnected');
   });
