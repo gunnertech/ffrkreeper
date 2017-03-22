@@ -278,7 +278,7 @@ io.on('connection', (socket) => {
   });
 
   socket.on('message', (data, fn) => { 
-    socket.emit('message', Object.assign({}, {'socketId': socket.id}, data);    
+    socket.emit('message', Object.assign({}, {'socketId': socket.id}, data));    
   });
 
   socket.on('/signin', (data, fn) => { ////ALLOW THEM TO SIGN IN WITH EITHER A SESSIONID, PHONE OR EMAIL
