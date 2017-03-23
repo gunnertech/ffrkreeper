@@ -271,14 +271,14 @@ const io = socketIO(server);
 io.on('connection', (socket) => {
   console.log('Client connected');
 
-  socket.emit('socketId', {'socketId': socket.id, 'connectTime': Date.now()});
+  io.sockets.emit('socketId', {'socketId': socket.id, 'connectTime': Date.now()});
 
   socket.on('disconnect', () => {
     console.log('Client disconnected');
   });
 
   socket.on('message', (data, fn) => { 
-    socket.emit('message', Object.assign({}, {'socketId': socket.id}, data));    
+    io.sockets.emit('message', Object.assign({}, {'socketId': socket.id}, data));    
   });
 
   socket.on('/signin', (data, fn) => { ////ALLOW THEM TO SIGN IN WITH EITHER A SESSIONID, PHONE OR EMAIL
