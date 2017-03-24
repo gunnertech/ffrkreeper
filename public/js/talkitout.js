@@ -82,9 +82,9 @@
 
 ${[location.protocol, '//', location.host, location.pathname].join('')}?_tio_uid=${uid}
 
-Once there, you will be prompted for a key. Paste the following into the prompt.
+${key ? 'Once there, you will be prompted for a key. Paste the following into the prompt.' : ''}
 
-${key}</textarea>
+${key || ''}</textarea>
         </form>
       </div>
     </div>`;
@@ -119,11 +119,11 @@ ${key}</textarea>
   }
 
   function encryptMessage(message, key) {
-    return CryptoJS.AES.encrypt(message, key).toString();
+    return key ? CryptoJS.AES.encrypt(message, key).toString() : message;
   }
 
   function decryptMessage(data, key) {
-    return Object.assign({}, data, {message: CryptoJS.AES.decrypt(data.message, key).toString(CryptoJS.enc.Utf8)});
+    return Object.assign({}, data, {message: (key ? CryptoJS.AES.decrypt(data.message, key).toString(CryptoJS.enc.Utf8) : data.message)});
   }
 
   function takeLast(messages) {
@@ -145,10 +145,11 @@ ${key}</textarea>
       if(toLoad === 0) {
         //// SETUP
 
-        const uid = passedUid() || guid();
-        // IF there is a passed in UID, it means someone is trying to join. Otherwise, this is a new room
-        const key = passedUid() ? prompt("Please enter the key for this chat: ") : generateKey();
-        const {name} = Object.assign({}, _tio_config); //Set as a global variable
+        const config = Object.assign({}, _tio_config);
+        const {name, uid, key} = Object.assign({}, {
+          uid: (passedUid() || guid()), 
+          key: (typeof config.key == 'undefined' ? (passedUid() ? prompt("Please enter the key for this chat: ") : generateKey()) : config.key)
+        }, config);
 
         render(uid, key);
         
