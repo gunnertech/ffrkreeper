@@ -42,7 +42,7 @@
     password += stringPick(specials, 1);
     password += stringPick(lowercase, 1);
     password += stringPick(uppercase, 1);
-    password += stringPick(all, 3, 10);
+    password += stringPick(all, 4, 6);
     password = stringShuffle(password);
 
     return password;
