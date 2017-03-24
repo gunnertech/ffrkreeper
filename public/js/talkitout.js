@@ -44,6 +44,8 @@
     password += stringPick(uppercase, 1);
     password += stringPick(all, 3, 10);
     password = stringShuffle(password);
+
+    return password;
   }
 
   function fitInputToContent($input) {
