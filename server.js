@@ -266,19 +266,48 @@ const server = express()
   .listen(PORT, () => console.log(`Listening on ${PORT}`));
 
 const io = socketIO(server);
-
+let rooms = {};
 
 io.on('connection', (socket) => {
   console.log('Client connected');
 
+  ////start talk it out bullshit
   io.sockets.emit('socketId', {'socketId': socket.id, 'connectTime': Date.now()});
+
+  socket.on('message', (data, fn) => { 
+    io.sockets.in(`room-${data.roomId}`).emit('message', Object.assign({}, {'socketId': socket.id}, data));
+  });
+
+  socket.on('joinRoom', (data, fn) => { 
+
+    const roomName = `room-${data.roomId}`;
+    
+    socket.join(roomName);
+
+    // setTimeout(() => {
+      io.sockets.in(roomName).emit('participantCount', io.sockets.adapter.rooms[roomName].length);
+    // }, 1000)
+  });
+
+  socket.on('leaveRoom', (data, fn) => {
+    const roomName = `room-${data.roomId}`;
+    socket.leave(roomName);
+    
+    setTimeout(() => {
+      io.sockets.in(roomName).emit('participantCount', io.sockets.adapter.rooms[roomName].length);
+    }, 1000)
+  })
+  ////end talk it out bullshit
 
   socket.on('disconnect', () => {
     console.log('Client disconnected');
-  });
 
-  socket.on('message', (data, fn) => { 
-    io.sockets.emit('message', Object.assign({}, {'socketId': socket.id}, data));    
+    Object.keys(socket.adapter.rooms).forEach((roomName) => {
+      console.log(roomName)
+      socket.leave(roomName);
+      
+      io.sockets.in(roomName).emit('participantCount', io.sockets.adapter.rooms[roomName].length);
+    })
   });
 
   socket.on('/signin', (data, fn) => { ////ALLOW THEM TO SIGN IN WITH EITHER A SESSIONID, PHONE OR EMAIL
