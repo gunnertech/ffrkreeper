@@ -1,5 +1,51 @@
 (function() {
 
+  function stringPick(str, min, max) {
+    var n, chars = '';
+
+    if (typeof max === 'undefined') {
+        n = min;
+    } else {
+        n = min + Math.floor(Math.random() * (max - min + 1));
+    }
+
+    for (var i = 0; i < n; i++) {
+        chars += str.charAt(Math.floor(Math.random() * str.length));
+    }
+
+    return chars;
+  }
+
+  function stringShuffle(str) {
+    var array = str.split('');
+    var tmp, current, top = array.length;
+
+    if (top) while (--top) {
+        current = Math.floor(Math.random() * (top + 1));
+        tmp = array[current];
+        array[current] = array[top];
+        array[top] = tmp;
+    }
+
+    return array.join('');
+  }
+
+  function generateKey() {
+    var specials = '!@#$%^&*()_+{}:"<>?\|[];\',./`~';
+    var lowercase = 'abcdefghijklmnopqrstuvwxyz';
+    var uppercase = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    var numbers = '0123456789';
+
+    var all = specials + lowercase + uppercase + numbers;
+
+    var password = '';
+    password += stringPick(specials, 1);
+    password += stringPick(lowercase, 1);
+    password += stringPick(uppercase, 1);
+    password += stringPick(all, 3, 10);
+    password = stringShuffle(password);
+  }
+
   function fitInputToContent($input) {
     const maxHeight = 500;
     $input.style.height = 'auto';
@@ -99,7 +145,7 @@ ${key}</textarea>
 
         const uid = passedUid() || guid();
         // IF there is a passed in UID, it means someone is trying to join. Otherwise, this is a new room
-        const key = passedUid() ? prompt("Please enter the key for this chat: ") : guid();
+        const key = passedUid() ? prompt("Please enter the key for this chat: ") : generateKey();
         const {name} = Object.assign({}, _tio_config); //Set as a global variable
 
         render(uid, key);
