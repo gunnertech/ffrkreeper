@@ -90,6 +90,7 @@
         
         
         <input type="submit" class="btn btn-primary btn-block" value="Send" />
+        <button class="btn-clear btn btn-danger btn-block">Clear All</button>
 
         <div class="form-group share-container mt-5">
           <label for="tio-message">Invite Others:</label>
@@ -148,6 +149,10 @@ ${key || ''}</textarea>
     return [].concat(messages).pop();
   }
 
+  function clearMessages($messages) {
+    $messages.innerHTML = '';
+  }
+
   const sources = [
     "https://unpkg.com/rxjs@5.2.0/bundles/Rx.min.js",
     "https://cdn-orig.socket.io/socket.io-1.7.3.js",
@@ -173,6 +178,7 @@ ${key || ''}</textarea>
         render(uid, key, selector);
         
         const $input = document.querySelector(".talkitout textarea");
+        const $clearBtn = document.querySelector(".talkitout .btn-clear");
         const $form = document.querySelector(".talkitout form");
         const $messages = document.querySelector(".talkitout .messages");
         const $participants = document.querySelector(".talkitout .participants");
@@ -199,6 +205,9 @@ ${key || ''}</textarea>
         const submitted$ = Rx.Observable.fromEvent($form, 'submit')
         .do(event => event.preventDefault())
 
+        const cleared$ = Rx.Observable.fromEvent($clearBtn, 'click')
+        .do(event => event.preventDefault())
+
         const textEntered$ = Rx.Observable.merge(
           Rx.Observable.fromEvent($input, 'keyup'),
           Rx.Observable.fromEvent($input, 'change'),
@@ -216,6 +225,10 @@ ${key || ''}</textarea>
         /// CONNECT TO STREAMS
         socketId$.subscribe(data => {
           socket.emit('joinRoom', { roomId: uid });
+        });
+
+        cleared$.subscribe(event => {
+          clearMessages($messages);
         });
 
         textEntered$.subscribe(text => fitInputToContent($input));
