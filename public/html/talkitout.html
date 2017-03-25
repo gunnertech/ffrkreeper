@@ -1,16 +1,23 @@
-<html>
+<html lang="en">
   <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-alpha.6/css/bootstrap.min.css" integrity="sha384-rwoIResjU2yc3z8GV/NPeZWAv56rSmLldC3R/AZzGRnGxQQKnKkoFVhFQhNUwEyJ" crossorigin="anonymous">
+
     <script>
     var _tio_config = {
-      name: window.prompt("What's your name?")
-      // name: "Cody", you can set this from a current user or anything else. If you do, the user won't be prompt for their name
-      // key: null   same. If you omit this entirely, talk it out will generate one for you. If you set it to null, the chat session will not be encrypted
-      // uid: '123423233' if this isn't set, talk it out generates one automatically
+      name: window.prompt("What's your name?"), //This has to be sent to something. EX prompts user to enter a name
+      selector: '.container' //Where this is render. Defaults to body
+      // key: undefined,  //If you set it to null, the chat session will not be encrypted, if not set, one is generated
+      // uid: undefined //if this isn't set, talk it out generates one automatically
     }
     </script>
-    <script src="/js/talkitout.js?ver=1.1"></script>
+    <script src="/js/talkitout.js?ver=1.2"></script>
     
   </head>
   <body>
+    <div class="container">
+
+    </div>
   </body>
 </html>

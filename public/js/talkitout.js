@@ -54,11 +54,16 @@
     $input.style.height = Math.min($input.scrollHeight, maxHeight)+'px';
   }
 
-  function addMessage($messages, {name, message, time}) {
+  function addMessage($messages, clientSocketId, {name, message, time, socketId}) {
     let div = document.createElement('div');
     div.innerHTML = `
-      <cite>${name}</cite> - <time>${new Date(time)}</time>
-      <p>${message}</p>`;
+      <div class="mw-50 card mb-3 ${clientSocketId === socketId ? 'card-inverse card-primary float-right' : 'card-outline-primary float-left'}"><div class="px-2 py-1 card-block"><blockquote class="card-blockquote">
+        <p class="mb-0">
+          ${message}
+          ${clientSocketId === socketId ? '' : `- <cite>${name}</cite> <time style="display: none;">- ${new Date(time)}</time>`}
+        </p>
+      </blockquote></div></div><div class="clearfix"></div>
+    `;
 
     $messages.appendChild(div);
   }
@@ -67,28 +72,41 @@
     return Object.assign({}, data, {message: data.message.replace(/\n/g, '<br />')});
   }
 
-  function render(uid, key) {
+  function render(uid, key, selector) {
     let div = document.createElement('div');
     div.innerHTML = `<div class="talkitout">
-      <div class="participants"></div>
-      <div class="messages">
+      <div class="alert alert-warning participants" role="alert">
+        <strong>Warning!</strong> Better check yourself, you're not looking too good.
       </div>
-      <div>
-        <form>
-          <textarea class="tio-message" rows="1" wrap="hard"></textarea>
-          <input type="submit" value="Send" />
-          <p>Copy and paste the info below into a text message or email and send it to anyone you'd like to join this chat.</p>
-          <textarea "tio-info" disabled>To join my chat, please go to the following URL:
+      <div class="messages mb-3 mt-3">
+      </div>
+
+      <form>
+        <div class="form-group message-container">
+          <label for="tio-message">Your Message:</label>
+          <textarea class="form-control tio-message" rows="1" wrap="hard"></textarea>
+          <small class="form-text text-muted">Only participants in the chat right now will see your messages.</small>
+        </div>
+        
+        
+        <input type="submit" class="btn btn-primary btn-block" value="Send" />
+
+        <div class="form-group share-container mt-5">
+          <label for="tio-message">Invite Others:</label>
+          <textarea class="form-control tio-share" rows="8" disabled>To join my chat, please go to the following URL:
 
 ${[location.protocol, '//', location.host, location.pathname].join('')}?_tio_uid=${uid}
 
 ${key ? 'Once there, you will be prompted for a key. Paste the following into the prompt.' : ''}
 
 ${key || ''}</textarea>
-        </form>
-      </div>
+          <small class="form-text text-muted">Copy and paste the info below into a text message or email and send it to anyone you'd like to join this chat.</small>
+        </div>
+        <input type="hidden" class="tio-key" name="tio-key" value="${key}" />
+        <input type="hidden" class="tio-uid" name="tio-uid" value="${uid}" />
+      </form>
     </div>`;
-    document.body.appendChild(div);
+    document.querySelector(selector).appendChild(div);
   }
 
   function sendMessageToServer(message, socket, name, time, uid) {
@@ -146,22 +164,21 @@ ${key || ''}</textarea>
         //// SETUP
 
         const config = Object.assign({}, _tio_config);
-        const {name, uid, key} = Object.assign({}, {
+        const {name, uid, key, selector} = Object.assign({}, {
           uid: (passedUid() || guid()), 
-          key: (typeof config.key == 'undefined' ? (passedUid() ? prompt("Please enter the key for this chat: ") : generateKey()) : config.key)
+          key: (typeof config.key == 'undefined' ? (passedUid() ? prompt("Please enter the key for this chat: ") : generateKey()) : config.key),
+          selector: 'body'
         }, config);
 
-        render(uid, key);
+        render(uid, key, selector);
         
         const $input = document.querySelector(".talkitout textarea");
         const $form = document.querySelector(".talkitout form");
         const $messages = document.querySelector(".talkitout .messages");
         const $participants = document.querySelector(".talkitout .participants");
-        // const apiSource = 'http://localhost:3003';
-        const apiSource = 'https://ffrk-creeper.herokuapp.com';
+        const apiSource = location.href.match(/localhost/) ? 'http://localhost:3003' : 'https://ffrk-creeper.herokuapp.com';
+        // const apiSource = 'https://ffrk-creeper.herokuapp.com';
         const socket = io(apiSource);
-        
-
         
 
         ///STREAMS
@@ -202,7 +219,7 @@ ${key || ''}</textarea>
         });
 
         textEntered$.subscribe(text => fitInputToContent($input));
-        message$.subscribe(data => addMessage($messages, data));
+        message$.subscribe(data => addMessage($messages, `/#${socket.id}`, data));
         merged$.subscribe((message) => {
           sendMessageToServer(message, socket, name, Date.now(), uid);
           resetInput($input);
