@@ -92,18 +92,18 @@
         <input type="submit" class="btn btn-primary btn-block" value="Send" />
         <button class="btn-clear btn btn-danger btn-block">Clear All</button>
 
-        <div class="form-group share-container mt-5">
-          <label for="tio-message">Invite Others:</label>
-          <textarea class="form-control tio-share" rows="8" disabled>To join my chat, please go to the following URL:
-
-${[location.protocol, '//', location.host, location.pathname].join('')}?_tio_uid=${uid}
-
-${key ? 'Once there, you will be prompted for a key. Paste the following into the prompt.' : ''}
-
-${key || ''}</textarea>
-          <small class="form-text text-muted">Copy and paste the info below into a text message or email and send it to anyone you'd like to join this chat.</small>
+        <div class="form-group mt-5">
+          <label for="tio-link">Invite Others:</label>
+          <input disabled type="text" class="disabled form-control" id="tio-link" value="${[location.protocol, '//', location.host, location.pathname].join('')}?_tio_uid=${uid}" />
+          <small class="form-text text-muted">Send this url to anyone whom you'd like to join the chat.</small>
         </div>
-        <input type="hidden" class="tio-key" name="tio-key" value="${key}" />
+
+        <div class="form-group">
+          <label for="tio-key">Chat Key:</label>
+          <input disabled type="text" class="disabled form-control" id="tio-key" value="${key}" />
+          <small class="form-text text-muted">Anyone who joins this chat will need this key.</small>
+        </div>          
+
         <input type="hidden" class="tio-uid" name="tio-uid" value="${uid}" />
       </form>
     </div>`;
