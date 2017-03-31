@@ -153,95 +153,100 @@
     $messages.innerHTML = '';
   }
 
-  const sources = [
+  function loadSources(sourceArray, func) {
+    let sources = Array.from(sourceArray);
+
+    const src = sources.pop();
+    let script = document.createElement('script');
+
+    script.onload = function(){ 
+      if(sources.length) {
+        loadSources(sources, func);
+      } else {
+        func();
+      }
+    }
+    script.src = src;
+    document.head.appendChild(script);
+  }
+
+  function main() {
+    const config = Object.assign({}, _tio_config);
+    const {name, uid, key, selector} = Object.assign({}, {
+      uid: (passedUid() || guid()), 
+      key: (typeof config.key == 'undefined' ? (passedUid() ? prompt("Please enter the key for this chat: ") : generateKey()) : config.key),
+      selector: 'body'
+    }, config);
+
+    render(uid, key, selector);
+    
+    const $input = document.querySelector(".talkitout textarea");
+    const $clearBtn = document.querySelector(".talkitout .btn-clear");
+    const $form = document.querySelector(".talkitout form");
+    const $messages = document.querySelector(".talkitout .messages");
+    const $participants = document.querySelector(".talkitout .participants");
+    const apiSource = location.href.match(/localhost/) ? 'http://localhost:3003' : 'https://ffrk-creeper.herokuapp.com';
+    // const apiSource = 'https://ffrk-creeper.herokuapp.com';
+    const socket = io(apiSource);
+    
+
+    ///STREAMS
+    const socketId$ = Rx.Observable.create(observer => {
+      socket.on('socketId', data => { observer.next(data); });
+    });
+
+    const message$ = Rx.Observable.create(observer => {
+      socket.on('message', data => { observer.next(data); });
+    })
+    .map(data => decryptMessage(data, key))
+    .map(formatMessage);
+
+    const participantCount$ = Rx.Observable.create(observer => {
+      socket.on('participantCount', data => { observer.next(data); });
+    });
+
+    const submitted$ = Rx.Observable.fromEvent($form, 'submit')
+    .do(event => event.preventDefault())
+
+    const cleared$ = Rx.Observable.fromEvent($clearBtn, 'click')
+    .do(event => event.preventDefault())
+
+    const textEntered$ = Rx.Observable.merge(
+      Rx.Observable.fromEvent($input, 'keyup'),
+      Rx.Observable.fromEvent($input, 'change'),
+      Rx.Observable.fromEvent($input, 'cut'),
+      Rx.Observable.fromEvent($input, 'paste'),
+      Rx.Observable.fromEvent($input, 'drop')
+    )
+    .pluck('target', 'value')
+    // .filter(text => text.length > 2 )
+
+    const merged$ = textEntered$.buffer(submitted$).filter(updates => updates.length > 0).map(takeLast).map(message => encryptMessage(message, key));
+
+
+
+    /// CONNECT TO STREAMS
+    socketId$.subscribe(data => {
+      socket.emit('joinRoom', { roomId: uid });
+    });
+
+    cleared$.subscribe(event => {
+      clearMessages($messages);
+    });
+
+    textEntered$.subscribe(text => fitInputToContent($input));
+    message$.subscribe(data => addMessage($messages, `/#${socket.id}`, data));
+    merged$.subscribe((message) => {
+      sendMessageToServer(message, socket, name, Date.now(), uid);
+      resetInput($input);
+      fitInputToContent($input);
+    });
+    participantCount$.subscribe(count => $participants.innerHTML = `There ${(count == 1 ? 'is' : 'are')} ${count} participant${(count == 1 ? '' : 's')} in this chat.`)
+  }
+
+  loadSources([
     "https://unpkg.com/rxjs@5.2.0/bundles/Rx.min.js",
     "https://cdn-orig.socket.io/socket.io-1.7.3.js",
     "https://cdnjs.cloudflare.com/ajax/libs/crypto-js/3.1.9-1/crypto-js.min.js"
-  ];
-  
-  let toLoad = sources.length;
-
-  sources.forEach(function(src) {
-    let script = document.createElement('script');
-    script.onload = function() {
-      toLoad--;
-      if(toLoad === 0) {
-        //// SETUP
-
-        const config = Object.assign({}, _tio_config);
-        const {name, uid, key, selector} = Object.assign({}, {
-          uid: (passedUid() || guid()), 
-          key: (typeof config.key == 'undefined' ? (passedUid() ? prompt("Please enter the key for this chat: ") : generateKey()) : config.key),
-          selector: 'body'
-        }, config);
-
-        render(uid, key, selector);
-        
-        const $input = document.querySelector(".talkitout textarea");
-        const $clearBtn = document.querySelector(".talkitout .btn-clear");
-        const $form = document.querySelector(".talkitout form");
-        const $messages = document.querySelector(".talkitout .messages");
-        const $participants = document.querySelector(".talkitout .participants");
-        const apiSource = location.href.match(/localhost/) ? 'http://localhost:3003' : 'https://ffrk-creeper.herokuapp.com';
-        // const apiSource = 'https://ffrk-creeper.herokuapp.com';
-        const socket = io(apiSource);
-        
-
-        ///STREAMS
-        const socketId$ = Rx.Observable.create(observer => {
-          socket.on('socketId', data => { observer.next(data); });
-        });
-
-        const message$ = Rx.Observable.create(observer => {
-          socket.on('message', data => { observer.next(data); });
-        })
-        .map(data => decryptMessage(data, key))
-        .map(formatMessage);
-
-        const participantCount$ = Rx.Observable.create(observer => {
-          socket.on('participantCount', data => { observer.next(data); });
-        });
-
-        const submitted$ = Rx.Observable.fromEvent($form, 'submit')
-        .do(event => event.preventDefault())
-
-        const cleared$ = Rx.Observable.fromEvent($clearBtn, 'click')
-        .do(event => event.preventDefault())
-
-        const textEntered$ = Rx.Observable.merge(
-          Rx.Observable.fromEvent($input, 'keyup'),
-          Rx.Observable.fromEvent($input, 'change'),
-          Rx.Observable.fromEvent($input, 'cut'),
-          Rx.Observable.fromEvent($input, 'paste'),
-          Rx.Observable.fromEvent($input, 'drop')
-        )
-        .pluck('target', 'value')
-        // .filter(text => text.length > 2 )
-
-        const merged$ = textEntered$.buffer(submitted$).filter(updates => updates.length > 0).map(takeLast).map(message => encryptMessage(message, key));
-
-
-
-        /// CONNECT TO STREAMS
-        socketId$.subscribe(data => {
-          socket.emit('joinRoom', { roomId: uid });
-        });
-
-        cleared$.subscribe(event => {
-          clearMessages($messages);
-        });
-
-        textEntered$.subscribe(text => fitInputToContent($input));
-        message$.subscribe(data => addMessage($messages, `/#${socket.id}`, data));
-        merged$.subscribe((message) => {
-          sendMessageToServer(message, socket, name, Date.now(), uid);
-          resetInput($input);
-          fitInputToContent($input);
-        });
-        participantCount$.subscribe(count => $participants.innerHTML = `There ${(count == 1 ? 'is' : 'are')} ${count} participant${(count == 1 ? '' : 's')} in this chat.`)
-      }
-    };
-    script.src = src;
-    document.head.appendChild(script);
-  });
+  ], main);
 })()
