@@ -1,5 +1,28 @@
 (function() {
 
+  class SessionDisposable {
+    constructor(sessionToken) {
+      this.token = sessionToken;
+      this.disposed = false;
+      let expiration = moment().add(1, 'days').toDate();
+      document.cookie = `session_token=${sessionToken};expires=${expiration.toUTCString()}`;
+      console.log('Session created: ' + this.token);
+    }
+
+    getToken() {
+      return this.token;
+    }
+   
+    unsubscribe() {
+     if (!this.disposed) {
+        this.disposed = true;
+        this.token = null;
+        document.cookie = 'session_token=; expires=Thu, 01 Jan 197000:00:00 GMT';
+        console.log('Ended session! This object has been disposed.');
+     }
+   }
+  }
+
   function stringPick(str, min, max) {
     var n, chars = '';
 
@@ -68,6 +91,20 @@
     $messages.appendChild(div);
   }
 
+  function addFile($messages, clientSocketId, {name, data, time, socketId}) {
+    let div = document.createElement('div');
+    div.innerHTML = `
+      <div class="w-50 card mb-3 ${clientSocketId === socketId ? 'card-inverse card-primary float-right' : 'card-outline-primary float-left'}"><div class="px-2 py-1 card-block"><blockquote class="card-blockquote">
+        <p class="mb-0">
+          <a href="${data}" target="_blank"><img src="${data}" class="rounded img-fluid" /></a>
+          ${clientSocketId === socketId ? '' : `- <cite>${name}</cite> <time style="display: none;">- ${new Date(time)}</time>`}
+        </p>
+      </blockquote></div></div><div class="clearfix"></div>
+    `;
+
+    $messages.appendChild(div);
+  }
+
   function formatMessage(data) {
     return Object.assign({}, data, {message: data.message.replace(/\n/g, '<br />')});
   }
@@ -81,6 +118,10 @@
       <div class="messages mb-3 mt-3">
       </div>
 
+      <div class="alert alert-warning typing" role="alert" style="display: none;">
+        Someone is typing...
+      </div>
+
       <form>
         <div class="form-group message-container">
           <label for="tio-message">Your Message:</label>
@@ -88,7 +129,7 @@
           <small class="form-text text-muted">Only participants in the chat right now will see your messages.</small>
         </div>
         
-        
+        <input type="file" class="form-control-file mb-3" value="File" accept="image/*" />
         <input type="submit" class="btn btn-primary btn-block" value="Send" />
         <button class="btn-clear btn btn-danger btn-block">Clear All</button>
 
@@ -120,6 +161,23 @@
 
   }
 
+  function sendFileToServer(data, socket, name, time, uid) {
+    socket.emit('file', {
+      name: name,
+      data: data,
+      time: time,
+      roomId: uid
+    });
+
+  }
+
+  function sendTyping(socket, uid) {
+    socket.emit('typing', {
+      socketId: socket.id,
+      roomId: uid
+    });    
+  }
+
   function resetInput($input) {
     $input.value = "";
   }
@@ -142,7 +200,11 @@
   }
 
   function decryptMessage(data, key) {
-    return Object.assign({}, data, {message: (key ? CryptoJS.AES.decrypt(data.message, key).toString(CryptoJS.enc.Utf8) : data.message)});
+    return Object.assign({}, data, {message: (key ? CryptoJS.AES.decrypt((data.data || data.message), key).toString(CryptoJS.enc.Utf8) : (data.data || data.message))});
+  }
+
+  function decryptFile(data, key) {
+    return Object.assign({}, data, {message: (key ? CryptoJS.AES.decrypt(CryptoJS.enc.Base64.parse(data.data), key).toString(CryptoJS.enc.Utf8) : (data.data || data.message))});
   }
 
   function takeLast(messages) {
@@ -151,6 +213,15 @@
 
   function clearMessages($messages) {
     $messages.innerHTML = '';
+  }
+
+  function endSession($container, url) {
+    $container.innerHTML = '';
+    location.href = url;
+  }
+
+  function toggleTypingMessage($typing, toggle) {
+    $typing.style.display = (toggle == 'hide' ? 'none' : 'block');
   }
 
   function loadSources(sourceArray, func) {
@@ -180,10 +251,13 @@
 
     render(uid, key, selector);
     
+    const url = document.querySelector('#tio-link').value;
+
     const $input = document.querySelector(".talkitout textarea");
     const $clearBtn = document.querySelector(".talkitout .btn-clear");
     const $form = document.querySelector(".talkitout form");
     const $messages = document.querySelector(".talkitout .messages");
+    const $file = document.querySelector(".talkitout .form-control-file");
     const $participants = document.querySelector(".talkitout .participants");
     const apiSource = location.href.match(/localhost/) ? 'http://localhost:3003' : 'https://ffrk-creeper.herokuapp.com';
     // const apiSource = 'https://ffrk-creeper.herokuapp.com';
@@ -191,6 +265,7 @@
     
 
     ///STREAMS
+
     const socketId$ = Rx.Observable.create(observer => {
       socket.on('socketId', data => { observer.next(data); });
     });
@@ -200,6 +275,23 @@
     })
     .map(data => decryptMessage(data, key))
     .map(formatMessage);
+
+    const file$ = Rx.Observable.create(observer => {
+      socket.on('file', data => { observer.next(data); });
+    })
+    .map(data => decryptFile(data, key));
+
+    const clear$ = Rx.Observable.create(observer => {
+      socket.on('clear', data => { observer.next(data); });
+    })
+
+    const typing$ = Rx.Observable.combineLatest(
+      Rx.Observable.create(observer => {
+        socket.on('typing', data => { observer.next(data); });
+      }),
+      Rx.Observable.of(socket)
+    )
+    .filter(data => data[0].socketId != `/#${data[1].id}`)
 
     const participantCount$ = Rx.Observable.create(observer => {
       socket.on('participantCount', data => { observer.next(data); });
@@ -223,25 +315,72 @@
 
     const merged$ = textEntered$.buffer(submitted$).filter(updates => updates.length > 0).map(takeLast).map(message => encryptMessage(message, key));
 
+    const fileChanged$ = Rx.Observable.fromEvent($file, 'change')
+    .pluck('target')
+    .map(target => target.files[0])
+    .filter(file => file)
+    .switchMap((file) => {
+      const reader = new FileReader();
+      const $stream = Rx.Observable.fromEvent(reader, 'load');
+      reader.readAsDataURL(file);
+
+      return $stream;
+    })
+    .pluck('target', 'result')
 
 
-    /// CONNECT TO STREAMS
+
+    ////// SUBSCRIBE TO STREAMS
+
+    fileChanged$.subscribe(data => {
+      $file.value = "";
+      sendFileToServer(data, socket, name, Date.now(), uid);
+    });
+
     socketId$.subscribe(data => {
       socket.emit('joinRoom', { roomId: uid });
     });
 
-    cleared$.subscribe(event => {
+    clear$.subscribe(event => {
       clearMessages($messages);
     });
 
+    cleared$.subscribe(event => {
+      socket.emit('clear', { roomId: uid });
+    });
+
     textEntered$.subscribe(text => fitInputToContent($input));
+
     message$.subscribe(data => addMessage($messages, `/#${socket.id}`, data));
+    file$.subscribe(data => addFile($messages, `/#${socket.id}`, data));
+
     merged$.subscribe((message) => {
       sendMessageToServer(message, socket, name, Date.now(), uid);
       resetInput($input);
       fitInputToContent($input);
     });
     participantCount$.subscribe(count => $participants.innerHTML = `There ${(count == 1 ? 'is' : 'are')} ${count} participant${(count == 1 ? '' : 's')} in this chat.`)
+
+    Rx.Observable.merge(
+      Rx.Observable.fromEvent(window, 'mousemove'),
+      textEntered$,
+      Rx.Observable.empty
+    )
+    .switchMap(() => Rx.Observable.timer(10 * 60 * 1000/*10 minutes*/) )
+    .subscribe(() => endSession(document.querySelector('.talkitout'), url) );
+
+    textEntered$
+    .filter(text => text.length > 0)
+    .debounceTime(200)
+    .subscribe(() => sendTyping(socket, uid) );
+
+    typing$
+    .subscribe(() => toggleTypingMessage(document.querySelector('.talkitout .typing'), 'show') );
+
+    typing$
+    .switchMap(() => Rx.Observable.interval(10 * 60 * 10/*10 seconds*/) )
+    .subscribe(() => toggleTypingMessage(document.querySelector('.talkitout .typing'), 'hide') );
+    
   }
 
   loadSources([

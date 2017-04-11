@@ -274,8 +274,20 @@ io.on('connection', (socket) => {
   ////start talk it out bullshit
   io.sockets.emit('socketId', {'socketId': socket.id, 'connectTime': Date.now()});
 
+  socket.on('file', (data, fn) => { 
+    io.sockets.in(`room-${data.roomId}`).emit('file', Object.assign({}, data, {'socketId': socket.id}));
+  });
+
   socket.on('message', (data, fn) => { 
     io.sockets.in(`room-${data.roomId}`).emit('message', Object.assign({}, data, {'socketId': socket.id}));
+  });
+
+  socket.on('clear', (data, fn) => { 
+    io.sockets.in(`room-${data.roomId}`).emit('clear', Object.assign({}, data, {'socketId': socket.id}));
+  });
+
+  socket.on('typing', (data, fn) => { 
+    io.sockets.in(`room-${data.roomId}`).emit('typing', Object.assign({}, data, {'socketId': socket.id, 'generatedFromSocketId': data.socketId}));
   });
 
   socket.on('joinRoom', (data, fn) => { 
