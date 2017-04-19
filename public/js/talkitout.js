@@ -133,13 +133,13 @@
         <input type="submit" class="btn btn-primary btn-block" value="Send" />
         <button class="btn-clear btn btn-danger btn-block">Clear All</button>
 
-        <div class="form-group mt-5">
+        <div class="form-group mt-5 tio-link-group">
           <label for="tio-link">Invite Others:</label>
           <input disabled type="text" class="disabled form-control" id="tio-link" value="${[location.protocol, '//', location.host, location.pathname].join('')}?_tio_uid=${uid}" />
           <small class="form-text text-muted">Send this url to anyone whom you'd like to join the chat.</small>
         </div>
 
-        <div class="form-group">
+        <div class="form-group tio-key-group">
           <label for="tio-key">Chat Key:</label>
           <input disabled type="text" class="disabled form-control" id="tio-key" value="${key}" />
           <small class="form-text text-muted">Anyone who joins this chat will need this key.</small>
