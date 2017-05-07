@@ -2,3 +2,7 @@ node_modules
 npm-debug.log
 .env
 ripped
+# Elastic Beanstalk Files
+.elasticbeanstalk/*
+!.elasticbeanstalk/*.cfg.yml
+!.elasticbeanstalk/*.global.yml
