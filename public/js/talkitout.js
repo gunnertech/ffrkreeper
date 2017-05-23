@@ -1,27 +1,27 @@
 (function() {
 
-  class SessionDisposable {
-    constructor(sessionToken) {
-      this.token = sessionToken;
-      this.disposed = false;
-      let expiration = moment().add(1, 'days').toDate();
-      document.cookie = `session_token=${sessionToken};expires=${expiration.toUTCString()}`;
-      console.log('Session created: ' + this.token);
-    }
+//   class SessionDisposable {
+//     constructor(sessionToken) {
+//       this.token = sessionToken;
+//       this.disposed = false;
+//       let expiration = moment().add(1, 'days').toDate();
+//       document.cookie = `session_token=${sessionToken};expires=${expiration.toUTCString()}`;
+//       console.log('Session created: ' + this.token);
+//     }
 
-    getToken() {
-      return this.token;
-    }
-   
-    unsubscribe() {
-     if (!this.disposed) {
-        this.disposed = true;
-        this.token = null;
-        document.cookie = 'session_token=; expires=Thu, 01 Jan 197000:00:00 GMT';
-        console.log('Ended session! This object has been disposed.');
-     }
-   }
-  }
+//     getToken() {
+//       return this.token;
+//     }
+//    
+//     unsubscribe() {
+//      if (!this.disposed) {
+//         this.disposed = true;
+//         this.token = null;
+//         document.cookie = 'session_token=; expires=Thu, 01 Jan 197000:00:00 GMT';
+//         console.log('Ended session! This object has been disposed.');
+//      }
+//    }
+//   }
 
   function stringPick(str, min, max) {
     var n, chars = '';
@@ -259,8 +259,7 @@
     const $messages = document.querySelector(".talkitout .messages");
     const $file = document.querySelector(".talkitout .form-control-file");
     const $participants = document.querySelector(".talkitout .participants");
-    const apiSource = location.href.match(/localhost/) ? 'http://localhost:3003' : 'https://ffrk-creeper.herokuapp.com';
-    // const apiSource = 'https://ffrk-creeper.herokuapp.com';
+    const apiSource = location.href.match(/localhost/) ? 'http://localhost:3003' : 'https://ffrkreeper.com';
     const socket = io(apiSource);
     
 
