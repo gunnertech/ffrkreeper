@@ -1,5 +1,5 @@
 'use strict';
- 
+
 try {
   require('dotenv').config();
 } catch(e) {
@@ -48,14 +48,9 @@ const RecordMateria = require('./models/recordMateria.js');
 const DropRate = require('./models/dropRate.js');
 const Image = require('./models/image.js');
 const AudioFile = require('./models/audioFile.js');
-const AWSXRay = require('aws-xray-sdk');
 
 
-const server = express();
-
-server.use(AWSXRay.express.openSegment('FFRKreeper'));
-
-server
+const server = express()
   .use(bodyParser.json())
   .use(bodyParser.json(bodyParser.urlencoded({ extended: true })))
   .use(express.static(path.join(__dirname, 'public'), {
@@ -268,10 +263,7 @@ server
   .post('/tick', function(req, res) {
     res.send('GET request to the homepage');
   })
-
-  server.use(AWSXRay.express.closeSegment('FFRKreeper'));
-  server.listen(PORT, () => console.log(`Listening on ${PORT}`));
-
+  .listen(PORT, () => console.log(`Listening on ${PORT}`));
 
 const io = socketIO(server);
 let rooms = {};
