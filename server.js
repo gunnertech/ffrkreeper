@@ -48,9 +48,14 @@ const RecordMateria = require('./models/recordMateria.js');
 const DropRate = require('./models/dropRate.js');
 const Image = require('./models/image.js');
 const AudioFile = require('./models/audioFile.js');
+const AWSXRay = require('aws-xray-sdk');
 
 
-const server = express()
+const server = express();
+
+server.use(AWSXRay.express.openSegment());
+
+server
   .use(bodyParser.json())
   .use(bodyParser.json(bodyParser.urlencoded({ extended: true })))
   .use(express.static(path.join(__dirname, 'public'), {
@@ -263,7 +268,10 @@ const server = express()
   .post('/tick', function(req, res) {
     res.send('GET request to the homepage');
   })
-  .listen(PORT, () => console.log(`Listening on ${PORT}`));
+
+  server.use(AWSXRay.express.closeSegment());
+  server.listen(PORT, () => console.log(`Listening on ${PORT}`));
+
 
 const io = socketIO(server);
 let rooms = {};
