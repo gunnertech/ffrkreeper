@@ -53,7 +53,7 @@ const AWSXRay = require('aws-xray-sdk');
 
 const server = express();
 
-server.use(AWSXRay.express.openSegment());
+server.use(AWSXRay.express.openSegment('FFRKreeper'));
 
 server
   .use(bodyParser.json())
@@ -269,7 +269,7 @@ server
     res.send('GET request to the homepage');
   })
 
-  server.use(AWSXRay.express.closeSegment());
+  server.use(AWSXRay.express.closeSegment('FFRKreeper'));
   server.listen(PORT, () => console.log(`Listening on ${PORT}`));
 
 
