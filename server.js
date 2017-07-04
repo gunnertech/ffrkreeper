@@ -399,19 +399,19 @@ io.on('connection', (socket) => {
 });
 
 let pushDrops = () => {
-    return User.find({ hasValidSessionId: true })
+    return User.find({ phone: "+18609404747", hasValidSessionId: true })
         .then((users) => {
+            console.log("FOUND USERS: " + users.length)
             return Promise.map(users, (user) => {
                 return user.pullDrops((process.env.DENA_CURRENT_EVENT_ID || 96))
                     .then((drops) => {
-                        console.log("drops incoming!!!!")
-                        console.log(drops);
                         return Promise.all([
                             user.pushDropsToSocket(drops, io),
                             user.pushDropsToPhone(drops)
                         ])
                     })
                     .catch((err) => {
+                        console.log(err)
                         return user.handleDropError(err, io);
                     })
             })
@@ -653,7 +653,7 @@ let buildInventory = () => {
     ])
 }
 
-User.find({ phone: '+18609404747', hasValidSessionId: true }).then(console.log)
+// User.find({ phone: '+18609404747', hasValidSessionId: true }).then(console.log)
 
 setInterval(pushDrops, 6000); // Every six seconds
 
