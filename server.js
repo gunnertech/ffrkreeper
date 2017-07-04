@@ -1,5 +1,5 @@
 'use strict';
- 
+
 try {
   require('dotenv').config();
 } catch(e) {
