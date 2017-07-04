@@ -1,9 +1,9 @@
 'use strict';
 
 try {
-  require('dotenv').config();
-} catch(e) {
-  // ignore it
+    require('dotenv').config();
+} catch (e) {
+    // ignore it
 }
 
 const PORT = process.env.PORT || 3000;
@@ -25,7 +25,7 @@ const request = require('request');
 
 //load all template partials
 fs.readdirSync(path.join(__dirname, 'views/partials')).forEach(function(file) {
-  if(~file.indexOf('.hbs')) engine.handlebars.registerPartial(file.replace('.hbs', ''), fs.readFileSync(__dirname + '/views/partials/' + file, 'utf8'));
+    if (~file.indexOf('.hbs')) engine.handlebars.registerPartial(file.replace('.hbs', ''), fs.readFileSync(__dirname + '/views/partials/' + file, 'utf8'));
 })
 
 require('./config/mongoose.js').setup(mongoose);
@@ -51,617 +51,616 @@ const AudioFile = require('./models/audioFile.js');
 
 
 const server = express()
-  .use(bodyParser.json())
-  .use(bodyParser.json(bodyParser.urlencoded({ extended: true })))
-  .use(express.static(path.join(__dirname, 'public'), {
-    maxAge: process.env.NODE_ENV === 'production' ? 86400000 : 0
-  }))
-	.set('views', path.join(__dirname, 'views'))
-	.set('view options', { layout: 'layout' })
+    .use(bodyParser.json())
+    .use(bodyParser.json(bodyParser.urlencoded({ extended: true })))
+    .use(express.static(path.join(__dirname, 'public'), {
+        maxAge: process.env.NODE_ENV === 'production' ? 86400000 : 0
+    }))
+    .set('views', path.join(__dirname, 'views'))
+    .set('view options', { layout: 'layout' })
 
-	.engine('hbs', engine.__express)
-	.set('view engine', 'hbs')
-  
-  .get('/items', function(req, res) {
-    Item.find()
-    .then((items) => {
-      return res.render('items/index', { title: 'Items', items: items });
-    });
-  })
-  .get('/record-materias', function(req, res) {
-    RecordMateria.find().populate('buddy')
-    .then((recordMaterias) => {
-      return res.render('record-materias/index', { title: 'Record Materias', recordMaterias: recordMaterias });
-    });
-  })
-  .get('/soul-strikes', function(req, res) {
-    SoulStrike.find().populate('buddy')
-    .then((soulStrikes) => {
-      return res.render('soul-strikes/index', { title: 'Soul Breaks', soulStrikes: soulStrikes });
-    });
-  })
-  .get('/abilities', function(req, res) {
-    Ability.find()
-    .then((abilities) => {
-      return res.render('abilities/index', { title: 'Abilities', abilities: abilities });
-    });
-  })
-  .get('/drop-rates', function(req, res) {
-    DropRate.find().populate(['battle', 'item']).sort('runCount')
-    .then((dropRates) => {
-      return res.render('drop-rates/index', { title: 'Drop Rates', dropRates: dropRates });
-    });
-  })
-  .get('/series', function(req, res) {
-    mongoose.model('Series').find().sort('dena.formal_name').populate({path: 'worlds', options: { sort: { 'dena.type': 1 } } })
-    .then((series) => {
-      return res.render('series/index', { title: 'Series', series: series });
-    });
-  })
-  .get('/worlds/:worldId', function(req, res) {
-    World.findById(req.params.worldId).populate({path: 'dungeons', options: { sort: { 'dena.name': 1 }}}).populate('series')
-    .then((world) => {
-      return res.render('worlds/show', { title: world.dena.name, world: world });
-    });
-  })
-  .get('/dungeons/:dungeonId', function(req, res) {
-    mongoose.model('Dungeon').findById(req.params.dungeonId).populate({path: 'prizes'}).populate({path: 'battles'}).populate({path: 'enemies'})
-    .populate({
-      path: 'world',
-      populate: {
-        path: 'series'
-      }
+.engine('hbs', engine.__express)
+    .set('view engine', 'hbs')
+
+.get('/items', function(req, res) {
+        Item.find()
+            .then((items) => {
+                return res.render('items/index', { title: 'Items', items: items });
+            });
     })
-    .then((dungeon) => {
-      return res.render('dungeons/show', { title: dungeon.dena.name, dungeon: dungeon });
-    });
-  })
-  .get('/battles/:battleId', function(req, res) {
-    mongoose.model('Battle').findById(req.params.battleId).populate(['enemies']).populate([
-    {
-      path: 'dungeon',
-      populate: {
-        path: 'world',
-        populate: {
-          path: 'series'
-        }
-      }
-    },
-    {
-      path: 'dropRateModels',
-      populate: {
-        path: 'item'
-      }
-    }
-    ])
-    .then((battle) => {
-      return res.render('battles/show', { title: battle.name, battle: battle });
-    });
-  })
-  .get('/enemies/:enemyId', function(req, res) {
-    mongoose.model('Enemy').findById(req.params.enemyId).populate({
-      path: 'battle',
-      populate: {
-        path: 'dungeon',
-        populate: {
-          path: 'world',
-          populate: {
-            path: 'series'
-          }
-        }
-      }
+    .get('/record-materias', function(req, res) {
+        RecordMateria.find().populate('buddy')
+            .then((recordMaterias) => {
+                return res.render('record-materias/index', { title: 'Record Materias', recordMaterias: recordMaterias });
+            });
     })
-    .then((enemy) => {
-      return res.render('enemies/show', { title: enemy.dena.name, enemy: enemy });
-    });
-  })
-
-
-  .get('/dungeons', function(req, res) {
-    Battle.forDungeonIndex()
-    .then((dungeons) => {
-      return res.render('dungeons/index', { title: 'Dungeons', dungeons: dungeons });
-    });
-  })
-  .get('/users', function(req, res) {
-    User.findForIndex()
-    .then((users) => {
-      return res.render('users/index', { title: 'Users', users: users });
-    });
-  })
-  .get('/buddies', function(req, res) {
-    Buddy.find()
-    .then((buddies) => {
-      return res.render('buddies/index', { title: "Characters", buddies: buddies });
-    });
-  })
-  .get('/events', function(req, res) {
-    return res.redirect('/banners');
-  })
-  .get('/banners', function(req, res) {
-    Event.find().distinct('dena.event_id').then((event_ids) => {
-      event_ids = lodash.sortBy(event_ids, [function(id) { return parseInt(id); }]);
-      return res.render('banners/index', { 
-        title: "Banners", 
-        gachas: [...Array(700).keys()], 
-        events: [...Array(700).keys()], 
-        characters: lodash.range(501004, 501200)
-      });
+    .get('/soul-strikes', function(req, res) {
+        SoulStrike.find().populate('buddy')
+            .then((soulStrikes) => {
+                return res.render('soul-strikes/index', { title: 'Soul Breaks', soulStrikes: soulStrikes });
+            });
     })
-  })
-  .get('/gear', function(req, res) {
-    Event.find().distinct('dena.event_id').then((event_ids) => {
-      event_ids = lodash.sortBy(event_ids, [function(id) { return parseInt(id); }]);
-      return res.render('gear/index', { 
-        weapons: lodash.flatten([
-          lodash.range(21001000, 21001200), //DAGGERS
-          lodash.range(21002000, 21002400), //SWORDS
-          lodash.range(21003000, 21003100), //KATANAS
-          lodash.range(21004000, 21004100), //AXES
-          lodash.range(21005000, 21005100), //HAMMERS
-          lodash.range(21006000, 21006100), //SPEARS
-          lodash.range(21007000, 21007100), //FISTS
-          lodash.range(21008000, 21008200), //RODS
-          lodash.range(21009000, 21009100), //STAFFS
-          lodash.range(21010000, 21010100), //BOWS
-          lodash.range(21011000, 21011100), //INSTRUMENTS
-          lodash.range(21012000, 21012100), //WHIPS
-          lodash.range(21013000, 21013100), //THROWN
-          lodash.range(21014000, 21014100), //BOOKS
-          lodash.range(21015000, 21015200), //GUNS
-
-          lodash.range(21030000, 21030320), //BALLS
-          lodash.range(21034000, 21034010) //DOLLS
-        ]),
-
-        armor: lodash.flatten([
-          lodash.range(22050000, 22050050), //Shields
-          lodash.range(22051000, 22051050), //HAts
-          lodash.range(22053000, 22053100), //light armor
-          lodash.range(22054000, 22054100), //heavy armor
-          lodash.range(22055000, 22055100), //robes
-          lodash.range(22056000, 22056100) //bracers
-        ]),
-
-        accessories: lodash.flatten([
-          lodash.range(23080000, 23080300)
-        ])
-      });
+    .get('/abilities', function(req, res) {
+        Ability.find()
+            .then((abilities) => {
+                return res.render('abilities/index', { title: 'Abilities', abilities: abilities });
+            });
     })
-  })
-
-  
-
-
-  .get('/images', function(req, res) {
-    let limit = 100;
-    let page = parseInt(req.query.page || 1);
-    let skip = (page-1) * limit;
-    let prevPage = page > 1 ? (page-1) : null;
-    let nextPage = page+1;
-    
-    Image.find().skip(skip).limit(limit).sort('url')
-    .then((images) => {
-      return res.render('images/index', { title: "Images", images: images, page: page, nextPage: nextPage, prevPage: prevPage });
+    .get('/drop-rates', function(req, res) {
+        DropRate.find().populate(['battle', 'item']).sort('runCount')
+            .then((dropRates) => {
+                return res.render('drop-rates/index', { title: 'Drop Rates', dropRates: dropRates });
+            });
     })
-  })
-  .get('/audio-files', function(req, res) {
-    AudioFile.find()
-    .then((audioFiles) => {
-      return res.render('audio-files/index', { title: "Audio Files", audioFiles: audioFiles });
-    });
-  })
-  .get('/enemies', function(req, res) {
-    mongoose.model('Enemy').find().sort('name').populate('battle', 'denaDungeonId')
-    .then((enemies) => {
-      return res.render('enemies/index', { title: "Enemies", enemies: lodash.uniqBy(enemies,'name') });
-    });
-  })
-  .get('/', function(req, res) {
-    res.render('index', { title: 'Home' });
-  })
-  .post('/tick', function(req, res) {
-    res.send('GET request to the homepage');
-  })
-  .listen(PORT, () => console.log(`Listening on ${PORT}`));
+    .get('/series', function(req, res) {
+        mongoose.model('Series').find().sort('dena.formal_name').populate({ path: 'worlds', options: { sort: { 'dena.type': 1 } } })
+            .then((series) => {
+                return res.render('series/index', { title: 'Series', series: series });
+            });
+    })
+    .get('/worlds/:worldId', function(req, res) {
+        World.findById(req.params.worldId).populate({ path: 'dungeons', options: { sort: { 'dena.name': 1 } } }).populate('series')
+            .then((world) => {
+                return res.render('worlds/show', { title: world.dena.name, world: world });
+            });
+    })
+    .get('/dungeons/:dungeonId', function(req, res) {
+        mongoose.model('Dungeon').findById(req.params.dungeonId).populate({ path: 'prizes' }).populate({ path: 'battles' }).populate({ path: 'enemies' })
+            .populate({
+                path: 'world',
+                populate: {
+                    path: 'series'
+                }
+            })
+            .then((dungeon) => {
+                return res.render('dungeons/show', { title: dungeon.dena.name, dungeon: dungeon });
+            });
+    })
+    .get('/battles/:battleId', function(req, res) {
+        mongoose.model('Battle').findById(req.params.battleId).populate(['enemies']).populate([{
+                    path: 'dungeon',
+                    populate: {
+                        path: 'world',
+                        populate: {
+                            path: 'series'
+                        }
+                    }
+                },
+                {
+                    path: 'dropRateModels',
+                    populate: {
+                        path: 'item'
+                    }
+                }
+            ])
+            .then((battle) => {
+                return res.render('battles/show', { title: battle.name, battle: battle });
+            });
+    })
+    .get('/enemies/:enemyId', function(req, res) {
+        mongoose.model('Enemy').findById(req.params.enemyId).populate({
+                path: 'battle',
+                populate: {
+                    path: 'dungeon',
+                    populate: {
+                        path: 'world',
+                        populate: {
+                            path: 'series'
+                        }
+                    }
+                }
+            })
+            .then((enemy) => {
+                return res.render('enemies/show', { title: enemy.dena.name, enemy: enemy });
+            });
+    })
+
+
+.get('/dungeons', function(req, res) {
+        Battle.forDungeonIndex()
+            .then((dungeons) => {
+                return res.render('dungeons/index', { title: 'Dungeons', dungeons: dungeons });
+            });
+    })
+    .get('/users', function(req, res) {
+        User.findForIndex()
+            .then((users) => {
+                return res.render('users/index', { title: 'Users', users: users });
+            });
+    })
+    .get('/buddies', function(req, res) {
+        Buddy.find()
+            .then((buddies) => {
+                return res.render('buddies/index', { title: "Characters", buddies: buddies });
+            });
+    })
+    .get('/events', function(req, res) {
+        return res.redirect('/banners');
+    })
+    .get('/banners', function(req, res) {
+        Event.find().distinct('dena.event_id').then((event_ids) => {
+            event_ids = lodash.sortBy(event_ids, [function(id) { return parseInt(id); }]);
+            return res.render('banners/index', {
+                title: "Banners",
+                gachas: [...Array(700).keys()],
+                events: [...Array(700).keys()],
+                characters: lodash.range(501004, 501200)
+            });
+        })
+    })
+    .get('/gear', function(req, res) {
+        Event.find().distinct('dena.event_id').then((event_ids) => {
+            event_ids = lodash.sortBy(event_ids, [function(id) { return parseInt(id); }]);
+            return res.render('gear/index', {
+                weapons: lodash.flatten([
+                    lodash.range(21001000, 21001200), //DAGGERS
+                    lodash.range(21002000, 21002400), //SWORDS
+                    lodash.range(21003000, 21003100), //KATANAS
+                    lodash.range(21004000, 21004100), //AXES
+                    lodash.range(21005000, 21005100), //HAMMERS
+                    lodash.range(21006000, 21006100), //SPEARS
+                    lodash.range(21007000, 21007100), //FISTS
+                    lodash.range(21008000, 21008200), //RODS
+                    lodash.range(21009000, 21009100), //STAFFS
+                    lodash.range(21010000, 21010100), //BOWS
+                    lodash.range(21011000, 21011100), //INSTRUMENTS
+                    lodash.range(21012000, 21012100), //WHIPS
+                    lodash.range(21013000, 21013100), //THROWN
+                    lodash.range(21014000, 21014100), //BOOKS
+                    lodash.range(21015000, 21015200), //GUNS
+
+                    lodash.range(21030000, 21030320), //BALLS
+                    lodash.range(21034000, 21034010) //DOLLS
+                ]),
+
+                armor: lodash.flatten([
+                    lodash.range(22050000, 22050050), //Shields
+                    lodash.range(22051000, 22051050), //HAts
+                    lodash.range(22053000, 22053100), //light armor
+                    lodash.range(22054000, 22054100), //heavy armor
+                    lodash.range(22055000, 22055100), //robes
+                    lodash.range(22056000, 22056100) //bracers
+                ]),
+
+                accessories: lodash.flatten([
+                    lodash.range(23080000, 23080300)
+                ])
+            });
+        })
+    })
+
+
+
+
+.get('/images', function(req, res) {
+        let limit = 100;
+        let page = parseInt(req.query.page || 1);
+        let skip = (page - 1) * limit;
+        let prevPage = page > 1 ? (page - 1) : null;
+        let nextPage = page + 1;
+
+        Image.find().skip(skip).limit(limit).sort('url')
+            .then((images) => {
+                return res.render('images/index', { title: "Images", images: images, page: page, nextPage: nextPage, prevPage: prevPage });
+            })
+    })
+    .get('/audio-files', function(req, res) {
+        AudioFile.find()
+            .then((audioFiles) => {
+                return res.render('audio-files/index', { title: "Audio Files", audioFiles: audioFiles });
+            });
+    })
+    .get('/enemies', function(req, res) {
+        mongoose.model('Enemy').find().sort('name').populate('battle', 'denaDungeonId')
+            .then((enemies) => {
+                return res.render('enemies/index', { title: "Enemies", enemies: lodash.uniqBy(enemies, 'name') });
+            });
+    })
+    .get('/', function(req, res) {
+        res.render('index', { title: 'Home' });
+    })
+    .post('/tick', function(req, res) {
+        res.send('GET request to the homepage');
+    })
+    .listen(PORT, () => console.log(`Listening on ${PORT}`));
 
 const io = socketIO(server);
 let rooms = {};
 
 io.on('connection', (socket) => {
-  console.log('Client connected');
+    console.log('Client connected');
 
-  ////start talk it out bullshit
-  io.sockets.emit('socketId', {'socketId': socket.id, 'connectTime': Date.now()});
+    ////start talk it out bullshit
+    io.sockets.emit('socketId', { 'socketId': socket.id, 'connectTime': Date.now() });
 
-  socket.on('file', (data, fn) => { 
-    io.sockets.in(`room-${data.roomId}`).emit('file', Object.assign({}, data, {'socketId': socket.id}));
-  });
+    socket.on('file', (data, fn) => {
+        io.sockets.in(`room-${data.roomId}`).emit('file', Object.assign({}, data, { 'socketId': socket.id }));
+    });
 
-  socket.on('message', (data, fn) => { 
-    io.sockets.in(`room-${data.roomId}`).emit('message', Object.assign({}, data, {'socketId': socket.id}));
-  });
+    socket.on('message', (data, fn) => {
+        io.sockets.in(`room-${data.roomId}`).emit('message', Object.assign({}, data, { 'socketId': socket.id }));
+    });
 
-  socket.on('clear', (data, fn) => { 
-    io.sockets.in(`room-${data.roomId}`).emit('clear', Object.assign({}, data, {'socketId': socket.id}));
-  });
+    socket.on('clear', (data, fn) => {
+        io.sockets.in(`room-${data.roomId}`).emit('clear', Object.assign({}, data, { 'socketId': socket.id }));
+    });
 
-  socket.on('typing', (data, fn) => { 
-    io.sockets.in(`room-${data.roomId}`).emit('typing', Object.assign({}, data, {'socketId': socket.id, 'generatedFromSocketId': data.socketId}));
-  });
+    socket.on('typing', (data, fn) => {
+        io.sockets.in(`room-${data.roomId}`).emit('typing', Object.assign({}, data, { 'socketId': socket.id, 'generatedFromSocketId': data.socketId }));
+    });
 
-  socket.on('joinRoom', (data, fn) => { 
-    const roomName = `room-${data.roomId}`;
-    
-    socket.join(roomName);
+    socket.on('joinRoom', (data, fn) => {
+        const roomName = `room-${data.roomId}`;
 
-    io.sockets.in(roomName).emit('participantCount', io.sockets.adapter.rooms[roomName].length);
-  });
-  
+        socket.join(roomName);
 
-  socket.on('disconnect', () => {
-    console.log('Client disconnected');
+        io.sockets.in(roomName).emit('participantCount', io.sockets.adapter.rooms[roomName].length);
+    });
 
-    Object.keys(socket.adapter.rooms).forEach((roomName) => {
-      socket.leave(roomName);
-      
-      io.sockets.in(roomName).emit('participantCount', io.sockets.adapter.rooms[roomName].length);
-    })
-  });
 
-  ////end talk it out bullshit
+    socket.on('disconnect', () => {
+        console.log('Client disconnected');
 
-  socket.on('/signin', (data, fn) => { ////ALLOW THEM TO SIGN IN WITH EITHER A SESSIONID, PHONE OR EMAIL
-    var query = [];
+        Object.keys(socket.adapter.rooms).forEach((roomName) => {
+            socket.leave(roomName);
 
-    if(data.sessionId) {
-      query.push({'dena.sessionId': data.sessionId})
-    }
-
-    if(data.email) {
-      query.push({'email': data.email});
-    }
-
-    if(data.phone) {
-      data.phone = User.normalizePhone(data.phone);
-      query.push({'phone': data.phone});
-    }
-
-    if(!query.length) {
-      fn({name: 'SessionError', message: 'That session Id is not valid'});
-    } else {
-      User.findOne().or(query)
-        .then((user) => {
-          if(user) {
-            return Promise.resolve(user);
-          } else {
-            if(data.sessionId) {
-              return User.create({ 'dena.sessionId': data.sessionId });
-            }
-
-            return Promise.reject({name: "SessionError", message: "You must provide a session id"})
-          }
+            io.sockets.in(roomName).emit('participantCount', io.sockets.adapter.rooms[roomName].length);
         })
-        .then((user) => {
-          if(data.phone) { user.phone = data.phone; }
-          if(data.email) { user.email = data.email; }
-          if(data.sessionId){ 
-            user.dena.sessionId = data.sessionId; 
-            user.hasValidSessionId = true;  
-          }
-          
-          user.alertLevel = parseInt(data.alertLevel) || 0;
+    });
 
-          return user.save().return(user);
-        })
-        .then((user) => {
-          socket.join(`/${user.dena.sessionId}`);
-          return fn(user);
-        })
-        .catch((err) => {
-          return fn({name: 'SessionError', message: 'That session Id is not valid'});
-        });
-    }
-  });
+    ////end talk it out bullshit
 
-  socket.on('/signout', (data, fn) => {
-    var query = [];
+    socket.on('/signin', (data, fn) => { ////ALLOW THEM TO SIGN IN WITH EITHER A SESSIONID, PHONE OR EMAIL
+        var query = [];
 
-    if(data.sessionId) {
-      query.push({'dena.sessionId': data.sessionId})
-    }
+        if (data.sessionId) {
+            query.push({ 'dena.sessionId': data.sessionId })
+        }
 
-    if(data.email) {
-      query.push({'email': data.email});
-    }
+        if (data.email) {
+            query.push({ 'email': data.email });
+        }
 
-    if(data.phone) {
-      data.phone = User.normalizePhone(data.phone);
-      query.push({'phone': data.phone});
-    }
+        if (data.phone) {
+            data.phone = User.normalizePhone(data.phone);
+            query.push({ 'phone': data.phone });
+        }
 
-    if(query.length) {
-      User.findOne().or(query)
-        .then((user) => {
-          if(!user) {
-            return Promise.resolve(null);
-          }
+        if (!query.length) {
+            fn({ name: 'SessionError', message: 'That session Id is not valid' });
+        } else {
+            User.findOne().or(query)
+                .then((user) => {
+                    if (user) {
+                        return Promise.resolve(user);
+                    } else {
+                        if (data.sessionId) {
+                            return User.create({ 'dena.sessionId': data.sessionId });
+                        }
 
-          user.alertLevel = 0;
+                        return Promise.reject({ name: "SessionError", message: "You must provide a session id" })
+                    }
+                })
+                .then((user) => {
+                    if (data.phone) { user.phone = data.phone; }
+                    if (data.email) { user.email = data.email; }
+                    if (data.sessionId) {
+                        user.dena.sessionId = data.sessionId;
+                        user.hasValidSessionId = true;
+                    }
 
-          return user.save().return(user);
-        })
-        .then((user) => {
-          fn(user);
-        });
-    }
-  });
+                    user.alertLevel = parseInt(data.alertLevel) || 0;
+
+                    return user.save().return(user);
+                })
+                .then((user) => {
+                    socket.join(`/${user.dena.sessionId}`);
+                    return fn(user);
+                })
+                .catch((err) => {
+                    return fn({ name: 'SessionError', message: 'That session Id is not valid' });
+                });
+        }
+    });
+
+    socket.on('/signout', (data, fn) => {
+        var query = [];
+
+        if (data.sessionId) {
+            query.push({ 'dena.sessionId': data.sessionId })
+        }
+
+        if (data.email) {
+            query.push({ 'email': data.email });
+        }
+
+        if (data.phone) {
+            data.phone = User.normalizePhone(data.phone);
+            query.push({ 'phone': data.phone });
+        }
+
+        if (query.length) {
+            User.findOne().or(query)
+                .then((user) => {
+                    if (!user) {
+                        return Promise.resolve(null);
+                    }
+
+                    user.alertLevel = 0;
+
+                    return user.save().return(user);
+                })
+                .then((user) => {
+                    fn(user);
+                });
+        }
+    });
 
 });
 
 let pushDrops = () => {
-  return User.find({hasValidSessionId: true})
-  .then((users) => {
-    return Promise.map(users, (user) => {
-      return user.pullDrops((process.env.DENA_CURRENT_EVENT_ID||96))
-      .then((drops) => {
-        // console.log(drops);
-        return Promise.all([
-          user.pushDropsToSocket(drops, io),
-          user.pushDropsToPhone(drops),
-          user.pushDropsToEmail(drops)
-        ])
-      })
-      .catch((err) => {
-        return user.handleDropError(err, io);
-      })
-    })
-  })
+    return User.find({ hasValidSessionId: true })
+        .then((users) => {
+            return Promise.map(users, (user) => {
+                return user.pullDrops((process.env.DENA_CURRENT_EVENT_ID || 96))
+                    .then((drops) => {
+                        console.log("drops incoming!!!!")
+                        console.log(drops);
+                        return Promise.all([
+                            user.pushDropsToSocket(drops, io),
+                            user.pushDropsToPhone(drops)
+                        ])
+                    })
+                    .catch((err) => {
+                        return user.handleDropError(err, io);
+                    })
+            })
+        })
 }
 
 let updateUserData = () => {
-  let cutoff = moment().add(5, 'hours').toDate();
+    let cutoff = moment().add(5, 'hours').toDate();
 
-  return User.find({hasValidSessionId: true, 'dena.updatedAt': {$lt: cutoff}})
-  .then((users) => {
-    return Promise.map(users, (user) => {
-      return user.updateData()
-      .catch((err) => {
-        user.hasValidSessionId = false;
-        return user.save();
-      })
-    })
-  })
+    return User.find({ hasValidSessionId: true, 'dena.updatedAt': { $lt: cutoff } })
+        .then((users) => {
+            return Promise.map(users, (user) => {
+                return user.updateData()
+                    .catch((err) => {
+                        user.hasValidSessionId = false;
+                        return user.save();
+                    })
+            })
+        })
 }
 
 //DO THIS WITH CODY'S ACCOUNT SINCE IT MAY LOG OUT THE USER AND CODY HAS UNLOCKED ALL CONTENT
 let buildBattles = () => {
-  return Promise.all([
-    Dungeon.find().populate('battles'),
-    User.findOne({hasValidSessionId: true, 'dena.name': 'SaltyNut'})
-  ])
-  .spread((dungeons, user) => {
-    return Promise.each(dungeons, (dungeon) => {
-      /// if the dungeon doesn't have any battles or has any battles without stamina, build the data for it.
-      if(!dungeon.battles || dungeon.battles.length == 0 || lodash.some(dungeon.battles, (battle) => !battle.dena || !battle.dena.stamina) ) {
-        return user.buildBattlesFromDungeon(dungeon.dena.id).return(dungeon);
-      } else {
-        return Promise.resolve(dungeon)
-      }
-    })
-  });
+    return Promise.all([
+            Dungeon.find().populate('battles'),
+            User.findOne({ hasValidSessionId: true, 'dena.name': 'SaltyNut' })
+        ])
+        .spread((dungeons, user) => {
+            return Promise.each(dungeons, (dungeon) => {
+                /// if the dungeon doesn't have any battles or has any battles without stamina, build the data for it.
+                if (!dungeon.battles || dungeon.battles.length == 0 || lodash.some(dungeon.battles, (battle) => !battle.dena || !battle.dena.stamina)) {
+                    return user.buildBattlesFromDungeon(dungeon.dena.id).return(dungeon);
+                } else {
+                    return Promise.resolve(dungeon)
+                }
+            })
+        });
 }
 
 let buildWorlds = () => {
-  return User.findOne({hasValidSessionId: true, 'dena.name': 'SaltyNut'})
-  .then((user) => {
-    return user.buildWorlds().return(user)
-  })
+    return User.findOne({ hasValidSessionId: true, 'dena.name': 'SaltyNut' })
+        .then((user) => {
+            return user.buildWorlds().return(user)
+        })
 }
 
 let buildAbilities = () => {
-  return User.find({hasValidSessionId: true, 'dena.name': 'SaltyNut'})
-  .then((users) => {
-    return Promise.map(users, (user) => {
-      return user.getPartyList()
-      .then((json) => {
-        return Promise.each(json.abilities, (abilityData) => {
-          return Ability.findOneOrCreate({'dena.id': abilityData.ability_id}, {
-            dena: {
-              id: abilityData.ability_id,
-              category_type: abilityData.category_type,
-              category_name: abilityData.category_name,
-              command_icon_path: abilityData.command_icon_path,
-              name: abilityData.name,
-              description: abilityData.description,
-              image_path: abilityData.image_path,
-              rarity: abilityData.rarity
-            }
-          })
-        })
-      })
-    })
+    return User.find({ hasValidSessionId: true, 'dena.name': 'SaltyNut' })
+        .then((users) => {
+            return Promise.map(users, (user) => {
+                return user.getPartyList()
+                    .then((json) => {
+                        return Promise.each(json.abilities, (abilityData) => {
+                            return Ability.findOneOrCreate({ 'dena.id': abilityData.ability_id }, {
+                                dena: {
+                                    id: abilityData.ability_id,
+                                    category_type: abilityData.category_type,
+                                    category_name: abilityData.category_name,
+                                    command_icon_path: abilityData.command_icon_path,
+                                    name: abilityData.name,
+                                    description: abilityData.description,
+                                    image_path: abilityData.image_path,
+                                    rarity: abilityData.rarity
+                                }
+                            })
+                        })
+                    })
+            })
 
-  })
+        })
 }
 
 let buildSphereMaterials = () => {
-  return User.find({hasValidSessionId: true, 'dena.name': 'SaltyNut'})
-  .then((users) => {
-    return Promise.map(users, (user) => {
-      return user.getPartyList()
-      .then((json) => {
-        return Promise.each(json.sphere_materials, (itemData) => {
-          return Item.findOneOrCreate({'dena.id': itemData.id}, {
-            dena: {
-              id: itemData.id,
-              rarity: itemData.rarity,
-              image_path: itemData.image_path,
-              name: itemData.name,
-              description: itemData.description,
-              type_name: "SPHERE_MATERIAL"
-            }
-          })
-        })
-      })
-    })
+    return User.find({ hasValidSessionId: true, 'dena.name': 'SaltyNut' })
+        .then((users) => {
+            return Promise.map(users, (user) => {
+                return user.getPartyList()
+                    .then((json) => {
+                        return Promise.each(json.sphere_materials, (itemData) => {
+                            return Item.findOneOrCreate({ 'dena.id': itemData.id }, {
+                                dena: {
+                                    id: itemData.id,
+                                    rarity: itemData.rarity,
+                                    image_path: itemData.image_path,
+                                    name: itemData.name,
+                                    description: itemData.description,
+                                    type_name: "SPHERE_MATERIAL"
+                                }
+                            })
+                        })
+                    })
+            })
 
-  })
+        })
 }
 
 let buildRecordMaterias = () => {
-  return User.find({hasValidSessionId: true, 'dena.name': 'SaltyNut'})
-  .then((users) => {
-    return Promise.map(users, (user) => {
-      return user.getPartyList()
-      .then((json) => {
-        return Promise.each(json.record_materias, (itemData) => {
-          return RecordMateria.findOneOrCreate({'dena.id': itemData.id}, {
-            dena: {
-              id: itemData.id,
-              effect_type: itemData.effect_type,
-              step: itemData.step,
-              cond_description: itemData.cond_description,
-              disp_type: itemData.disp_type,
-              buddy_id: itemData.buddy_id,
-              name: itemData.name,
-              description: itemData.description,
-              image_path: itemData.image_path
-            }
-          })
-        })
-      })
-    })
+    return User.find({ hasValidSessionId: true, 'dena.name': 'SaltyNut' })
+        .then((users) => {
+            return Promise.map(users, (user) => {
+                return user.getPartyList()
+                    .then((json) => {
+                        return Promise.each(json.record_materias, (itemData) => {
+                            return RecordMateria.findOneOrCreate({ 'dena.id': itemData.id }, {
+                                dena: {
+                                    id: itemData.id,
+                                    effect_type: itemData.effect_type,
+                                    step: itemData.step,
+                                    cond_description: itemData.cond_description,
+                                    disp_type: itemData.disp_type,
+                                    buddy_id: itemData.buddy_id,
+                                    name: itemData.name,
+                                    description: itemData.description,
+                                    image_path: itemData.image_path
+                                }
+                            })
+                        })
+                    })
+            })
 
-  })
+        })
 }
 
 let buildEquipmentMaterials = () => {
-  return User.find({hasValidSessionId: true, 'dena.name': 'SaltyNut'})
-  .then((users) => {
-    return Promise.map(users, (user) => {
-      return user.getPartyList()
-      .then((json) => {
-        return Promise.each(json.equipment_sp_materials, (itemData) => {
-          return Item.findOneOrCreate({'dena.id': itemData.id}, {
-            dena: {
-              id: itemData.id,
-              rarity: itemData.rarity,
-              image_path: itemData.image_path,
-              name: itemData.name,
-              description: itemData.description,
-              type_name: "EQUIPMENT_SP_MATERIAL"
-            }
-          })
-        })
-      })
-    })
+    return User.find({ hasValidSessionId: true, 'dena.name': 'SaltyNut' })
+        .then((users) => {
+            return Promise.map(users, (user) => {
+                return user.getPartyList()
+                    .then((json) => {
+                        return Promise.each(json.equipment_sp_materials, (itemData) => {
+                            return Item.findOneOrCreate({ 'dena.id': itemData.id }, {
+                                dena: {
+                                    id: itemData.id,
+                                    rarity: itemData.rarity,
+                                    image_path: itemData.image_path,
+                                    name: itemData.name,
+                                    description: itemData.description,
+                                    type_name: "EQUIPMENT_SP_MATERIAL"
+                                }
+                            })
+                        })
+                    })
+            })
 
-  })
+        })
 }
 
 let buildMaterials = () => {
-  return User.find({hasValidSessionId: true, 'dena.name': 'SaltyNut'})
-  .then((users) => {
-    return Promise.map(users, (user) => {
-      return user.getPartyList()
-      .then((json) => {
-        return Promise.each(json.materials, (itemData) => {
-          return Item.findOneOrCreate({'dena.id': itemData.id}, {
-            dena: {
-              id: itemData.id,
-              rarity: itemData.rarity,
-              image_path: itemData.image_path,
-              name: itemData.name,
-              description: itemData.description,
-              type_name: "ABILITY_MATERIAL"
-            }
-          })
-        })
-      })
-    })
+    return User.find({ hasValidSessionId: true, 'dena.name': 'SaltyNut' })
+        .then((users) => {
+            return Promise.map(users, (user) => {
+                return user.getPartyList()
+                    .then((json) => {
+                        return Promise.each(json.materials, (itemData) => {
+                            return Item.findOneOrCreate({ 'dena.id': itemData.id }, {
+                                dena: {
+                                    id: itemData.id,
+                                    rarity: itemData.rarity,
+                                    image_path: itemData.image_path,
+                                    name: itemData.name,
+                                    description: itemData.description,
+                                    type_name: "ABILITY_MATERIAL"
+                                }
+                            })
+                        })
+                    })
+            })
 
-  })
+        })
 }
 
 let buildDarkMatter = () => {
-  return User.find({hasValidSessionId: true, 'dena.name': 'SaltyNut'})
-  .then((users) => {
-    return Promise.map(users, (user) => {
-      return user.getPartyList()
-      .then((json) => {
-        return Promise.each(json.equipment_hyper_evolve_materials, (itemData) => {
-          return Item.findOneOrCreate({'dena.id': itemData.id}, {
-            dena: {
-              id: itemData.id,
-              rarity: itemData.rarity,
-              image_path: itemData.image_path,
-              name: itemData.name,
-              description: itemData.description,
-              type_name: "equipment_hyper_evolve_material".toUpperCase()
-            }
-          })
-        })
-      })
-    })
+    return User.find({ hasValidSessionId: true, 'dena.name': 'SaltyNut' })
+        .then((users) => {
+            return Promise.map(users, (user) => {
+                return user.getPartyList()
+                    .then((json) => {
+                        return Promise.each(json.equipment_hyper_evolve_materials, (itemData) => {
+                            return Item.findOneOrCreate({ 'dena.id': itemData.id }, {
+                                dena: {
+                                    id: itemData.id,
+                                    rarity: itemData.rarity,
+                                    image_path: itemData.image_path,
+                                    name: itemData.name,
+                                    description: itemData.description,
+                                    type_name: "equipment_hyper_evolve_material".toUpperCase()
+                                }
+                            })
+                        })
+                    })
+            })
 
-  })
+        })
 }
 
 let buildSoulStrikes = () => {
-  return User.find({hasValidSessionId: true, 'dena.name': 'SaltyNut'})
-  .then((users) => {
-    return Promise.map(users, (user) => {
-      return user.getPartyList()
-      .then((json) => {
-        return Promise.each(json.soul_strikes, (itemData) => {
-          return SoulStrike.findOneOrCreate({'dena.id': itemData.id}, {
-            dena: {
-              id: itemData.id,
-              consume_ss_point: itemData.consume_ss_point,
-              allowed_buddy_id: itemData.allowed_buddy_id,
-              has_broken_max_damage_threshold_soul_strike: itemData.has_broken_max_damage_threshold_soul_strike,
-              extensive_description: itemData.extensive_description,
-              is_burst_soul_strike: itemData.is_burst_soul_strike,
-              name: itemData.name,
-              soul_strike_category_id: itemData.soul_strike_category_id,
-              is_param_booster_soul_strike: itemData.is_param_booster_soul_strike,
-              description: itemData.description,
-              is_ultra_soul_strike: itemData.is_ultra_soul_strike,
-              is_shared_soul_strike: itemData.is_shared_soul_strike,
-              image_path: itemData.image_path,
-              required_exp: itemData.required_exp,
-              consume_ss_gauge: itemData.consume_ss_point,
-              is_someones_soul_strike: itemData.is_someones_soul_strike
-            }
-          })
-        })
-      })
-    })
+    return User.find({ hasValidSessionId: true, 'dena.name': 'SaltyNut' })
+        .then((users) => {
+            return Promise.map(users, (user) => {
+                return user.getPartyList()
+                    .then((json) => {
+                        return Promise.each(json.soul_strikes, (itemData) => {
+                            return SoulStrike.findOneOrCreate({ 'dena.id': itemData.id }, {
+                                dena: {
+                                    id: itemData.id,
+                                    consume_ss_point: itemData.consume_ss_point,
+                                    allowed_buddy_id: itemData.allowed_buddy_id,
+                                    has_broken_max_damage_threshold_soul_strike: itemData.has_broken_max_damage_threshold_soul_strike,
+                                    extensive_description: itemData.extensive_description,
+                                    is_burst_soul_strike: itemData.is_burst_soul_strike,
+                                    name: itemData.name,
+                                    soul_strike_category_id: itemData.soul_strike_category_id,
+                                    is_param_booster_soul_strike: itemData.is_param_booster_soul_strike,
+                                    description: itemData.description,
+                                    is_ultra_soul_strike: itemData.is_ultra_soul_strike,
+                                    is_shared_soul_strike: itemData.is_shared_soul_strike,
+                                    image_path: itemData.image_path,
+                                    required_exp: itemData.required_exp,
+                                    consume_ss_gauge: itemData.consume_ss_point,
+                                    is_someones_soul_strike: itemData.is_someones_soul_strike
+                                }
+                            })
+                        })
+                    })
+            })
 
-  })
+        })
 }
 
 let buildInventory = () => {
-  return Promise.all([
-    buildAbilities(),
-    buildRecordMaterias(),
-    buildSphereMaterials(),
-    buildEquipmentMaterials(),
-    buildMaterials(),
-    buildDarkMatter(),
-    buildSoulStrikes()
-  ])
+    return Promise.all([
+        buildAbilities(),
+        buildRecordMaterias(),
+        buildSphereMaterials(),
+        buildEquipmentMaterials(),
+        buildMaterials(),
+        buildDarkMatter(),
+        buildSoulStrikes()
+    ])
 }
 
+User.find({ phone: '+18609404747', hasValidSessionId: true }).then(console.log)
 
+setInterval(pushDrops, 6000); // Every six seconds
 
-setInterval(pushDrops,       6000); // Every six seconds
-
-setInterval(updateUserData, (1000 * 60 * 60 * 24)); // Every day
-setInterval(buildBattles,   (1000 * 60 * 60 * 24)); // Every day
-setInterval(buildWorlds,    (1000 * 60 * 60 * 24)); // Every day
-setInterval(buildInventory, (1000 * 60 * 60 * 24)); // Every day
+// setInterval(updateUserData, (1000 * 60 * 60 * 24)); // Every day
+// setInterval(buildBattles,   (1000 * 60 * 60 * 24)); // Every day
+// setInterval(buildWorlds,    (1000 * 60 * 60 * 24)); // Every day
+// setInterval(buildInventory, (1000 * 60 * 60 * 24)); // Every day
 
 // buildWorlds();
 // buildBattles();
@@ -669,11 +668,10 @@ setInterval(buildInventory, (1000 * 60 * 60 * 24)); // Every day
 
 
 
-utils.runInBg(Event.generateEvents);
+// utils.runInBg(Event.generateEvents);
 
 
 /// BEGIN AREA TO RUN ONE OFF SHIT
-Battle.ensureIndexes(function (err) {
-  if (err) return console.log(err);
-});
-
+// Battle.ensureIndexes(function(err) {
+//     if (err) return console.log(err);
+// });
