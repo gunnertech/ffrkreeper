@@ -408,14 +408,14 @@ let pushDrops = () => {
                         return Promise.all([
                             user.pushDropsToSocket(drops, io),
                             user.pushDropsToPhone(drops)
-                        ])
-                    })
+                        ]).return(null)
+                    }).return(null)
                     .catch((err) => {
                         console.log(err)
                         return user.handleDropError(err, io);
                     })
-            })
-        })
+            }).return(null)
+        }).return(null)
 }
 
 let updateUserData = () => {
