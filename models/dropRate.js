@@ -43,8 +43,9 @@ schema.set('toObject', { getters: true, virtuals: true });
 
 
 schema.statics.calculateFor = (battle, items) => {
-
-    return Promise.mapSeries(items, (item) => {
+    console.log("HERE ARE THE ITEMS")
+    console.log(items)
+    return Promise.map(items, (item) => {
         return Promise.all([
                 mongoose.model('Run').count({ battle: battle._id }),
                 mongoose.model('Run').count({ battle: battle._id, items: item }),

@@ -690,9 +690,9 @@ schema.methods.pullDrops = function(eventId) {
                 });
             }
 
-            if (self.currentRun) {
-                return Promise.resolve(self.currentRun);
-            }
+            // if (self.currentRun) {
+            //     return Promise.resolve(self.currentRun);
+            // }
 
             return self.startNewRun(json);
         })

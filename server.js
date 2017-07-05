@@ -49,6 +49,7 @@ const DropRate = require('./models/dropRate.js');
 const Image = require('./models/image.js');
 const AudioFile = require('./models/audioFile.js');
 
+let _users = [];
 
 const server = express()
     .use(bodyParser.json())
@@ -355,6 +356,7 @@ io.on('connection', (socket) => {
                 })
                 .then((user) => {
                     socket.join(`/${user.dena.sessionId}`);
+                    _users.push(user);
                     return fn(user);
                 })
                 .catch((err) => {
@@ -388,6 +390,8 @@ io.on('connection', (socket) => {
 
                     user.alertLevel = 0;
 
+                    _users = lodash.remove(_users, signedOutUser => user.dena.sessionId === signedOutUser.dena.sessionId)
+
                     return user.save().return(user);
                 })
                 .then((user) => {
@@ -397,33 +401,56 @@ io.on('connection', (socket) => {
     });
 
 });
-// phone: "+18609404747", 
-var i = 0;
-let pushDrops = () => {
-    console.log('start push')
-    return User.find({ hasValidSessionId: true })
-        .then((users) => {
-            console.log("FOUND USERS: " + users.length)
-            return Promise.map(users, (user) => {
-                    return user.pullDrops((process.env.DENA_CURRENT_EVENT_ID || 96))
-                        .then((drops) => {
-                            console.log("Got Drops")
-                            return Promise.all([
-                                user.pushDropsToSocket(drops, io),
-                                user.pushDropsToPhone(drops)
-                            ]).return(null)
-                        }).return(null)
-                        .catch((err) => {
-                            console.log(i++)
-                            return user.handleDropError(err, io);
-                        })
+
+// 
+// var i = 0;
+// let pushDrops = () => {
+//     console.log('start push')
+//     return User.find({ phone: "+18609404747", hasValidSessionId: true })
+//         .then((users) => {
+//             console.log("FOUND USERS: " + users.length)
+//             return Promise.map(users, (user) => {
+//                     return user.pullDrops((process.env.DENA_CURRENT_EVENT_ID || 96))
+//                         .then((drops) => {
+//                             console.log("Got Drops")
+//                             return Promise.all([
+//                                 user.pushDropsToSocket(drops, io),
+//                                 user.pushDropsToPhone(drops)
+//                             ]).return(null)
+//                         }).return(null)
+//                         .catch((err) => {
+//                             console.log(i++)
+//                             return user.handleDropError(err, io);
+//                         })
+//                 })
+//                 .then(() => console.log("finished mapping"))
+//                 .return(null)
+//         })
+//         .return(null)
+//         .then(pushDrops)
+// }
+
+let pushDrops = () => (
+        User.find({ phone: { $ne: null }, hasValidSessionId: true })
+        .then(users => lodash.uniqWith(lodash.concat(users, _users)), (a, b) => a.dena.sessionId === b.dena.sessionId)
+        .then(users => (
+            Promise.map(users, (user) => (
+                user.pullDrops((process.env.DENA_CURRENT_EVENT_ID || 96))
+                .then(drops => {
+                    return Promise.all([
+                            user.pushDropsToSocket(drops, io),
+                            user.pushDropsToPhone(drops)
+                        ])
+                        .return(null)
                 })
-                .then(() => console.log("finished mapping"))
                 .return(null)
-        })
-        .return(null)
-        .then(pushDrops)
-}
+                .catch(err => user.handleDropError(err, io))
+            ))
+            .return(null)
+            .then(() => console.log("finished mapping"))
+        )))
+    .then(pushDrops)
+
 
 let updateUserData = () => {
     let cutoff = moment().add(5, 'hours').toDate();
