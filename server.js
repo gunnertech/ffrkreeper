@@ -397,25 +397,32 @@ io.on('connection', (socket) => {
     });
 
 });
-
+// phone: "+18609404747", 
+var i = 0;
 let pushDrops = () => {
+    console.log('start push')
     return User.find({ hasValidSessionId: true })
         .then((users) => {
             console.log("FOUND USERS: " + users.length)
             return Promise.map(users, (user) => {
-                return user.pullDrops((process.env.DENA_CURRENT_EVENT_ID || 96))
-                    .then((drops) => {
-                        return Promise.all([
-                            user.pushDropsToSocket(drops, io),
-                            user.pushDropsToPhone(drops)
-                        ]).return(null)
-                    }).return(null)
-                    .catch((err) => {
-                        console.log(err)
-                        return user.handleDropError(err, io);
-                    })
-            }).return(null)
-        }).return(null)
+                    return user.pullDrops((process.env.DENA_CURRENT_EVENT_ID || 96))
+                        .then((drops) => {
+                            console.log("Got Drops")
+                            return Promise.all([
+                                user.pushDropsToSocket(drops, io),
+                                user.pushDropsToPhone(drops)
+                            ]).return(null)
+                        }).return(null)
+                        .catch((err) => {
+                            console.log(i++)
+                            return user.handleDropError(err, io);
+                        })
+                })
+                .then(() => console.log("finished mapping"))
+                .return(null)
+        })
+        .return(null)
+        .then(pushDrops)
 }
 
 let updateUserData = () => {
@@ -655,7 +662,8 @@ let buildInventory = () => {
 
 // User.find({ phone: '+18609404747', hasValidSessionId: true }).then(console.log)
 
-setInterval(pushDrops, 6000); // Every six seconds
+// setInterval(pushDrops, 12000); // Every six seconds
+pushDrops();
 
 // setInterval(updateUserData, (1000 * 60 * 60 * 24)); // Every day
 // setInterval(buildBattles,   (1000 * 60 * 60 * 24)); // Every day

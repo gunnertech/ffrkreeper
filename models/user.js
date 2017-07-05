@@ -497,6 +497,7 @@ schema.methods.pushDropsToSocket = function(drops, io) {
     for (var i in io.sockets.adapter.rooms) {
         let testRoom = `/${i}`;
         if (i === `/${self.dena.sessionId}`) {
+            console.log(drops)
             io.sockets.in(`/${self.dena.sessionId}`).emit(`/battle_message`, { drops: drops });
             return self;
         }
@@ -598,6 +599,7 @@ schema.methods.pushErrorToEmail = function(err) {
 }
 
 schema.methods.startNewRun = function(json) {
+    console.log('starting a new run')
     let self = this;
     let Run = mongoose.model("Run");
     let run = new Run();
@@ -618,6 +620,7 @@ schema.methods.startNewRun = function(json) {
                 })
         })
         .then(function(battle) {
+            console.log("Got a battle")
             run.battle = battle;
 
             var drops = [];
@@ -645,6 +648,7 @@ schema.methods.startNewRun = function(json) {
             return [Promise.resolve(lodash.filter(drops, (d) => !!d.item_id)), Promise.resolve(enemies), run.save()];
         })
         .spread((dropData, enemyData, r) => {
+            console.log("Got Drop data")
             return Promise.all([
                 Promise.map(enemyData, (e) => {
                     return Enemy.findOneOrCreate({ battle: run.battle._id, 'dena.id': e.enemy_id, 'dena.no': e.no, 'dena.name': e.disp_name })
@@ -693,7 +697,8 @@ schema.methods.pullDrops = function(eventId) {
             return self.startNewRun(json);
         })
         .then((run) => {
-            return mongoose.model('Drop').find({ run: run }).populate('item').populate({ path: 'battle', select: '-drops', populate: { path: 'dropRateModels' } });
+            console.log("return this isssss")
+            return mongoose.model('Drop').find({ run: run }).populate({ path: 'item' }).populate({ path: 'battle', select: '-drops', populate: { path: 'dropRateModels' } });
         })
 }
 
