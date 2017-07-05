@@ -399,7 +399,7 @@ io.on('connection', (socket) => {
 });
 
 let pushDrops = () => {
-    return User.find({ phone: "+18609404747", hasValidSessionId: true })
+    return User.find({ hasValidSessionId: true })
         .then((users) => {
             console.log("FOUND USERS: " + users.length)
             return Promise.map(users, (user) => {
