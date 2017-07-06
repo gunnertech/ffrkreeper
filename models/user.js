@@ -492,18 +492,8 @@ schema.methods.handleDropError = function(err, io) {
 }
 
 schema.methods.pushDropsToSocket = function(drops, io) {
-    let self = this;
-
-    for (var i in io.sockets.adapter.rooms) {
-        let testRoom = `/${i}`;
-        if (i === `/${self.dena.sessionId}`) {
-            console.log(drops)
-            io.sockets.in(`/${self.dena.sessionId}`).emit(`/battle_message`, { drops: drops });
-            return self;
-        }
-    }
-
-    return self;
+    io.sockets.in(`/${self.dena.sessionId}`).emit(`/battle_message`, { drops: drops });
+    return this;
 }
 
 schema.methods.pushDropsToPhone = function(drops) {
@@ -568,7 +558,6 @@ schema.methods.pushErrorToSocket = function(err, io) {
     let self = this;
 
     for (var i in io.sockets.adapter.rooms) {
-        let testRoom = `/${i}`;
         if (i === `/${self.dena.sessionId}`) {
             io.sockets.in(`/${self.dena.sessionId}`).emit(`/battle_message`, err);
             return self;

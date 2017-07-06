@@ -356,7 +356,7 @@ io.on('connection', (socket) => {
                 })
                 .then((user) => {
                     socket.join(`/${user.dena.sessionId}`);
-                    _users.push(user);
+                    // _users.push(user);
                     return fn(user);
                 })
                 .catch((err) => {
@@ -390,7 +390,7 @@ io.on('connection', (socket) => {
 
                     user.alertLevel = 0;
 
-                    _users = lodash.remove(_users, signedOutUser => user.dena.sessionId === signedOutUser.dena.sessionId)
+                    // _users = lodash.remove(_users, signedOutUser => user.dena.sessionId === signedOutUser.dena.sessionId)
 
                     return user.save().return(user);
                 })
@@ -430,9 +430,19 @@ io.on('connection', (socket) => {
 //         .then(pushDrops)
 // }
 
+
 let pushDrops = () => (
-        User.find({ phone: { $ne: null }, hasValidSessionId: true })
-        .then(users => lodash.uniqWith(lodash.concat(users, _users)), (a, b) => a.dena.sessionId === b.dena.sessionId)
+        User.find({ phone: { $ne: null }, hasValidSessionId: true }).distinct('dena.sessionId')
+        .then(sessionIds => (
+            lodash.uniq(
+                lodash.concat(
+                    Object.keys(io.sockets.adapter.rooms).map(roomId => roomId.replace('/', '')),
+                    sessionIds
+                )
+            )
+        ))
+        // .then(ids => { console.log(ids); return ids })
+        .then(sessionIds => User.find({ 'dena.sessionId': { $in: sessionIds } }))
         .then(users => (
             Promise.map(users, (user) => (
                 user.pullDrops((process.env.DENA_CURRENT_EVENT_ID || 96))
@@ -690,7 +700,7 @@ let buildInventory = () => {
 // User.find({ phone: '+18609404747', hasValidSessionId: true }).then(console.log)
 
 // setInterval(pushDrops, 12000); // Every six seconds
-pushDrops();
+setTimeout(pushDrops, 1);
 
 // setInterval(updateUserData, (1000 * 60 * 60 * 24)); // Every day
 // setInterval(buildBattles,   (1000 * 60 * 60 * 24)); // Every day
