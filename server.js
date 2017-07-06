@@ -441,23 +441,22 @@ let pushDrops = () => (
                 )
             )
         ))
-        // .then(ids => { console.log(ids); return ids })
         .then(sessionIds => User.find({ 'dena.sessionId': { $in: sessionIds } }))
         .then(users => (
             Promise.map(users, (user) => (
                 user.pullDrops((process.env.DENA_CURRENT_EVENT_ID || 96))
-                .then(drops => {
-                    return Promise.all([
-                            user.pushDropsToSocket(drops, io),
-                            user.pushDropsToPhone(drops)
-                        ])
-                        .return(null)
-                })
+                .then(drops => (
+                    Promise.all([
+                        user.pushDropsToSocket(drops, io),
+                        user.pushDropsToPhone(drops)
+                    ])
+                    .return(null)
+                ))
                 .return(null)
                 .catch(err => user.handleDropError(err, io))
             ))
             .return(null)
-            .then(() => console.log("finished mapping"))
+            .then(console.log.bind(this, "finished mapping"))
         )))
     .then(pushDrops)
 

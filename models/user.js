@@ -492,7 +492,7 @@ schema.methods.handleDropError = function(err, io) {
 }
 
 schema.methods.pushDropsToSocket = function(drops, io) {
-    io.sockets.in(`/${self.dena.sessionId}`).emit(`/battle_message`, { drops: drops });
+    io.sockets.in(`/${this.dena.sessionId}`).emit(`/battle_message`, { drops: drops });
     return this;
 }
 
@@ -555,16 +555,8 @@ schema.methods.pushDropsToEmail = function(drops) {
 }
 
 schema.methods.pushErrorToSocket = function(err, io) {
-    let self = this;
-
-    for (var i in io.sockets.adapter.rooms) {
-        if (i === `/${self.dena.sessionId}`) {
-            io.sockets.in(`/${self.dena.sessionId}`).emit(`/battle_message`, err);
-            return self;
-        }
-    }
-
-    return self;
+    io.sockets.in(`/${this.dena.sessionId}`).emit(`/battle_message`, err);
+    return this;
 }
 
 schema.methods.pushErrorToPhone = function(err) {
