@@ -22,6 +22,8 @@ const moment = require('moment');
 const lodash = require('lodash');
 const util = require('util');
 const request = require('request');
+const timeout = require('connect-timeout');
+
 
 //load all template partials
 fs.readdirSync(path.join(__dirname, 'views/partials')).forEach(function(file) {
@@ -52,6 +54,7 @@ const AudioFile = require('./models/audioFile.js');
 let _users = [];
 
 const server = express()
+    .use(timeout('60s'))
     .use(bodyParser.json())
     .use(bodyParser.json(bodyParser.urlencoded({ extended: true })))
     .use(express.static(path.join(__dirname, 'public'), {
