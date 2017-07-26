@@ -512,6 +512,14 @@ schema.methods.pushDropsToHttp = function(drops, url) {
     }).then(console.log).return(this).catch(console.log)
 }
 
+schema.methods.pushErrorToHttp = function(err, url) {
+    return Promise.promisify(request.post.bind(request))({
+        url: url,
+        body: { error: err },
+        json: true
+    }).then(console.log).return(this).catch(console.log)
+}
+
 schema.methods.queueDropRequest = function() {
     let self = this;
     return Promise.promisify(sqs.sendMessage.bind(sqs))({

@@ -63,7 +63,7 @@ const server = express()
     .engine('hbs', engine.__express)
     .set('view engine', 'hbs')
     .post('/daemon', (req, res) => (
-        User.findOne({ 'dena.sessionId': req.headers["x-aws-sqsd-attr-denasessionid"] }).limit(1)
+        User.findOne({ 'dena.sessionId': req.headers["x-aws-sqsd-attr-denasessionid"] })
         .then(user => (
             user.pullDrops((process.env.DENA_CURRENT_EVENT_ID || 96))
             .then(drops => (
@@ -72,7 +72,7 @@ const server = express()
                     user.pushDropsToPhone(drops)
                 ])
             ))
-            .catch(err => user.handleDropError(err, io))
+            .catch(err => user.pushErrorToHttp(err, (process.env.NODE_ENV === 'development' ? `http://localhost:3003/errors/${user.dena.sessionId}` : `https://ffrkreeper.com/errors/${user.dena.sessionId}`)))
             .return(user)
         ))
         .then(user => user.queueDropRequest())
@@ -81,6 +81,11 @@ const server = express()
     .post('/drops/:denaSessionId', (req, res) => {
         User.findOne({ 'dena.sessionId': req.params.denaSessionId })
             .then(user => user.pushDropsToSocket(req.body.drops, io))
+            .then((resp) => res.json(resp))
+    })
+    .post('/errors/:denaSessionId', (req, res) => {
+        User.findOne({ 'dena.sessionId': req.params.denaSessionId })
+            .then(user => user.handleDropError(req.body.error, io))
             .then((resp) => res.json(resp))
     })
     .get('/items', function(req, res) {
@@ -455,47 +460,6 @@ let pushDrops = () => (
             .then(console.log.bind(this, "finished mapping"))
         )))
     .then(pushDrops)
-
-let pushDropsForMobileUsers = () => (
-        User.find({ phone: { $ne: null }, hasValidSessionId: true }).distinct('dena.sessionId')
-        .then(sessionIds => User.find({ 'dena.sessionId': { $in: sessionIds } }))
-        .then(users => (
-            Promise.map(users, (user) => (
-                user.pullDrops((process.env.DENA_CURRENT_EVENT_ID || 96))
-                .then(drops => (
-                    Promise.all([
-                        user.pushDropsToSocket(drops, io),
-                        user.pushDropsToPhone(drops)
-                    ])
-                    .return(null)
-                ))
-                .return(null)
-                .catch(err => user.handleDropError(err, io))
-            ))
-            .return(null)
-            .then(console.log.bind(this, "finished mapping"))
-        )))
-    .then(pushDropsForMobileUsers)
-
-let pushDropsForSocketUsers = () => (
-        User.find({ 'dena.sessionId': { $in: lodash.uniq(Object.keys(io.sockets.adapter.rooms).map(roomId => roomId.replace('/', ''))) } })
-        .then(users => (
-            Promise.map(users, (user) => (
-                user.pullDrops((process.env.DENA_CURRENT_EVENT_ID || 96))
-                .then(drops => (
-                    Promise.all([
-                        user.pushDropsToSocket(drops, io),
-                        user.pushDropsToPhone(drops)
-                    ])
-                    .return(null)
-                ))
-                .return(null)
-                .catch(err => user.handleDropError(err, io))
-            ))
-            .return(null)
-            .then(console.log.bind(this, "finished mapping"))
-        )))
-    .then(pushDropsForSocketUsers)
 
 
 let updateUserData = () => {
