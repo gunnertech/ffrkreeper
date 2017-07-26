@@ -75,7 +75,13 @@ const server = express()
             .catch(err => user.pushErrorToHttp(err, (process.env.NODE_ENV === 'development' ? `http://localhost:3003/errors/${user.dena.sessionId}` : `https://ffrkreeper.com/errors/${user.dena.sessionId}`)))
             .return(user)
         ))
-        .then(user => user.queueDropRequest())
+        .then(user => {
+            setTimeout(() => {
+                user.queueDropRequest();
+            }, 8000)
+
+            return user;
+        })
         .then((resp) => res.json(resp))
     ))
     .post('/drops/:denaSessionId', (req, res) => {

@@ -521,18 +521,19 @@ schema.methods.pushErrorToHttp = function(err, url) {
 }
 
 schema.methods.queueDropRequest = function() {
-    let self = this;
-    return Promise.promisify(sqs.sendMessage.bind(sqs))({
-        MessageAttributes: {
-            "denasessionid": {
-                DataType: "String",
-                StringValue: this.dena.sessionId
-            }
-        },
-        DelaySeconds: 0,
-        QueueUrl: process.env.SQS_QUEUE_URL,
-        MessageBody: `{"message": "Queue ${self.dena.sessionId}"}`
-    }).return(self)
+    return self;
+    // let self = this;
+    // return Promise.promisify(sqs.sendMessage.bind(sqs))({
+    //     MessageAttributes: {
+    //         "denasessionid": {
+    //             DataType: "String",
+    //             StringValue: this.dena.sessionId
+    //         }
+    //     },
+    //     DelaySeconds: 0,
+    //     QueueUrl: process.env.SQS_QUEUE_URL,
+    //     MessageBody: `{"message": "Queue ${self.dena.sessionId}"}`
+    // }).return(self)
 }
 
 schema.methods.pushDropsToPhone = function(drops) {
