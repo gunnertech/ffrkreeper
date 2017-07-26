@@ -13,6 +13,7 @@ const lodash = require('lodash');
 const request = require('request');
 const hash = require('json-hash');
 const util = require('util');
+const AWS = require('aws-sdk');
 
 const Drop = require('./drop.js');
 const Battle = require('./battle.js');
@@ -22,6 +23,13 @@ const Series = require('./series.js');
 
 const utils = require('../utils.js');
 const dena = require('../dena.js');
+
+const sqs = new AWS.SQS({
+    apiVersion: '2012-11-05',
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+    region: process.env.AWS_REGION
+});
 
 const schema = new mongoose.Schema({
     email: { type: String, index: { unique: true, sparse: true } },
@@ -499,8 +507,24 @@ schema.methods.pushDropsToSocket = function(drops, io) {
 schema.methods.pushDropsToHttp = function(drops, url) {
     return Promise.promisify(request.post.bind(request))({
         url: url,
-        form: drops
+        body: { drops: drops },
+        json: true
     }).then(console.log).return(this).catch(console.log)
+}
+
+schema.methods.queueDropRequest = function() {
+    let self = this;
+    return Promise.promisify(sqs.sendMessage.bind(sqs))({
+        MessageAttributes: {
+            "denasessionid": {
+                DataType: "String",
+                StringValue: this.dena.sessionId
+            }
+        },
+        DelaySeconds: 0,
+        QueueUrl: process.env.SQS_QUEUE_URL,
+        MessageBody: `{"message": "Queue ${self.dena.sessionId}"}`
+    })
 }
 
 schema.methods.pushDropsToPhone = function(drops) {

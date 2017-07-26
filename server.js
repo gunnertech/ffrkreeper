@@ -23,7 +23,6 @@ const lodash = require('lodash');
 const util = require('util');
 const request = require('request');
 const timeout = require('connect-timeout');
-const AWS = require('aws-sdk');
 
 //load all template partials
 fs.readdirSync(path.join(__dirname, 'views/partials')).forEach(function(file) {
@@ -51,13 +50,6 @@ const DropRate = require('./models/dropRate.js');
 const Image = require('./models/image.js');
 const AudioFile = require('./models/audioFile.js');
 
-const sqs = new AWS.SQS({
-    apiVersion: '2012-11-05',
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-    region: process.env.AWS_REGION
-});
-
 
 const server = express()
     .use(timeout('60s'))
@@ -76,17 +68,17 @@ const server = express()
             user.pullDrops((process.env.DENA_CURRENT_EVENT_ID || 96))
             .then(drops => (
                 Promise.all([
-                    user.pushDropsToHttp(drops, `https://ffrkreeper.com/drops/${user.dena.sessionId}`),
+                    user.pushDropsToHttp(drops, (process.env.NODE_ENV === 'development' ? `http://localhost:3003/drops/${user.dena.sessionId}` : `https://ffrkreeper.com/drops/${user.dena.sessionId}`)),
                     user.pushDropsToPhone(drops)
                 ])
-                .return(null)
             ))
             .catch(err => user.handleDropError(err, io))
+            .return(user)
         ))
+        .then(user => user.queueDropRequest())
         .then((resp) => res.json(resp))
     ))
     .post('/drops/:denaSessionId', (req, res) => {
-        console.log(req.body)
         User.findOne({ 'dena.sessionId': req.params.denaSessionId })
             .then(user => user.pushDropsToSocket(req.body.drops, io))
             .then((resp) => res.json(resp))
@@ -383,7 +375,10 @@ io.on('connection', (socket) => {
                 })
                 .then((user) => {
                     socket.join(`/${user.dena.sessionId}`);
-                    // _users.push(user);
+                    return user;
+                })
+                .then(user => user.queueDropRequest())
+                .then(user => {
                     return fn(user);
                 })
                 .catch((err) => {
@@ -430,34 +425,6 @@ io.on('connection', (socket) => {
 });
 
 
-let pushSqsDrops = () => (
-    User.find({ phone: { $ne: null }, hasValidSessionId: true })
-    .distinct('dena.sessionId')
-    .then(sessionIds => (
-        lodash.uniq(
-            lodash.concat(
-                Object.keys(io.sockets.adapter.rooms).map(roomId => roomId.replace('/', '')),
-                sessionIds
-            )
-        )
-    ))
-    .then(sessionIds => (
-        Promise.map(sessionIds, sessionId => (
-            Promise.promisify(sqs.sendMessage.bind(sqs))({
-                MessageAttributes: {
-                    "denasessionid": {
-                        DataType: "String",
-                        StringValue: sessionId
-                    }
-                },
-                DelaySeconds: 0,
-                QueueUrl: process.env.SQS_QUEUE_URL,
-                MessageBody: `{"message": "Queue ${sessionId}"}`
-            })
-        ))
-    ))
-    .then(pushSqsDrops)
-);
 
 
 let pushDrops = () => (
@@ -769,10 +736,6 @@ let buildInventory = () => {
 // User.find({ phone: '+18609404747', hasValidSessionId: true }).then(console.log)
 
 // setInterval(pushDrops, 12000); // Every six seconds
-
-// if (!process.env.IS_WORKER) {
-//     setTimeout(pushSqsDrops, 1);
-// }
 
 // setTimeout(pushDrops, 1);
 
