@@ -307,8 +307,9 @@ io.on('connection', (socket) => {
 
         Object.keys(socket.adapter.rooms).forEach((roomName) => {
             socket.leave(roomName);
-
-            io.sockets.in(roomName).emit('participantCount', io.sockets.adapter.rooms[roomName].length);
+            if (io.sockets.adapter.rooms[roomName]) {
+                io.sockets.in(roomName).emit('participantCount', io.sockets.adapter.rooms[roomName].length);
+            }
         })
     });
 
@@ -406,33 +407,6 @@ io.on('connection', (socket) => {
 
 });
 
-// 
-// var i = 0;
-// let pushDrops = () => {
-//     console.log('start push')
-//     return User.find({ phone: "+18609404747", hasValidSessionId: true })
-//         .then((users) => {
-//             console.log("FOUND USERS: " + users.length)
-//             return Promise.map(users, (user) => {
-//                     return user.pullDrops((process.env.DENA_CURRENT_EVENT_ID || 96))
-//                         .then((drops) => {
-//                             console.log("Got Drops")
-//                             return Promise.all([
-//                                 user.pushDropsToSocket(drops, io),
-//                                 user.pushDropsToPhone(drops)
-//                             ]).return(null)
-//                         }).return(null)
-//                         .catch((err) => {
-//                             console.log(i++)
-//                             return user.handleDropError(err, io);
-//                         })
-//                 })
-//                 .then(() => console.log("finished mapping"))
-//                 .return(null)
-//         })
-//         .return(null)
-//         .then(pushDrops)
-// }
 
 let pushDrops = () => (
         User.find({ phone: { $ne: null }, hasValidSessionId: true }).distinct('dena.sessionId')
@@ -743,10 +717,10 @@ let buildInventory = () => {
 // User.find({ phone: '+18609404747', hasValidSessionId: true }).then(console.log)
 
 // setInterval(pushDrops, 12000); // Every six seconds
-// setTimeout(pushDrops, 1);
+setTimeout(pushDrops, 1);
 
-setTimeout(pushDropsForSocketUsers, 1);
-setTimeout(pushDropsForMobileUsers, 2);
+// setTimeout(pushDropsForSocketUsers, 1);
+// setTimeout(pushDropsForMobileUsers, 2);
 
 // setInterval(updateUserData, (1000 * 60 * 60 * 24)); // Every day
 // setInterval(buildBattles,   (1000 * 60 * 60 * 24)); // Every day
