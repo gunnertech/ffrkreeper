@@ -434,7 +434,6 @@ io.on('connection', (socket) => {
 //         .then(pushDrops)
 // }
 
-
 let pushDrops = () => (
         User.find({ phone: { $ne: null }, hasValidSessionId: true }).distinct('dena.sessionId')
         .then(sessionIds => (
@@ -463,6 +462,47 @@ let pushDrops = () => (
             .then(console.log.bind(this, "finished mapping"))
         )))
     .then(pushDrops)
+
+let pushDropsForMobileUsers = () => (
+        User.find({ phone: { $ne: null }, hasValidSessionId: true }).distinct('dena.sessionId')
+        .then(sessionIds => User.find({ 'dena.sessionId': { $in: sessionIds } }))
+        .then(users => (
+            Promise.map(users, (user) => (
+                user.pullDrops((process.env.DENA_CURRENT_EVENT_ID || 96))
+                .then(drops => (
+                    Promise.all([
+                        user.pushDropsToSocket(drops, io),
+                        user.pushDropsToPhone(drops)
+                    ])
+                    .return(null)
+                ))
+                .return(null)
+                .catch(err => user.handleDropError(err, io))
+            ))
+            .return(null)
+            .then(console.log.bind(this, "finished mapping"))
+        )))
+    .then(pushDropsForMobileUsers)
+
+let pushDropsForSocketUsers = () => (
+        User.find({ 'dena.sessionId': { $in: lodash.uniq(Object.keys(io.sockets.adapter.rooms).map(roomId => roomId.replace('/', ''))) } })
+        .then(users => (
+            Promise.map(users, (user) => (
+                user.pullDrops((process.env.DENA_CURRENT_EVENT_ID || 96))
+                .then(drops => (
+                    Promise.all([
+                        user.pushDropsToSocket(drops, io),
+                        user.pushDropsToPhone(drops)
+                    ])
+                    .return(null)
+                ))
+                .return(null)
+                .catch(err => user.handleDropError(err, io))
+            ))
+            .return(null)
+            .then(console.log.bind(this, "finished mapping"))
+        )))
+    .then(pushDropsForSocketUsers)
 
 
 let updateUserData = () => {
@@ -703,7 +743,10 @@ let buildInventory = () => {
 // User.find({ phone: '+18609404747', hasValidSessionId: true }).then(console.log)
 
 // setInterval(pushDrops, 12000); // Every six seconds
-setTimeout(pushDrops, 1);
+// setTimeout(pushDrops, 1);
+
+setTimeout(pushDropsForSocketUsers, 1);
+setTimeout(pushDropsForMobileUsers, 2);
 
 // setInterval(updateUserData, (1000 * 60 * 60 * 24)); // Every day
 // setInterval(buildBattles,   (1000 * 60 * 60 * 24)); // Every day
