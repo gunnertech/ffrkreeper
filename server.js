@@ -428,6 +428,7 @@ io.on('connection', (socket) => {
                     }
 
                     user.alertLevel = 0;
+                    user.dena.sessionId = '';
 
                     // _users = lodash.remove(_users, signedOutUser => user.dena.sessionId === signedOutUser.dena.sessionId)
 
