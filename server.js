@@ -23,7 +23,7 @@ const lodash = require('lodash');
 const util = require('util');
 const request = require('request');
 const timeout = require('connect-timeout');
-
+const AWS = require('aws-sdk');
 
 //load all template partials
 fs.readdirSync(path.join(__dirname, 'views/partials')).forEach(function(file) {
@@ -51,7 +51,13 @@ const DropRate = require('./models/dropRate.js');
 const Image = require('./models/image.js');
 const AudioFile = require('./models/audioFile.js');
 
-let _users = [];
+const sqs = new AWS.SQS({
+    apiVersion: '2012-11-05',
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+    region: process.env.AWS_REGION
+});
+
 
 const server = express()
     .use(timeout('60s'))
@@ -62,11 +68,30 @@ const server = express()
     }))
     .set('views', path.join(__dirname, 'views'))
     .set('view options', { layout: 'layout' })
-
-.engine('hbs', engine.__express)
+    .engine('hbs', engine.__express)
     .set('view engine', 'hbs')
-
-.get('/items', function(req, res) {
+    .post('/daemon', (req, res) => (
+        User.findOne({ 'dena.sessionId': req.headers["x-aws-sqsd-attr-denasessionid"] }).limit(1)
+        .then(user => (
+            user.pullDrops((process.env.DENA_CURRENT_EVENT_ID || 96))
+            .then(drops => (
+                Promise.all([
+                    user.pushDropsToHttp(drops, `https://ffrkreeper.com/drops/${user.dena.sessionId}`),
+                    user.pushDropsToPhone(drops)
+                ])
+                .return(null)
+            ))
+            .catch(err => user.handleDropError(err, io))
+        ))
+        .then((resp) => res.json(resp))
+    ))
+    .post('/drops/:denaSessionId', (req, res) => {
+        console.log(req.body)
+        User.findOne({ 'dena.sessionId': req.params.denaSessionId })
+            .then(user => user.pushDropsToSocket(req.body.drops, io))
+            .then((resp) => res.json(resp))
+    })
+    .get('/items', function(req, res) {
         Item.find()
             .then((items) => {
                 return res.render('items/index', { title: 'Items', items: items });
@@ -158,9 +183,7 @@ const server = express()
                 return res.render('enemies/show', { title: enemy.dena.name, enemy: enemy });
             });
     })
-
-
-.get('/dungeons', function(req, res) {
+    .get('/dungeons', function(req, res) {
         Battle.forDungeonIndex()
             .then((dungeons) => {
                 return res.render('dungeons/index', { title: 'Dungeons', dungeons: dungeons });
@@ -232,11 +255,7 @@ const server = express()
             });
         })
     })
-
-
-
-
-.get('/images', function(req, res) {
+    .get('/images', function(req, res) {
         let limit = 100;
         let page = parseInt(req.query.page || 1);
         let skip = (page - 1) * limit;
@@ -268,8 +287,12 @@ const server = express()
     })
     .listen(PORT, () => console.log(`Listening on ${PORT}`));
 
+
+
+
+
+
 const io = socketIO(server);
-let rooms = {};
 
 io.on('connection', (socket) => {
     console.log('Client connected');
@@ -316,7 +339,6 @@ io.on('connection', (socket) => {
     ////end talk it out bullshit
 
     socket.on('/signin', (data, fn) => { ////ALLOW THEM TO SIGN IN WITH EITHER A SESSIONID, PHONE OR EMAIL
-        console.log("doing it")
         var query = [];
 
         if (data.sessionId) {
@@ -406,6 +428,36 @@ io.on('connection', (socket) => {
     });
 
 });
+
+
+let pushSqsDrops = () => (
+    User.find({ phone: { $ne: null }, hasValidSessionId: true })
+    .distinct('dena.sessionId')
+    .then(sessionIds => (
+        lodash.uniq(
+            lodash.concat(
+                Object.keys(io.sockets.adapter.rooms).map(roomId => roomId.replace('/', '')),
+                sessionIds
+            )
+        )
+    ))
+    .then(sessionIds => (
+        Promise.map(sessionIds, sessionId => (
+            Promise.promisify(sqs.sendMessage.bind(sqs))({
+                MessageAttributes: {
+                    "denasessionid": {
+                        DataType: "String",
+                        StringValue: sessionId
+                    }
+                },
+                DelaySeconds: 0,
+                QueueUrl: process.env.SQS_QUEUE_URL,
+                MessageBody: `{"message": "Queue ${sessionId}"}`
+            })
+        ))
+    ))
+    .then(pushSqsDrops)
+);
 
 
 let pushDrops = () => (
@@ -717,7 +769,12 @@ let buildInventory = () => {
 // User.find({ phone: '+18609404747', hasValidSessionId: true }).then(console.log)
 
 // setInterval(pushDrops, 12000); // Every six seconds
-setTimeout(pushDrops, 1);
+
+// if (!process.env.IS_WORKER) {
+//     setTimeout(pushSqsDrops, 1);
+// }
+
+// setTimeout(pushDrops, 1);
 
 // setTimeout(pushDropsForSocketUsers, 1);
 // setTimeout(pushDropsForMobileUsers, 2);

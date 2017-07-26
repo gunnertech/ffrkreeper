@@ -496,6 +496,13 @@ schema.methods.pushDropsToSocket = function(drops, io) {
     return this;
 }
 
+schema.methods.pushDropsToHttp = function(drops, url) {
+    return Promise.promisify(request.post.bind(request))({
+        url: url,
+        form: drops
+    }).then(console.log).return(this).catch(console.log)
+}
+
 schema.methods.pushDropsToPhone = function(drops) {
     let self = this;
 
