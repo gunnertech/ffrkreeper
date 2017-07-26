@@ -524,7 +524,7 @@ schema.methods.queueDropRequest = function() {
         DelaySeconds: 0,
         QueueUrl: process.env.SQS_QUEUE_URL,
         MessageBody: `{"message": "Queue ${self.dena.sessionId}"}`
-    })
+    }).return(self)
 }
 
 schema.methods.pushDropsToPhone = function(drops) {
