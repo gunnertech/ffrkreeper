@@ -315,6 +315,7 @@ io.on('connection', (socket) => {
     ////end talk it out bullshit
 
     socket.on('/signin', (data, fn) => { ////ALLOW THEM TO SIGN IN WITH EITHER A SESSIONID, PHONE OR EMAIL
+        console.log("doing it")
         var query = [];
 
         if (data.sessionId) {
