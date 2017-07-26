@@ -64,6 +64,10 @@ const schema = new mongoose.Schema({
         default: 0
     },
     lastMessage: String,
+    isQueued: {
+        type: Boolean,
+        default: false
+    },
     buddy: { type: mongoose.Schema.Types.ObjectId, ref: 'Buddy' },
     currentRun: { type: mongoose.Schema.Types.ObjectId, ref: 'Run' }
 });
@@ -481,8 +485,11 @@ schema.methods.handleDropError = function(err, io) {
             }).return(self)
 
     } else if (err.name === 'AuthorizationError') {
+        user.currentRun = null;
+        user.hasValidSessionId = false;
+        user.isQueued = false;
 
-        return mongoose.model('User').update({ _id: this._id }, { currentRun: null, hasValidSessionId: false })
+        return mongoose.model('User').update({ _id: this._id }, { currentRun: null, hasValidSessionId: false, isQueued: false })
             .then(() => {
                 let err = {
                     message: "Session Id Expired: Your session id no longer valid! Please sign out and sign back in with a new session id.",
@@ -522,17 +529,28 @@ schema.methods.pushErrorToHttp = function(err, url) {
 
 schema.methods.queueDropRequest = function() {
     let self = this;
-    return Promise.promisify(sqs.sendMessage.bind(sqs))({
-        MessageAttributes: {
-            "denasessionid": {
-                DataType: "String",
-                StringValue: this.dena.sessionId
-            }
-        },
-        DelaySeconds: 0,
-        QueueUrl: process.env.SQS_QUEUE_URL,
-        MessageBody: `{"message": "Queue ${self.dena.sessionId}"}`
-    }).return(self)
+
+    if (!this.hasValidSessionId) {
+        return Promise.resolve(self);
+    }
+
+    self.isQueued = true;
+
+    return self.save().then(() => (
+        Promise.promisify(sqs.sendMessage.bind(sqs))({
+            MessageAttributes: {
+                "denasessionid": {
+                    DataType: "String",
+                    StringValue: this.dena.sessionId
+                }
+            },
+            DelaySeconds: 0,
+            QueueUrl: process.env.SQS_QUEUE_URL,
+            MessageBody: `{"message": "Queue ${self.dena.sessionId}"}`
+        })
+    )).return(self)
+
+
 }
 
 schema.methods.pushDropsToPhone = function(drops) {

@@ -78,7 +78,7 @@ const server = express()
         .then(user => {
             setTimeout(() => {
                 user.queueDropRequest();
-            }, 8000)
+            }, 4000)
 
             return user;
         })
@@ -388,7 +388,13 @@ io.on('connection', (socket) => {
                     socket.join(`/${user.dena.sessionId}`);
                     return user;
                 })
-                .then(user => user.queueDropRequest())
+                .then(user => {
+                    if (user.isQueued) { // if user is already in a queue loop, don't add the user to another
+                        return Promise.resolve(user);
+                    }
+
+                    return user.queueDropRequest()
+                })
                 .then(user => {
                     return fn(user);
                 })
