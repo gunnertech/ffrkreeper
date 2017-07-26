@@ -31,6 +31,7 @@
     var messages = [];
 
     function renderDrops(message) {
+        console.log(message)
         var showDrop = (messages.length === 0 || (message.name && message.name != messages[messages.length - 1].name) || (!message.name && messages[messages.length - 1].name));
 
         if (!showDrop) {

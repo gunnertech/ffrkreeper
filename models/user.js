@@ -512,19 +512,24 @@ schema.methods.pushDropsToSocket = function(drops, io) {
 }
 
 schema.methods.pushDropsToHttp = function(drops, url) {
+    console.log(drops)
     return Promise.promisify(request.post.bind(request))({
-        url: url,
-        body: { drops: drops },
-        json: true
-    }).then(console.log).return(this).catch(console.log)
+            url: url,
+            body: { drops: drops },
+            json: true
+        })
+        .catch(console.log)
+        .return(this)
 }
 
 schema.methods.pushErrorToHttp = function(err, url) {
     return Promise.promisify(request.post.bind(request))({
-        url: url,
-        body: { error: err },
-        json: true
-    }).then(console.log).return(this).catch(console.log)
+            url: url,
+            body: { error: err },
+            json: true
+        })
+        .catch(console.log)
+        .return(this)
 }
 
 schema.methods.queueDropRequest = function() {

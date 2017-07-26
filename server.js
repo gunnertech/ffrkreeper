@@ -68,11 +68,12 @@ const server = express()
             user.pullDrops((process.env.DENA_CURRENT_EVENT_ID || 96))
             .then(drops => (
                 Promise.all([
-                    user.pushDropsToHttp(drops, (process.env.NODE_ENV === 'development' ? `http://localhost:3003/drops/${user.dena.sessionId}` : `https://ffrkreeper.com/drops/${user.dena.sessionId}`)),
+                    user.pushDropsToHttp(drops, (process.env.NODE_ENV === 'ddevelopment' ? `http://localhost:3003/drops/${user.dena.sessionId}` : `https://ffrkreeper.com/drops/${user.dena.sessionId}`)),
                     user.pushDropsToPhone(drops)
                 ])
+                .return(drops)
             ))
-            .catch(err => user.pushErrorToHttp(err, (process.env.NODE_ENV === 'development' ? `http://localhost:3003/errors/${user.dena.sessionId}` : `https://ffrkreeper.com/errors/${user.dena.sessionId}`)))
+            .catch(err => user.pushErrorToHttp(err, (process.env.NODE_ENV === 'ddevelopment' ? `http://localhost:3003/errors/${user.dena.sessionId}` : `https://ffrkreeper.com/errors/${user.dena.sessionId}`)))
             .return(user)
         ))
         .then(user => {
@@ -471,7 +472,6 @@ let pushDrops = () => (
                 .catch(err => user.handleDropError(err, io))
             ))
             .return(null)
-            .then(console.log.bind(this, "finished mapping"))
         )))
     .then(pushDrops)
 
