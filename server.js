@@ -78,7 +78,7 @@ const server = express()
         .then(user => {
             setTimeout(() => {
                 user.queueDropRequest();
-            }, 4000)
+            }, 8000)
 
             return user;
         })
@@ -393,7 +393,8 @@ io.on('connection', (socket) => {
                         return Promise.resolve(user);
                     }
 
-                    return user.queueDropRequest()
+                    user.isQueued = true;
+                    return user.save().then(() => user.queueDropRequest()).return(user)
                 })
                 .then(user => {
                     return fn(user);
