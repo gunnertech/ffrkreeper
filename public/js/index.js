@@ -100,6 +100,7 @@
         }, function(user) {
             $(".signin-loading-wrapper").hide();
             if (user.name == 'SessionError') {
+                console.log(user);
                 alert("That session id is not valid. Please signout and try again");
                 return signout();
             }

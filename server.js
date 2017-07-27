@@ -411,7 +411,7 @@ io.on('connection', (socket) => {
                 })
                 .catch((err) => {
                     console.log(err)
-                    return fn({ name: 'SessionError', message: 'That session Id is not valid' });
+                    return fn({ name: 'SessionError', message: 'That session Id is not valid', error: err });
                 });
         }
     });
