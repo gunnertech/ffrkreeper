@@ -85,13 +85,19 @@ const server = express()
             .then((resp) => res.json(resp))
     })
     .post('/drops/:denaSessionId', (req, res) => {
-        User.findOne({ 'dena.sessionId': req.params.denaSessionId })
-            .then(user => user.pushDropsToSocket(req.body.drops, io))
+        User.find({ 'dena.sessionId': req.params.denaSessionId })
+            .limit(1)
+            .then(users => Promise.map(users, user => (
+                user.then(user => user.pushDropsToSocket(req.body.drops, io))
+            )))
             .then((resp) => res.json(resp))
     })
     .post('/errors/:denaSessionId', (req, res) => {
-        User.findOne({ 'dena.sessionId': req.params.denaSessionId })
-            .then(user => user.handleDropError(req.body.error, io))
+        User.find({ 'dena.sessionId': req.params.denaSessionId })
+            .limit(1)
+            .then(users => Promise.map(users, user => (
+                user.then(user => user.handleDropError(req.body.error, io))
+            )))
             .then((resp) => res.json(resp))
     })
     .get('/items', function(req, res) {

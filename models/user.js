@@ -485,9 +485,9 @@ schema.methods.handleDropError = function(err, io) {
             }).return(self)
 
     } else if (err.name === 'AuthorizationError') {
-        user.currentRun = null;
-        user.hasValidSessionId = false;
-        user.isQueued = false;
+        self.currentRun = null;
+        self.hasValidSessionId = false;
+        self.isQueued = false;
 
         return mongoose.model('User').update({ _id: this._id }, { currentRun: null, hasValidSessionId: false, isQueued: false })
             .then(() => {
