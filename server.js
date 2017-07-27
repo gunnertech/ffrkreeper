@@ -87,17 +87,13 @@ const server = express()
     .post('/drops/:denaSessionId', (req, res) => {
         User.find({ 'dena.sessionId': req.params.denaSessionId })
             .limit(1)
-            .then(users => Promise.map(users, user => (
-                user.then(user => user.pushDropsToSocket(req.body.drops, io))
-            )))
+            .then(users => Promise.map(users, user => (user.pushDropsToSocket(req.body.drops, io))))
             .then((resp) => res.json(resp))
     })
     .post('/errors/:denaSessionId', (req, res) => {
         User.find({ 'dena.sessionId': req.params.denaSessionId })
             .limit(1)
-            .then(users => Promise.map(users, user => (
-                user.then(user => user.handleDropError(req.body.error, io))
-            )))
+            .then(users => Promise.map(users, user => (user.handleDropError(req.body.error, io))))
             .then((resp) => res.json(resp))
     })
     .get('/items', function(req, res) {
@@ -344,7 +340,6 @@ io.on('connection', (socket) => {
             .then(() => (delete(_userSockets[socket.id])))
 
         Object.keys(socket.adapter.rooms).forEach((roomName) => {
-            console.log(roomName)
             socket.leave(roomName);
             if (io.sockets.adapter.rooms[roomName]) {
                 io.sockets.in(roomName).emit('participantCount', io.sockets.adapter.rooms[roomName].length);
@@ -416,7 +411,6 @@ io.on('connection', (socket) => {
                     return fn(user);
                 })
                 .catch((err) => {
-                    console.log(err)
                     return fn({ name: 'SessionError', message: 'That session Id is not valid', error: err });
                 });
         }
