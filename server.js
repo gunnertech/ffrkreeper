@@ -351,20 +351,25 @@ io.on('connection', (socket) => {
 
     socket.on('/request_drops', (data, fn) => { ////ALLOW THEM TO SIGN IN WITH EITHER A SESSIONID, PHONE OR EMAIL
         console.log("From the server")
+            // User.find({ 'dena.sessionId': data.sessionId })
+            //     .then(users => (
+            //         Promise.map(users, (user) => (
+            //             user.pullDrops((process.env.DENA_CURRENT_EVENT_ID || 96))
+            //             .then(drops => (
+            //                 Promise.all([
+            //                     user.pushDropsToSocket(drops, io)
+            //                 ])
+            //                 .return(null)
+            //             ))
+            //             .return(null)
+            //             .catch(err => user.handleDropError(err, io))
+            //         ))
+            //         .return(null)
+            //     ))
+
         User.find({ 'dena.sessionId': data.sessionId })
             .then(users => (
-                Promise.map(users, (user) => (
-                    user.pullDrops((process.env.DENA_CURRENT_EVENT_ID || 96))
-                    .then(drops => (
-                        Promise.all([
-                            user.pushDropsToSocket(drops, io)
-                        ])
-                        .return(null)
-                    ))
-                    .return(null)
-                    .catch(err => user.handleDropError(err, io))
-                ))
-                .return(null)
+                Promise.map(users, (user) => (user.queueDropRequest())).return(null)
             ))
     })
 
@@ -763,7 +768,7 @@ if (process.env.NODE_ENV === 'development') {
     // User.find({ phone: '+18609404747', hasValidSessionId: true }).then(console.log)
 }
 
-setTimeout(pushMobileDrops, 1);
+// setTimeout(pushMobileDrops, 1);
 
 // setTimeout(pushDrops, 1);
 
