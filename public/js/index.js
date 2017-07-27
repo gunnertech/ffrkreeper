@@ -116,6 +116,7 @@
 
             socket.on('/battle_message', function(message) {
                 $('#attach-point').prepend(renderDrops(message));
+                socket.emit('/request_drops', { sessionId: sessionId })
             });
             $(".drop-loading-wrapper").show();
 

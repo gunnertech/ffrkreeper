@@ -349,6 +349,25 @@ io.on('connection', (socket) => {
 
     ////end talk it out bullshit
 
+    socket.on('/request_drops', (data, fn) => { ////ALLOW THEM TO SIGN IN WITH EITHER A SESSIONID, PHONE OR EMAIL
+        User.find({ 'dena.sessionId': data.sessionId })
+            .then(users => (
+                Promise.map(users, (user) => (
+                    user.pullDrops((process.env.DENA_CURRENT_EVENT_ID || 96))
+                    .then(drops => (
+                        Promise.all([
+                            user.pushDropsToSocket(drops, io),
+                            user.pushDropsToPhone(drops)
+                        ])
+                        .return(null)
+                    ))
+                    .return(null)
+                    .catch(err => user.handleDropError(err, io))
+                ))
+                .return(null)
+            ))
+    })
+
     socket.on('/signin', (data, fn) => { ////ALLOW THEM TO SIGN IN WITH EITHER A SESSIONID, PHONE OR EMAIL
         var query = [];
 
@@ -398,16 +417,16 @@ io.on('connection', (socket) => {
                     socket.join(`/${user.dena.sessionId}`);
                     return user;
                 })
-                .then(user => {
-                    if (user.isQueued) { // if user is already in a queue loop, don't add the user to another
-                        console.log("already queued")
-                        return Promise.resolve(user);
-                    }
+                // .then(user => {
+                //     if (user.isQueued) { // if user is already in a queue loop, don't add the user to another
+                //         console.log("already queued")
+                //         return Promise.resolve(user);
+                //     }
 
-                    user.isQueued = true;
-                    return user.save().then(() => user.queueDropRequest()).return(user)
-                })
-                .then(user => {
+            //     user.isQueued = true;
+            //     return user.save().then(() => user.queueDropRequest()).return(user)
+            // })
+            .then(user => {
                     return fn(user);
                 })
                 .catch((err) => {
@@ -441,6 +460,9 @@ io.on('connection', (socket) => {
 
                     user.hasValidSessionId = false;
                     user.isQueued = false;
+
+                    delete(Object.keys(_userSockets).find(key => object[key] === value))
+
 
                     return user.save().return(user);
                 })
@@ -482,6 +504,24 @@ let pushDrops = () => (
             .return(null)
         )))
     .then(pushDrops)
+
+let pushMobileDrops = () => (
+        User.find({ phone: { $ne: null }, hasValidSessionId: true })
+        .then(users => (
+            Promise.map(users, (user) => (
+                user.pullDrops((process.env.DENA_CURRENT_EVENT_ID || 96))
+                .then(drops => (
+                    Promise.all([
+                        user.pushDropsToPhone(drops)
+                    ])
+                    .return(null)
+                ))
+                .return(null)
+                .catch(err => user.handleDropError(err, io))
+            ))
+            .return(null)
+        )))
+    .then(pushMobileDrops)
 
 
 let updateUserData = () => {
@@ -723,7 +763,7 @@ if (process.env.NODE_ENV === 'development') {
     // User.find({ phone: '+18609404747', hasValidSessionId: true }).then(console.log)
 }
 
-// setInterval(pushDrops, 12000); // Every six seconds
+setInterval(pushMobileDrops, 1);
 
 // setTimeout(pushDrops, 1);
 
