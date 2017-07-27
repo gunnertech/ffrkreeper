@@ -79,7 +79,7 @@ const server = express()
         .then(user => {
             setTimeout(() => {
                 user.queueDropRequest();
-            }, 8000)
+            }, 16000)
 
             return user;
         })
