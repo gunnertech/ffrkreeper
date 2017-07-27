@@ -540,7 +540,7 @@ schema.methods.queueDropRequest = function() {
 
     if (true || process.env.NODE_ENV === 'development') {
         return Promise.promisify(request.post.bind(request))({
-            url: 'http://localhost:3003/daemon',
+            url: (process.env.NODE_ENV === 'development' ? `http://localhost:3003/daemon` : `https://ffrkreeper.com/drops/daemon`),
             json: true,
             headers: {
                 'x-aws-sqsd-attr-denasessionid': self.dena.sessionId
