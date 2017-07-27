@@ -63,8 +63,9 @@ const server = express()
     .engine('hbs', engine.__express)
     .set('view engine', 'hbs')
     .post('/daemon', (req, res) => (
-        User.findOne({ 'dena.sessionId': req.headers["x-aws-sqsd-attr-denasessionid"] })
-        .then(user => (
+        User.find({ 'dena.sessionId': req.headers["x-aws-sqsd-attr-denasessionid"] })
+        .limit(1)
+        .then(users => Promise.map(users, user => (
             user.pullDrops((process.env.DENA_CURRENT_EVENT_ID || 96))
             .then(drops => (
                 Promise.all([
@@ -74,15 +75,12 @@ const server = express()
                 .return(drops)
             ))
             .catch(err => user.pushErrorToHttp(err, (process.env.NODE_ENV === 'ddevelopment' ? `http://localhost:3003/errors/${user.dena.sessionId}` : `https://ffrkreeper.com/errors/${user.dena.sessionId}`)))
-            .return(user)
-        ))
-        .then(user => {
-            setTimeout(() => {
-                user.queueDropRequest();
-            }, 16000)
+            .then(user => {
+                setTimeout(() => (user.queueDropRequest()), 16000)
 
-            return user;
-        })
+                return user;
+            })
+        )))
         .then((resp) => res.json(resp))
     ))
     .post('/drops/:denaSessionId', (req, res) => {
