@@ -76,7 +76,7 @@ const server = express()
             ))
             .catch(err => user.pushErrorToHttp(err, (process.env.NODE_ENV === 'ddevelopment' ? `http://localhost:3003/errors/${user.dena.sessionId}` : `https://ffrkreeper.com/errors/${user.dena.sessionId}`)))
             .then(user => {
-                setTimeout(() => (user.queueDropRequest()), 16000)
+                setTimeout(() => (user.queueDropRequest()), 8000)
 
                 return user;
             })
