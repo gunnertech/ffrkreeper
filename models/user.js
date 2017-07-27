@@ -718,9 +718,8 @@ schema.methods.startNewRun = function(json) {
                 })
             ])
         })
-        .then(() => {
-            return run.save()
-        })
+        .then(() => run.calculateDropRates())
+        .then(() => run.save())
 }
 
 schema.methods.pullDrops = function(eventId) {

@@ -83,6 +83,7 @@
     }
 
     function signin() {
+        console.log("Signingin......")
         if (event) { event.preventDefault(); }
 
         var sessionId = $('#session-id').val();
@@ -114,10 +115,17 @@
             $("#drops").show();
             $("#signout-form").show();
 
+            var timer = null;
             socket.on('/battle_message', function(message) {
                 $('#attach-point').prepend(renderDrops(message));
-                socket.emit('/request_drops', { sessionId: sessionId })
+                clearTimeout(timer);
+                timer = setTimeout(function() {
+                    console.log("From the client")
+                    socket.emit('/request_drops', { sessionId: user.dena.sessionId })
+                }, 2000);
+
             });
+            socket.emit('/request_drops', { sessionId: user.dena.sessionId })
             $(".drop-loading-wrapper").show();
 
         });
