@@ -429,6 +429,7 @@ io.on('connection', (socket) => {
 
                     user.alertLevel = 0;
                     user.dena.sessionId = '';
+                    user.isQueued = false;
 
                     // _users = lodash.remove(_users, signedOutUser => user.dena.sessionId === signedOutUser.dena.sessionId)
 
@@ -709,7 +710,9 @@ let buildInventory = () => {
     ])
 }
 
-// User.find({ phone: '+18609404747', hasValidSessionId: true }).then(console.log)
+if (processs.env.NODE_ENV === 'development') {
+    User.find({ phone: '+18609404747', hasValidSessionId: true }).then(console.log)
+}
 
 // setInterval(pushDrops, 12000); // Every six seconds
 
