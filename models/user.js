@@ -538,7 +538,7 @@ schema.methods.queueDropRequest = function() {
         return Promise.resolve(self);
     }
 
-    if (true || process.env.NODE_ENV === 'development') {
+    if (process.env.NODE_ENV === 'development') {
         return Promise.promisify(request.post.bind(request))({
             url: (process.env.NODE_ENV === 'development' ? `http://localhost:3003/daemon` : `https://ffrkreeper.com/drops/daemon`),
             json: true,
