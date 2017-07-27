@@ -710,7 +710,7 @@ let buildInventory = () => {
     ])
 }
 
-if (processs.env.NODE_ENV === 'development') {
+if (process.env.NODE_ENV === 'development') {
     User.find({ phone: '+18609404747', hasValidSessionId: true }).then(console.log)
 }
 
