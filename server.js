@@ -62,27 +62,28 @@ const server = express()
     .set('view options', { layout: 'layout' })
     .engine('hbs', engine.__express)
     .set('view engine', 'hbs')
-    .post('/daemon', (req, res) => (
-        User.find({ 'dena.sessionId': req.headers["x-aws-sqsd-attr-denasessionid"] })
-        .limit(1)
-        .then(users => Promise.map(users, user => (
-            user.pullDrops((process.env.DENA_CURRENT_EVENT_ID || 96))
-            .then(drops => (
-                Promise.all([
-                    user.pushDropsToHttp(drops, (process.env.NODE_ENV === 'ddevelopment' ? `http://localhost:3003/drops/${user.dena.sessionId}` : `https://ffrkreeper.com/drops/${user.dena.sessionId}`)),
-                    user.pushDropsToPhone(drops)
-                ])
-                .return(user)
-            ))
-            .catch(err => user.pushErrorToHttp(err, (process.env.NODE_ENV === 'ddevelopment' ? `http://localhost:3003/errors/${user.dena.sessionId}` : `https://ffrkreeper.com/errors/${user.dena.sessionId}`)))
-            .then(user => {
-                setTimeout(() => (user.queueDropRequest()), 8000)
+    .post('/daemon', (req, res) => {
+        console.log("OHHHHH YEAHHHH")
+        User.find({ 'dena.sessionId': req.headers["x-aws-sqsd-attr-denasessionid"], hasValidSessionId: true })
+            .limit(1)
+            .then(users => Promise.map(users, user => (
+                user.pullDrops((process.env.DENA_CURRENT_EVENT_ID || 96))
+                .then(drops => (
+                    Promise.all([
+                        user.pushDropsToHttp(drops, (process.env.NODE_ENV === 'development' ? `http://localhost:3003/drops/${user.dena.sessionId}` : `https://ffrkreeper.com/drops/${user.dena.sessionId}`)),
+                        user.pushDropsToPhone(drops)
+                    ])
+                    .return(user)
+                ))
+                .catch(err => user.pushErrorToHttp(err, (process.env.NODE_ENV === 'development' ? `http://localhost:3003/errors/${user.dena.sessionId}` : `https://ffrkreeper.com/errors/${user.dena.sessionId}`)))
+                .then(user => {
+                    setTimeout(() => (user.queueDropRequest()), 1)
 
-                return user;
-            })
-        )))
-        .then((resp) => res.json(resp))
-    ))
+                    return user;
+                })
+            )))
+            .then((resp) => res.json(resp))
+    })
     .post('/drops/:denaSessionId', (req, res) => {
         User.findOne({ 'dena.sessionId': req.params.denaSessionId })
             .then(user => user.pushDropsToSocket(req.body.drops, io))
@@ -295,6 +296,7 @@ const server = express()
 
 
 const io = socketIO(server);
+const _userSockets = {};
 
 io.on('connection', (socket) => {
     console.log('Client connected');
@@ -330,7 +332,13 @@ io.on('connection', (socket) => {
     socket.on('disconnect', () => {
         console.log('Client disconnected');
 
+        const sessionId = _userSockets[socket.id];
+
+        User.update({ 'dena.sessionId': _userSockets[socket.id] }, { hasValidSessionId: false, isQueued: false })
+            .then(() => (delete(_userSockets[socket.id])))
+
         Object.keys(socket.adapter.rooms).forEach((roomName) => {
+            console.log(roomName)
             socket.leave(roomName);
             if (io.sockets.adapter.rooms[roomName]) {
                 io.sockets.in(roomName).emit('participantCount', io.sockets.adapter.rooms[roomName].length);
@@ -384,11 +392,14 @@ io.on('connection', (socket) => {
                     return user.save().return(user);
                 })
                 .then((user) => {
+                    _userSockets[socket.id] = user.dena.sessionId;
+
                     socket.join(`/${user.dena.sessionId}`);
                     return user;
                 })
                 .then(user => {
                     if (user.isQueued) { // if user is already in a queue loop, don't add the user to another
+                        console.log("already queued")
                         return Promise.resolve(user);
                     }
 
@@ -427,11 +438,8 @@ io.on('connection', (socket) => {
                         return Promise.resolve(null);
                     }
 
-                    user.alertLevel = 0;
-                    user.dena.sessionId = '';
+                    user.hasValidSessionId = false;
                     user.isQueued = false;
-
-                    // _users = lodash.remove(_users, signedOutUser => user.dena.sessionId === signedOutUser.dena.sessionId)
 
                     return user.save().return(user);
                 })
@@ -711,7 +719,7 @@ let buildInventory = () => {
 }
 
 if (process.env.NODE_ENV === 'development') {
-    User.find({ phone: '+18609404747', hasValidSessionId: true }).then(console.log)
+    // User.find({ phone: '+18609404747', hasValidSessionId: true }).then(console.log)
 }
 
 // setInterval(pushDrops, 12000); // Every six seconds

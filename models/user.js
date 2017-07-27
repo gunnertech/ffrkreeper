@@ -512,7 +512,6 @@ schema.methods.pushDropsToSocket = function(drops, io) {
 }
 
 schema.methods.pushDropsToHttp = function(drops, url) {
-    console.log(drops)
     return Promise.promisify(request.post.bind(request))({
             url: url,
             body: { drops: drops },
@@ -539,19 +538,27 @@ schema.methods.queueDropRequest = function() {
         return Promise.resolve(self);
     }
 
-    return Promise.promisify(sqs.sendMessage.bind(sqs))({
-        MessageAttributes: {
-            "denasessionid": {
-                DataType: "String",
-                StringValue: this.dena.sessionId
+    if (true || process.env.NODE_ENV === 'development') {
+        return Promise.promisify(request.post.bind(request))({
+            url: 'http://localhost:3003/daemon',
+            json: true,
+            headers: {
+                'x-aws-sqsd-attr-denasessionid': self.dena.sessionId
             }
-        },
-        DelaySeconds: 0,
-        QueueUrl: process.env.SQS_QUEUE_URL,
-        MessageBody: `{"message": "Queue ${self.dena.sessionId}"}`
-    }).return(self)
-
-
+        }).return(self)
+    } else {
+        return Promise.promisify(sqs.sendMessage.bind(sqs))({
+            MessageAttributes: {
+                "denasessionid": {
+                    DataType: "String",
+                    StringValue: this.dena.sessionId
+                }
+            },
+            DelaySeconds: 0,
+            QueueUrl: process.env.SQS_QUEUE_URL,
+            MessageBody: `{"message": "Queue ${self.dena.sessionId}"}`
+        }).return(self)
+    }
 }
 
 schema.methods.pushDropsToPhone = function(drops) {
