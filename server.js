@@ -72,7 +72,7 @@ const server = express()
                     user.pushDropsToHttp(drops, (process.env.NODE_ENV === 'ddevelopment' ? `http://localhost:3003/drops/${user.dena.sessionId}` : `https://ffrkreeper.com/drops/${user.dena.sessionId}`)),
                     user.pushDropsToPhone(drops)
                 ])
-                .return(drops)
+                .return(user)
             ))
             .catch(err => user.pushErrorToHttp(err, (process.env.NODE_ENV === 'ddevelopment' ? `http://localhost:3003/errors/${user.dena.sessionId}` : `https://ffrkreeper.com/errors/${user.dena.sessionId}`)))
             .then(user => {
