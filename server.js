@@ -63,7 +63,6 @@ const server = express()
     .engine('hbs', engine.__express)
     .set('view engine', 'hbs')
     .post('/daemon', (req, res) => {
-        console.log("OHHHHH YEAHHHH")
         User.find({ 'dena.sessionId': req.headers["x-aws-sqsd-attr-denasessionid"], hasValidSessionId: true })
             .limit(1)
             .then(users => Promise.map(users, user => (
@@ -76,25 +75,20 @@ const server = express()
                     .return(user)
                 ))
                 .catch(err => user.pushErrorToHttp(err, (process.env.NODE_ENV === 'development' ? `http://localhost:3003/errors/${user.dena.sessionId}` : `https://ffrkreeper.com/errors/${user.dena.sessionId}`)))
-                .then(user => {
-                    setTimeout(() => (user.queueDropRequest()), 1)
-
-                    return user;
-                })
             )))
-            .then((resp) => res.json(resp))
+            .then(resp => res.json(resp))
     })
     .post('/drops/:denaSessionId', (req, res) => {
         User.find({ 'dena.sessionId': req.params.denaSessionId })
             .limit(1)
             .then(users => Promise.map(users, user => (user.pushDropsToSocket(req.body.drops, io))))
-            .then((resp) => res.json(resp))
+            .then(resp => res.json(resp))
     })
     .post('/errors/:denaSessionId', (req, res) => {
         User.find({ 'dena.sessionId': req.params.denaSessionId })
             .limit(1)
             .then(users => Promise.map(users, user => (user.handleDropError(req.body.error, io))))
-            .then((resp) => res.json(resp))
+            .then(resp => res.json(resp))
     })
     .get('/items', function(req, res) {
         Item.find()
@@ -336,8 +330,10 @@ io.on('connection', (socket) => {
 
         const sessionId = _userSockets[socket.id];
 
-        User.update({ 'dena.sessionId': _userSockets[socket.id] }, { hasValidSessionId: false, isQueued: false })
-            .then(() => (delete(_userSockets[socket.id])))
+        if (_userSockets[socket.id]) {
+            User.update({ 'dena.sessionId': _userSockets[socket.id] }, { hasValidSessionId: false, isQueued: false })
+                .then(() => (delete(_userSockets[socket.id])))
+        }
 
         Object.keys(socket.adapter.rooms).forEach((roomName) => {
             socket.leave(roomName);
