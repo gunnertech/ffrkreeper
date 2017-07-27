@@ -625,13 +625,7 @@ schema.methods.pushErrorToSocket = function(err, io) {
 }
 
 schema.methods.pushErrorToPhone = function(err) {
-    let self = this;
-
-    if (!self.phone) {
-        return self;
-    }
-
-    return self.sendSms(err.message).return(self)
+    return this.phone ? this.sendSms(err.message).return(this) : this;
 }
 
 schema.methods.pushErrorToEmail = function(err) {
@@ -650,101 +644,77 @@ schema.methods.startNewRun = function(json) {
     let Run = mongoose.model("Run");
     let run = new Run();
 
+    var drops = [];
+    var enemies = [];
+
     run.user = self;
     run.drops = [];
 
     return Battle.findOneOrCreate({ 'dena.id': json.battle.battle_id })
-        .then((battle) => {
-            if (battle.dungeon) {
-                return Promise.resolve(battle);
-            }
-
-            return mongoose.model('Dungeon').findOne({ 'dena.id': json.battle.dungeon.dungeon_id })
-                .then((dungeon) => {
-                    battle.dungeon = dungeon;
-                    return battle.save().return(battle);
-                })
-        })
-        .then(function(battle) {
-            console.log("Got a battle")
-            run.battle = battle;
-
-            var drops = [];
-            var enemies = [];
-
-            json.battle.rounds.forEach((round) => {
-                round.drop_item_list.forEach((drop) => {
-                    drops.push(drop);
-                });
-
-                round.enemy.forEach((enemy) => {
-                    enemy.children.forEach((child) => {
-                        child.drop_item_list.forEach((drop) => {
-                            drops.push(drop);
-                        });
-
-                        child.params.forEach((param) => {
-                            param.enemy_id = child.enemy_id;
-                            enemies.push(param);
-                        });
-                    });
-                });
-            });
-
-            return [Promise.resolve(lodash.filter(drops, (d) => !!d.item_id)), Promise.resolve(enemies), run.save()];
-        })
-        .spread((dropData, enemyData, r) => {
-            console.log("Got Drop data")
-            return Promise.all([
-                Promise.map(enemyData, (e) => {
-                    return Enemy.findOneOrCreate({ battle: run.battle._id, 'dena.id': e.enemy_id, 'dena.no': e.no, 'dena.name': e.disp_name })
-                }),
-                Promise.map(dropData, (d) => {
-                    return mongoose.model('Item').findOneOrCreate({ 'dena.id': d.item_id })
-                        .then((item) => {
-
-                            return Drop.create({
-                                    battle: run.battle._id,
-                                    user: self._id,
-                                    qty: d.num,
-                                    rarity: d.rarity,
-                                    item: item._id,
-                                    run: run
-                                })
-                                .then((drop) => {
-                                    run.drops.push(drop);
-                                })
-                        });
-                })
+        .then(battle => (!!battle.dungeon ? Promise.resolve(battle) : mongoose.model('Dungeon').findOne({ 'dena.id': json.battle.dungeon.dungeon_id })
+            .then(dungeon => (
+                (battle.dungeon = dungeon) & battle.save()
+            ))
+            .return(battle)
+        ))
+        .then(battle => Promise.resolve((run.battle = battle)).return(battle))
+        .then(battle => (
+            Promise.resolve(
+                json.battle.rounds.forEach(round => (
+                    round.drop_item_list.forEach(drop => (
+                        drops.push(drop)
+                    )) &
+                    round.enemy.forEach(enemy => (
+                        enemy.children.forEach(child => (
+                            child.drop_item_list.forEach(drop => (
+                                drops.push(drop)
+                            )) &
+                            child.params.forEach(param => (
+                                (param.enemy_id = child.enemy_id) & enemies.push(param)
+                            ))
+                        ))
+                    ))
+                ))
+            )
+            .return(battle)
+        ))
+        .then(battle => [Promise.resolve(lodash.filter(drops, (d) => !!d.item_id)), Promise.resolve(enemies), run.save()])
+        .spread((dropData, enemyData, r) => (
+            Promise.all([
+                Promise.map(enemyData, e => Enemy.findOneOrCreate({ battle: run.battle._id, 'dena.id': e.enemy_id, 'dena.no': e.no, 'dena.name': e.disp_name })),
+                Promise.map(dropData, d => (
+                    mongoose.model('Item').findOneOrCreate({ 'dena.id': d.item_id })
+                    .then(item => (
+                        Drop.create({
+                            battle: run.battle._id,
+                            user: self._id,
+                            qty: d.num,
+                            rarity: d.rarity,
+                            item: item._id,
+                            run: run
+                        })
+                        .then(drop => Promise.resolve(run.drops.push(drop)).return(drop))
+                    ))
+                ))
             ])
-        })
+        ))
         .then(() => run.calculateDropRates())
         .then(() => run.save())
 }
 
 schema.methods.pullDrops = function(eventId) {
-    let self = this;
-    let User = mongoose.model("User");
-
-    return self.getBattleInitDataForEventId(eventId)
-        .then((json) => {
-            if (!json.success) {
-                return Promise.reject({
-                    name: "OutOfBattleError",
-                    message: "Not in Battle: Go join a battle to see your drops!"
-                });
-            }
-
-            if (self.currentRun) {
-                return Promise.resolve(self.currentRun);
-            }
-
-            return self.startNewRun(json);
-        })
-        .then((run) => {
-            console.log("return this isssss")
-            return mongoose.model('Drop').find({ run: run }).populate({ path: 'item' }).populate({ path: 'battle', select: '-drops', populate: { path: 'dropRateModels' } });
-        })
+    return this.getBattleInitDataForEventId(eventId)
+        .then(json => (
+            json.success ?
+            !!this.currentRun ?
+            Promise.resolve(this.currentRun) :
+            this.startNewRun(json) :
+            Promise.reject({
+                name: "OutOfBattleError",
+                message: "Not in Battle: Go join a battle to see your drops!"
+            })
+        ))
+        .then(run => mongoose.model('Drop').find({ run: run }).populate({ path: 'item' }).populate({ path: 'battle', select: '-drops', populate: { path: 'dropRateModels' } }))
 }
 
 

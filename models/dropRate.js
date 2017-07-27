@@ -43,8 +43,6 @@ schema.set('toObject', { getters: true, virtuals: true });
 
 
 schema.statics.calculateFor = (battle, items) => {
-    console.log("HERE ARE THE ITEMS")
-    console.log(items)
     return Promise.map(items, (item) => {
         return Promise.all([
                 mongoose.model('Run').count({ battle: battle._id }),
@@ -52,11 +50,9 @@ schema.statics.calculateFor = (battle, items) => {
                 mongoose.model('Drop').find({ battle: battle._id, item: item }).select('qty')
             ])
             .spread((runCount, successCount, drops) => {
-                console.log("Begin")
                 if (successCount == 0) {
                     successCount++;
                 }
-                console.log("Reduce")
                 let summedCount = drops.length ? drops.reduce((accumulator, currentValue) => {
                     return accumulator + (currentValue ? (currentValue.qty || 1) : 0);
                 }, 0) : 0;
@@ -64,7 +60,6 @@ schema.statics.calculateFor = (battle, items) => {
                 let perRun = (summedCount * 1.0) / (runCount * 1.0) || 0.0
                 let perStamina = battle.dena.stamina ? (perRun / (battle.dena.stamina * 1.0)) : 0.0;
 
-                console.log("Find or create")
                 return mongoose.model('DropRate').findOneOrCreate({
                         item: item,
                         battle: battle
@@ -78,7 +73,6 @@ schema.statics.calculateFor = (battle, items) => {
                         battle: battle._id
                     })
                     .then((dropRate) => {
-                        console.log("Done")
                         return dropRate.save(); // force it to run pre save hook
                     })
                     .return(null)

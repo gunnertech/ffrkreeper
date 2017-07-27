@@ -49,31 +49,17 @@ schema.set('toObject', { getters: true, virtuals: true });
 schema.methods.calculateDropRates = function() {
     let self = this;
 
-    return Promise.all([
+    Promise.all([
             mongoose.model('Drop').find({ _id: { $in: self.drops } }).distinct('item')
-            .then(itemIds => {
-                console.log(itemIds)
-                self.items = itemIds;
-                return Promise.resolve(itemIds)
-            }),
-
+            .then(itemIds => (Promise.resolve((self.items = itemIds)).return(itemIds))),
             mongoose.model('User').findById(this.user)
-            .then((user) => {
-                console.log("GOT USER")
-                user.currentRun = self;
-                return user.save()
-            })
+            .then(user => Promise.resolve((user.currentRun = self)).return(user.save()))
         ])
-        .then((user) => {
-            console.log("GOT USER 2")
-            return mongoose.model('Drop').find({ battle: (self.battle._id || self.battle) }).distinct('item');
-        })
-        .then((itemIds) => {
-            console.log("GOT ITEM IDS")
-            console.log(self.items)
-            itemIds.push(self.items)
-            return mongoose.model('DropRate').calculateFor(self.battle, lodash.uniq(lodash.flatten(itemIds)));
-        })
+        .then(user => mongoose.model('Drop').find({ battle: (self.battle._id || self.battle) }).distinct('item'))
+        .then(itemIds => Promise.resolve(itemIds.push(self.items)).return(mongoose.model('DropRate').calculateFor(self.battle, lodash.uniq(lodash.flatten(itemIds)))))
+
+    return Promise.resolve(self)
+
 }
 
 

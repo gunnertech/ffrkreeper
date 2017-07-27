@@ -62,7 +62,10 @@ const server = express()
     .set('view options', { layout: 'layout' })
     .engine('hbs', engine.__express)
     .set('view engine', 'hbs')
-    .post('/daemon', (req, res) => {
+
+
+/////START ROUTES
+.post('/daemon', (req, res) => {
         User.find({ 'dena.sessionId': req.headers["x-aws-sqsd-attr-denasessionid"], hasValidSessionId: true })
             .limit(1)
             .then(users => Promise.map(users, user => (
@@ -90,49 +93,39 @@ const server = express()
             .then(users => Promise.map(users, user => (user.handleDropError(req.body.error, io))))
             .then(resp => res.json(resp))
     })
-    .get('/items', function(req, res) {
+    .get('/items', (req, res) => {
         Item.find()
-            .then((items) => {
-                return res.render('items/index', { title: 'Items', items: items });
-            });
+            .then(items => res.render('items/index', { title: 'Items', items: items }));
     })
-    .get('/record-materias', function(req, res) {
+    .get('/record-materias', (req, res) => {
         RecordMateria.find().populate('buddy')
-            .then((recordMaterias) => {
-                return res.render('record-materias/index', { title: 'Record Materias', recordMaterias: recordMaterias });
-            });
+            .then(recordMaterias => res.render('record-materias/index', { title: 'Record Materias', recordMaterias: recordMaterias }))
     })
-    .get('/soul-strikes', function(req, res) {
+    .get('/soul-strikes', (req, res) => {
         SoulStrike.find().populate('buddy')
-            .then((soulStrikes) => {
-                return res.render('soul-strikes/index', { title: 'Soul Breaks', soulStrikes: soulStrikes });
-            });
+            .then(soulStrikes => res.render('soul-strikes/index', { title: 'Soul Breaks', soulStrikes: soulStrikes }))
     })
-    .get('/abilities', function(req, res) {
+    .get('/abilities', (req, res) => {
         Ability.find()
-            .then((abilities) => {
-                return res.render('abilities/index', { title: 'Abilities', abilities: abilities });
-            });
+            .then(abilities => res.render('abilities/index', { title: 'Abilities', abilities: abilities }))
     })
-    .get('/drop-rates', function(req, res) {
+    .get('/drop-rates', (req, res) => {
         DropRate.find().populate(['battle', 'item']).sort('runCount')
-            .then((dropRates) => {
-                return res.render('drop-rates/index', { title: 'Drop Rates', dropRates: dropRates });
-            });
+            .then((dropRates) => res.render('drop-rates/index', { title: 'Drop Rates', dropRates: dropRates }))
     })
-    .get('/series', function(req, res) {
+    .get('/series', (req, res) => {
         mongoose.model('Series').find().sort('dena.formal_name').populate({ path: 'worlds', options: { sort: { 'dena.type': 1 } } })
             .then((series) => {
                 return res.render('series/index', { title: 'Series', series: series });
             });
     })
-    .get('/worlds/:worldId', function(req, res) {
+    .get('/worlds/:worldId', (req, res) => {
         World.findById(req.params.worldId).populate({ path: 'dungeons', options: { sort: { 'dena.name': 1 } } }).populate('series')
             .then((world) => {
                 return res.render('worlds/show', { title: world.dena.name, world: world });
             });
     })
-    .get('/dungeons/:dungeonId', function(req, res) {
+    .get('/dungeons/:dungeonId', (req, res) => {
         mongoose.model('Dungeon').findById(req.params.dungeonId).populate({ path: 'prizes' }).populate({ path: 'battles' }).populate({ path: 'enemies' })
             .populate({
                 path: 'world',
@@ -144,7 +137,7 @@ const server = express()
                 return res.render('dungeons/show', { title: dungeon.dena.name, dungeon: dungeon });
             });
     })
-    .get('/battles/:battleId', function(req, res) {
+    .get('/battles/:battleId', (req, res) => {
         mongoose.model('Battle').findById(req.params.battleId).populate(['enemies']).populate([{
                     path: 'dungeon',
                     populate: {
@@ -165,7 +158,7 @@ const server = express()
                 return res.render('battles/show', { title: battle.name, battle: battle });
             });
     })
-    .get('/enemies/:enemyId', function(req, res) {
+    .get('/enemies/:enemyId', (req, res) => {
         mongoose.model('Enemy').findById(req.params.enemyId).populate({
                 path: 'battle',
                 populate: {
@@ -178,46 +171,36 @@ const server = express()
                     }
                 }
             })
-            .then((enemy) => {
-                return res.render('enemies/show', { title: enemy.dena.name, enemy: enemy });
-            });
+            .then(enemy => res.render('enemies/show', { title: enemy.dena.name, enemy: enemy }));
     })
-    .get('/dungeons', function(req, res) {
+    .get('/dungeons', (req, res) => {
         Battle.forDungeonIndex()
-            .then((dungeons) => {
-                return res.render('dungeons/index', { title: 'Dungeons', dungeons: dungeons });
-            });
+            .then(dungeons => res.render('dungeons/index', { title: 'Dungeons', dungeons: dungeons }));
     })
-    .get('/users', function(req, res) {
+    .get('/users', (req, res) => {
         User.findForIndex()
-            .then((users) => {
-                return res.render('users/index', { title: 'Users', users: users });
-            });
+            .then(users => res.render('users/index', { title: 'Users', users: users }));
     })
-    .get('/buddies', function(req, res) {
+    .get('/buddies', (req, res) => {
         Buddy.find()
-            .then((buddies) => {
-                return res.render('buddies/index', { title: "Characters", buddies: buddies });
-            });
+            .then(buddies => res.render('buddies/index', { title: "Characters", buddies: buddies }));
     })
-    .get('/events', function(req, res) {
+    .get('/events', (req, res) => {
         return res.redirect('/banners');
     })
-    .get('/banners', function(req, res) {
-        Event.find().distinct('dena.event_id').then((event_ids) => {
-            event_ids = lodash.sortBy(event_ids, [function(id) { return parseInt(id); }]);
-            return res.render('banners/index', {
+    .get('/banners', (req, res) => {
+        Event.find().distinct('dena.event_id').then(event_ids => (
+            res.render('banners/index', {
                 title: "Banners",
                 gachas: [...Array(700).keys()],
                 events: [...Array(700).keys()],
                 characters: lodash.range(501004, 501200)
-            });
-        })
+            })
+        ))
     })
-    .get('/gear', function(req, res) {
-        Event.find().distinct('dena.event_id').then((event_ids) => {
-            event_ids = lodash.sortBy(event_ids, [function(id) { return parseInt(id); }]);
-            return res.render('gear/index', {
+    .get('/gear', (req, res) => {
+        Event.find().distinct('dena.event_id').then(event_ids => (
+            res.render('gear/index', {
                 weapons: lodash.flatten([
                     lodash.range(21001000, 21001200), //DAGGERS
                     lodash.range(21002000, 21002400), //SWORDS
@@ -251,10 +234,10 @@ const server = express()
                 accessories: lodash.flatten([
                     lodash.range(23080000, 23080300)
                 ])
-            });
-        })
+            })
+        ))
     })
-    .get('/images', function(req, res) {
+    .get('/images', (req, res) => {
         let limit = 100;
         let page = parseInt(req.query.page || 1);
         let skip = (page - 1) * limit;
@@ -262,28 +245,21 @@ const server = express()
         let nextPage = page + 1;
 
         Image.find().skip(skip).limit(limit).sort('url')
-            .then((images) => {
-                return res.render('images/index', { title: "Images", images: images, page: page, nextPage: nextPage, prevPage: prevPage });
-            })
+            .then(images => res.render('images/index', { title: "Images", images: images, page: page, nextPage: nextPage, prevPage: prevPage }))
     })
-    .get('/audio-files', function(req, res) {
+    .get('/audio-files', (req, res) => {
         AudioFile.find()
-            .then((audioFiles) => {
-                return res.render('audio-files/index', { title: "Audio Files", audioFiles: audioFiles });
-            });
+            .then(audioFiles => (
+                res.render('audio-files/index', { title: "Audio Files", audioFiles: audioFiles })
+            ));
     })
-    .get('/enemies', function(req, res) {
+    .get('/enemies', (req, res) => {
         mongoose.model('Enemy').find().sort('name').populate('battle', 'denaDungeonId')
-            .then((enemies) => {
-                return res.render('enemies/index', { title: "Enemies", enemies: lodash.uniqBy(enemies, 'name') });
-            });
+            .then(enemies => (
+                res.render('enemies/index', { title: "Enemies", enemies: lodash.uniqBy(enemies, 'name') })
+            ));
     })
-    .get('/', function(req, res) {
-        res.render('index', { title: 'Home' });
-    })
-    .post('/tick', function(req, res) {
-        res.send('GET request to the homepage');
-    })
+    .get('/', (req, res) => res.render('index', { title: 'Home' }))
     .listen(PORT, () => console.log(`Listening on ${PORT}`));
 
 
