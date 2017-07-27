@@ -83,7 +83,6 @@
     }
 
     function signin() {
-        console.log("Signingin......")
         if (event) { event.preventDefault(); }
 
         var sessionId = $('#session-id').val();
@@ -120,8 +119,10 @@
                 $('#attach-point').prepend(renderDrops(message));
                 clearTimeout(timer);
                 timer = setTimeout(function() {
-                    console.log("From the client")
-                    socket.emit('/request_drops', { sessionId: user.dena.sessionId })
+                    console.log("From the client");
+                    if (!signedOut) {
+                        socket.emit('/request_drops', { sessionId: user.dena.sessionId });
+                    }
                 }, 2000);
 
             });
@@ -131,9 +132,12 @@
         });
     }
 
+    var signedOut = false;
+
     function signout() {
         if (event) { event.preventDefault(); }
 
+        signedOut = true;
 
         var sessionId = $('#session-id').val();
         var phone = $('#phone').val();
