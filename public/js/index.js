@@ -117,13 +117,14 @@
             var timer = null;
             socket.on('/battle_message', function(message) {
                 $('#attach-point').prepend(renderDrops(message));
-                clearTimeout(timer);
-                timer = setTimeout(function() {
-                    console.log("From the client");
-                    if (!signedOut) {
-                        socket.emit('/request_drops', { sessionId: user.dena.sessionId });
-                    }
-                }, 3000);
+                socket.emit('/request_drops', { sessionId: user.dena.sessionId });
+                // clearTimeout(timer);
+                // timer = setTimeout(function() {
+                //     console.log("From the client");
+                //     if (!signedOut) {
+                //         socket.emit('/request_drops', { sessionId: user.dena.sessionId });
+                //     }
+                // }, 3000);
 
             });
             socket.emit('/request_drops', { sessionId: user.dena.sessionId })
