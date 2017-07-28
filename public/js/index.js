@@ -123,7 +123,7 @@
                     if (!signedOut) {
                         socket.emit('/request_drops', { sessionId: user.dena.sessionId });
                     }
-                }, 2000);
+                }, 3000);
 
             });
             socket.emit('/request_drops', { sessionId: user.dena.sessionId })
