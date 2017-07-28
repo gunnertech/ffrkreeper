@@ -50,6 +50,7 @@ const DropRate = require('./models/dropRate.js');
 const Image = require('./models/image.js');
 const AudioFile = require('./models/audioFile.js');
 
+const _daemonRequests = {};
 
 const server = express()
     .use(timeout('60s'))
@@ -62,6 +63,8 @@ const server = express()
     .set('view options', { layout: 'layout' })
     .engine('hbs', engine.__express)
     .set('view engine', 'hbs')
+
+
 
 
 /////START ROUTES
@@ -322,27 +325,32 @@ io.on('connection', (socket) => {
     ////end talk it out bullshit
 
     socket.on('/request_drops', (data, fn) => { ////ALLOW THEM TO SIGN IN WITH EITHER A SESSIONID, PHONE OR EMAIL
-        console.log("From the server")
-            // User.find({ 'dena.sessionId': data.sessionId })
-            //     .then(users => (
-            //         Promise.map(users, (user) => (
-            //             user.pullDrops((process.env.DENA_CURRENT_EVENT_ID || 96))
-            //             .then(drops => (
-            //                 Promise.all([
-            //                     user.pushDropsToSocket(drops, io)
-            //                 ])
-            //                 .return(null)
-            //             ))
-            //             .return(null)
-            //             .catch(err => user.handleDropError(err, io))
-            //         ))
-            //         .return(null)
-            //     ))
+        clearTimeout(_daemonRequests[data.sessionId]);
+        _daemonRequests[data.sessionId] = setTimeout(function() {
+            console.log("From the server");
+            User.find({ 'dena.sessionId': data.sessionId })
+                .then(users => (
+                    Promise.map(users, (user) => (user.queueDropRequest())).return(null)
+                ))
+        }, 2000)
 
-        User.find({ 'dena.sessionId': data.sessionId })
-            .then(users => (
-                Promise.map(users, (user) => (user.queueDropRequest())).return(null)
-            ))
+        // User.find({ 'dena.sessionId': data.sessionId })
+        //     .then(users => (
+        //         Promise.map(users, (user) => (
+        //             user.pullDrops((process.env.DENA_CURRENT_EVENT_ID || 96))
+        //             .then(drops => (
+        //                 Promise.all([
+        //                     user.pushDropsToSocket(drops, io)
+        //                 ])
+        //                 .return(null)
+        //             ))
+        //             .return(null)
+        //             .catch(err => user.handleDropError(err, io))
+        //         ))
+        //         .return(null)
+        //     ))
+
+
     })
 
     socket.on('/signin', (data, fn) => { ////ALLOW THEM TO SIGN IN WITH EITHER A SESSIONID, PHONE OR EMAIL
@@ -438,7 +446,7 @@ io.on('connection', (socket) => {
                     user.hasValidSessionId = false;
                     user.isQueued = false;
 
-                    delete(Object.keys(_userSockets).find(key => object[key] === value))
+                    delete(Object.keys(_userSockets).find(key => _userSockets[key] === user.hasValidSessionId))
 
 
                     return user.save().return(user);
