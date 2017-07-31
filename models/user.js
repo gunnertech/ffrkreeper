@@ -31,6 +31,12 @@ const sqs = new AWS.SQS({
     region: process.env.AWS_REGION
 });
 
+const sns = new AWS.SNS({
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+    region: process.env.AWS_REGION
+});
+
 const schema = new mongoose.Schema({
     email: { type: String, index: { unique: true, sparse: true } },
     phone: { type: String, index: { unique: true, sparse: true } },
@@ -458,10 +464,10 @@ schema.methods.sendSms = function(message) {
             return resolve("");
         }
 
-        twilio.sendMessage({
-            to: self.phone,
-            from: process.env.TWILIO_PHONE_NUMBER,
-            body: message
+        sns.publish({
+            Message: message,
+            MessageStructure: 'string',
+            PhoneNumber: self.phone
         }, (err, responseData) => {
             if (!err) {
                 resolve(responseData)
@@ -470,6 +476,19 @@ schema.methods.sendSms = function(message) {
                 reject(err);
             }
         });
+
+        // twilio.sendMessage({
+        //     to: self.phone,
+        //     from: process.env.TWILIO_PHONE_NUMBER,
+        //     body: message
+        // }, (err, responseData) => {
+        //     if (!err) {
+        //         resolve(responseData)
+        //     } else {
+        //         err.name = "SMS Error";
+        //         reject(err);
+        //     }
+        // });
     });
 };
 
