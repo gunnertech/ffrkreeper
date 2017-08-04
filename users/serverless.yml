@@ -1,0 +1,453 @@
+# Welcome to Serverless!
+#
+# This file is the main config file for your service.
+# It's very minimal at this point and uses default values.
+# You can always add more config options for more control.
+# We've included some commented out config examples here.
+# Just uncomment any of them to get that config option.
+#
+# For full config options, check the docs:
+#    docs.serverless.com
+#
+# Happy Coding!
+
+service: ffrkreeper-users
+
+# You can pin your service to only deploy with a specific Serverless version
+# Check out our docs for more details
+# frameworkVersion: "=X.X.X"
+
+provider:
+  name: aws
+  runtime: nodejs6.10
+  memorySize: 512 # optional, in MB, default is 1024
+  timeout: 30 # optional, in seconds, default is 6
+  versionFunctions: true # optional, default is true
+  region: us-west-2
+  environment:
+    DYNAMODB_TABLE: ${self:service}-${opt:stage, self:provider.stage}-Users
+    ITEMS_DYNAMODB_TABLE: ${self:service}-${opt:stage, self:provider.stage}-Items
+    S3_BUCKET: com-gunnertech-${opt:stage, self:provider.stage}-${self:service}
+  iamRoleStatements:
+    - Effect: Allow
+      Resource: "*"
+      Action:
+        - sns:Publish
+    - Effect: Allow
+      Action:
+        - dynamodb:Query
+        - dynamodb:Scan
+        - dynamodb:GetItem
+        - dynamodb:PutItem
+        - dynamodb:UpdateItem
+        - dynamodb:DeleteItem
+      Resource: "arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:provider.environment.DYNAMODB_TABLE}"
+    - Effect: Allow
+      Action:
+        - dynamodb:Query
+      Resource: "arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:provider.environment.DYNAMODB_TABLE}/*"
+    - Effect: Allow
+      Action:
+        - dynamodb:Query
+        - dynamodb:Scan
+        - dynamodb:GetItem
+        - dynamodb:PutItem
+        - dynamodb:UpdateItem
+        - dynamodb:DeleteItem
+      Resource: "arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:provider.environment.ITEMS_DYNAMODB_TABLE}"
+    - Effect: "Allow"
+      Action:
+       - s3:PutObjectAcl
+      Resource:
+        Fn::Join:
+          - ""
+          - - "arn:aws:s3:::"
+            - "${self:provider.environment.S3_BUCKET}"
+            - "/*"
+    - Effect: "Allow"
+      Action:
+      - s3:PutObject
+      Resource:
+        Fn::Join:
+          - ""
+          - - "arn:aws:s3:::"
+            - "${self:provider.environment.S3_BUCKET}"
+            - "/*"
+    - Effect: "Allow"
+      Action:
+      - s3:GetObject
+      Resource:
+        Fn::Join:
+          - ""
+          - - "arn:aws:s3:::"
+            - "${self:provider.environment.S3_BUCKET}"
+            - "/*"
+    - Effect: "Allow"
+      Action:
+      - s3:ListBucket
+      Resource:
+        Fn::Join:
+          - ""
+          - - "arn:aws:s3:::"
+            - "${self:provider.environment.S3_BUCKET}"
+    
+    
+
+      
+
+custom:
+  # webpackIncludeModules: true # enable auto-packing of external modules
+
+plugins:
+  - serverless-webpack
+
+# you can overwrite defaults here
+#  stage: dev
+#  region: us-east-1
+  
+
+# you can add statements to the Lambda function's IAM Role here
+#  iamRoleStatements:
+#    - Effect: "Allow"
+#      Action:
+#        - "s3:ListBucket"
+#      Resource: { "Fn::Join" : ["", ["arn:aws:s3:::", { "Ref" : "ServerlessDeploymentBucket" } ] ]  }
+#    - Effect: "Allow"
+#      Action:
+#        - "s3:PutObject"
+#      Resource:
+#        Fn::Join:
+#          - ""
+#          - - "arn:aws:s3:::"
+#            - "Ref" : "ServerlessDeploymentBucket"
+#            - "/*"
+
+# you can define service wide environment variables here
+#  environment:
+#    variable1: value1
+
+# you can add packaging information here
+#package:
+#  include:
+#    - include-me.js
+#    - include-me-dir/**
+#  exclude:
+#    - exclude-me.js
+#    - exclude-me-dir/**
+
+functions:
+  mainLoop:
+    handler: handler.mainLoop
+    events:
+      - schedule:
+        rate: rate(2 minutes)
+        enabled: false
+  syndicateRun:
+    handler: handler.syndicateRun
+    events:
+      - s3:
+          bucket: users
+  parseRun:
+    handler: handler.parseRun
+    events:
+      - s3:
+          bucket: users
+          # event: s3:ObjectCreated:*
+          # rules:
+          #   - prefix: raw/
+          #   - suffix: .json
+  index:
+    handler: handler.index
+    events:
+      - http:
+          method: get
+          path: ${self:service}/api/users
+          cors: 
+            origins:
+              - '*'
+            headers:
+              - Content-Type
+              - X-Amz-Date
+              - Authorization
+              - X-Api-Key
+              - X-Amz-Security-Token
+              - X-Requested-With
+            allowCredentials: false
+  signin:
+    handler: handler.signin
+    events:
+      - http:
+          method: post
+          path: ${self:service}/api/users/signin
+          cors: 
+            origins:
+              - '*'
+            headers:
+              - Content-Type
+              - X-Amz-Date
+              - Authorization
+              - X-Api-Key
+              - X-Amz-Security-Token
+              - X-Requested-With
+  signout:
+    handler: handler.signout
+    events:
+      - http:
+          method: delete
+          path: ${self:service}/api/users/signout
+          cors: 
+            origins:
+              - '*'
+            headers:
+              - Content-Type
+              - X-Amz-Date
+              - Authorization
+              - X-Api-Key
+              - X-Amz-Security-Token
+              - X-Requested-With
+  currentRun:
+    handler: handler.currentRun
+    events:
+      - http:
+          method: get
+          path: ${self:service}/api/users/{denaCode}/current-run
+          cors: 
+            origins:
+              - '*'
+            headers:
+              - Content-Type
+              - X-Amz-Date
+              - Authorization
+              - X-Api-Key
+              - X-Amz-Security-Token
+              - X-Requested-With
+          request: 
+            parameters: 
+              paths: 
+                denaCode: true
+  csfrToken:
+    handler: handler.csfrToken
+    events:
+      - http:
+          method: get
+          path: ${self:service}/api/users/{denaCode}/csfr-token
+          cors: 
+            origins:
+              - '*'
+            headers:
+              - Content-Type
+              - X-Amz-Date
+              - Authorization
+              - X-Api-Key
+              - X-Amz-Security-Token
+              - X-Requested-With
+          request: 
+            parameters: 
+              paths: 
+                denaCode: true
+  partyList:
+    handler: handler.partyList
+    events:
+      - http:
+          method: get
+          path: ${self:service}/api/users/{denaCode}/party-list
+          cors: 
+            origins:
+              - '*'
+            headers:
+              - Content-Type
+              - X-Amz-Date
+              - Authorization
+              - X-Api-Key
+              - X-Amz-Security-Token
+              - X-Requested-With
+          request: 
+            parameters: 
+              paths: 
+                denaCode: true
+  parseParty:
+    handler: handler.parseParty
+    events:
+      - http:
+          method: post
+          path: ${self:service}/api/users/{denaCode}/parse-party
+          cors: 
+            origins:
+              - '*'
+            headers:
+              - Content-Type
+              - X-Amz-Date
+              - Authorization
+              - X-Api-Key
+              - X-Amz-Security-Token
+              - X-Requested-With
+          request: 
+            parameters: 
+              paths: 
+                denaCode: true
+  sessionKey:
+    handler: handler.sessionKey
+    events:
+      - http:
+          method: post
+          path: ${self:service}/api/users/{denaCode}/session-key
+          cors: 
+            origins:
+              - '*'
+            headers:
+              - Content-Type
+              - X-Amz-Date
+              - Authorization
+              - X-Api-Key
+              - X-Amz-Security-Token
+              - X-Requested-With
+          request: 
+            parameters: 
+              paths: 
+                denaCode: true
+  writeCurrentRunToS3:
+    handler: handler.writeCurrentRunToS3
+    events:
+      - http:
+          method: post
+          path: ${self:service}/api/users/{denaCode}/write-current-run-to-s3
+          cors: 
+            origins:
+              - '*'
+            headers:
+              - Content-Type
+              - X-Amz-Date
+              - Authorization
+              - X-Api-Key
+              - X-Amz-Security-Token
+              - X-Requested-With
+          request: 
+            parameters: 
+              paths: 
+                denaCode: true
+
+resources:
+  Resources:
+    S3BucketUsers:
+      DependsOn:
+        - ParseRunLambdaPermissionS3Bucket
+        - SyndicateRunLambdaPermissionS3Bucket
+      Type: AWS::S3::Bucket
+      Properties:
+        BucketName: ${self:provider.environment.S3_BUCKET}
+        AccessControl: PublicRead
+        CorsConfiguration:
+          CorsRules:
+          - AllowedMethods:
+            - GET
+            - PUT
+            - POST
+            - HEAD
+            AllowedOrigins:
+            - "*"
+            AllowedHeaders:
+            - "*"
+        NotificationConfiguration:
+          LambdaConfigurations:
+            - Event: "s3:ObjectCreated:*"
+              Filter:
+                S3Key:
+                  Rules:
+                    -
+                      Name: prefix
+                      Value: raw
+              Function:
+                "Fn::GetAtt": [ ParseRunLambdaFunction, Arn ]
+            - Event: "s3:ObjectCreated:*"
+              Filter:
+                S3Key:
+                  Rules:
+                    -
+                      Name: prefix
+                      Value: parsed
+              Function:
+                "Fn::GetAtt": [ SyndicateRunLambdaFunction, Arn ]
+
+    ParseRunLambdaPermissionS3Bucket:
+      DependsOn:
+        - ParseRunLambdaFunction
+      Type: AWS::Lambda::Permission
+      Properties:
+        FunctionName:
+          "Fn::GetAtt": [ ParseRunLambdaFunction, Arn ]
+        Action: "lambda:InvokeFunction"
+        Principal: "s3.amazonaws.com"
+        SourceArn: "arn:aws:s3:::${self:provider.environment.S3_BUCKET}"
+
+    SyndicateRunLambdaPermissionS3Bucket:
+      DependsOn:
+        - SyndicateRunLambdaFunction
+      Type: AWS::Lambda::Permission
+      Properties:
+        FunctionName:
+          "Fn::GetAtt": [ SyndicateRunLambdaFunction, Arn ]
+        Action: "lambda:InvokeFunction"
+        Principal: "s3.amazonaws.com"
+        SourceArn: "arn:aws:s3:::${self:provider.environment.S3_BUCKET}"
+    
+    itemsTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:provider.environment.ITEMS_DYNAMODB_TABLE}
+        AttributeDefinitions:
+          - AttributeName: id
+            AttributeType: N
+        KeySchema:
+          - AttributeName: id
+            KeyType: HASH
+        ProvisionedThroughput:
+          ReadCapacityUnits: 5
+          WriteCapacityUnits: 5
+
+    usersTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:provider.environment.DYNAMODB_TABLE}
+        AttributeDefinitions:
+          - AttributeName: denaCode
+            AttributeType: S
+          - AttributeName: phone
+            AttributeType: S
+          - AttributeName: denaSessionId
+            AttributeType: S
+          - AttributeName: hasValidSessionId
+            AttributeType: N
+        KeySchema:
+          - AttributeName: denaCode
+            KeyType: HASH
+        ProvisionedThroughput:
+          ReadCapacityUnits: 5
+          WriteCapacityUnits: 5
+        GlobalSecondaryIndexes:
+          - IndexName: UsersByValidSessionIndex
+            KeySchema:
+              - AttributeName: hasValidSessionId
+                KeyType: HASH
+            Projection:
+              ProjectionType: ALL
+            ProvisionedThroughput:
+              ReadCapacityUnits: 5
+              WriteCapacityUnits: 5
+          - IndexName: UsersByDenaSessionIdIndex
+            KeySchema:
+              - AttributeName: denaSessionId
+                KeyType: HASH
+            Projection:
+              ProjectionType: ALL
+            ProvisionedThroughput:
+              ReadCapacityUnits: 5
+              WriteCapacityUnits: 5
+          - IndexName: UsersByPhoneIndex
+            KeySchema:
+              - AttributeName: phone
+                KeyType: HASH
+            Projection:
+              ProjectionType: ALL
+            ProvisionedThroughput:
+              ReadCapacityUnits: 5
+              WriteCapacityUnits: 5
