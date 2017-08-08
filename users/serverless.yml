@@ -165,9 +165,10 @@ plugins:
 #    - exclude-me-dir/**
 
 functions:
-  streamFunction:
+  parseRunStream:
     handler: handler.parseRunStream
     events:
+      - stream: arn:aws:dynamodb:us-west-2:828143319926:table/ffrkreeper-users-dev-Runs/stream/2017-08-08T17:25:50.430
       - stream:
         arn:
           Fn::GetAtt:
