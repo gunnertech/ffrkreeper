@@ -79,6 +79,10 @@ provider:
         - dynamodb:PutItem
         - dynamodb:UpdateItem
         - dynamodb:DeleteItem
+        - dynamodb:DescribeStream
+        - dynamodb:GetRecords
+        - dynamodb:GetShardIterator
+        - dynamodb:ListStreams
       Resource: "arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:provider.environment.RUNS_DYNAMODB_TABLE}"
     - Effect: "Allow"
       Action:
@@ -161,6 +165,14 @@ plugins:
 #    - exclude-me-dir/**
 
 functions:
+  streamFunction:
+    handler: handler.parseRunStream
+    events:
+      - stream:
+        arn:
+          Fn::GetAtt:
+            - ${self:provider.environment.RUNS_DYNAMODB_TABLE}
+            - Arn
   iotAuth:
     handler: handler.iotAuth
     events:

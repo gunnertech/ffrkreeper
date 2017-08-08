@@ -206,6 +206,13 @@ const syndicateRunToIot$ = ([user, run]) => (
 )
 
 
+export const parseRunStream = (event, context, cb) => {
+  for(var i in event) {
+    console.log(i)
+    console.log(event[i])
+  }
+  cb(null, {});
+}
 
 
 export const iotAuth = (event, context, cb) => {
