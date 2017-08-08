@@ -16,8 +16,10 @@ import 'rxjs/add/operator/switchMap';
 import 'rxjs/add/operator/catch';
 import 'rxjs/add/operator/mapTo';
 import 'rxjs/add/operator/mergeAll';
+import 'rxjs/add/operator/defaultIfEmpty';
 
 import 'rxjs/add/observable/of';
+import 'rxjs/add/observable/empty';
 import 'rxjs/add/observable/throw';
 import 'rxjs/add/observable/if';
 import 'rxjs/add/observable/bindNodeCallback';
@@ -30,6 +32,8 @@ AWS.config.update({
 const docClient = new AWS.DynamoDB.DocumentClient();
 const s3 = new AWS.S3();
 const sns = new AWS.SNS();
+const iot = new AWS.Iot();
+const sts = new AWS.STS();
 
 const flatten = a => Array.isArray(a) ? [].concat(...a.map(flatten)) : a;
 
@@ -49,7 +53,7 @@ const jsonToExpressionAttributeValues = json => {
 
 const userByDenaCode$ = (event, context) => (
   Observable.forkJoin(
-      Observable.of(event).map(event => JSON.parse(event.body)),
+      Observable.of(event).map(event => JSON.parse(event.body||"{}")),
       Observable.of(event)
   )
   .switchMap(([json, event]) => (
@@ -148,29 +152,90 @@ const writeCurrentRunToS3$ = (event, context) => (
     currentRun$(event, context, false)
     .pluck('body')
     .do(runString => (runString.match(/DOCTYPE/) ? throwError("Your Session is Not Valid or Has Expired. Please Log In Again", "SessionError") : {}))
-    .map(runString => runString.toString('utf-8').replace(/,"SERVER_TIME":\d+/,""))
+    .map(runString => runString.toString('utf-8').replace(/,"SERVER_TIME":\d+/g,""))
     .catch(err => Observable.of(JSON.stringify(err)))
     ,
     Observable.bindNodeCallback(s3.getObject.bind(s3))({Bucket: process.env.S3_BUCKET, Key: `raw/${event.pathParameters.denaCode}/current-run.json`})
     .catch(err => Observable.of({Body: ""}))
     .map(response => response.Body.toString('utf-8'))
   )
-  .do(console.log)
-  .mergeMap(([currentRun, lastRun]) => (
-    Observable.if(
-      () => (currentRun !== lastRun),
-      Observable.bindNodeCallback(s3.putObject.bind(s3))({Bucket: process.env.S3_BUCKET, Key: `raw/${event.pathParameters.denaCode}/current-run.json`, Body: currentRun, ACL: 'public-read'}).map(s3Resp => Observable.of(currentRun)),
-      Observable.of(currentRun)
-    )
+  .do(([currentRun, lastRun]) => (
+      currentRun.toString('utf-8').replace(/"created_at":"[^"]",/g,"") !== lastRun.toString('utf-8').replace(/"created_at":"[^"]",/g,"") 
+      ? console.log(currentRun.length.toString(), lastRun.length.toString())
+      : console.log("duhhhhhh")
   ))
+  .mergeMap(([currentRun, lastRun]) => (
+      currentRun.toString('utf-8').replace(/"created_at":"[^"]",/g,"") !== lastRun.toString('utf-8').replace(/"created_at":"[^"]",/g,"") 
+      ? Observable.bindNodeCallback(s3.putObject.bind(s3))({Bucket: process.env.S3_BUCKET, Key: `raw/${event.pathParameters.denaCode}/current-run.json`, Body: currentRun, ACL: 'public-read'}).map(s3Resp => Observable.of(currentRun))
+      : Observable.of(currentRun)
+  ))
+)
+
+const syndicateRunToSms$ = ([user, run]) => (
+  Observable.bindNodeCallback(sns.publish.bind(sns))({
+    Message: run.drops.map(drop => `${drop.name} x${drop.num}`).join('\n'),
+    MessageStructure: 'string',
+    PhoneNumber: user.phone
+  })
+  .map(([user, run]) => Observable.of([user, run]))
+  .catch(() => Observable.of([user, run]))
+)
+
+
+const syndicateRunToDynamo$ = ([user, run]) => (
+  Observable.bindNodeCallback(docClient.put.bind(docClient))({
+      TableName: process.env.RUNS_DYNAMODB_TABLE,
+      Item: run
+  })
+  .map(([user, run]) => Observable.of([user, run]))
+  .catch(() => Observable.of([user, run]))
+)
+
+const syndicateRunToIot$ = ([user, run]) => (
+  Observable.bindNodeCallback(iot.describeEndpoint.bind(iot))({})
+  .pluck('endpointAddress')
+  .map(endpoint => new AWS.IotData({ endpoint }))
+  .mergeMap(iotData => 
+    Observable.bindNodeCallback(iotData.publish.bind(iotData))({
+        topic: `ffrkreeper/${user.denaCode}/runs`,
+        payload: JSON.stringify(run),
+        qos: 0
+    })
+  )
+  .catch(error => {console.log(error); return Observable.of([user, run])})
 )
 
 
 
 
+export const iotAuth = (event, context, cb) => {
+  const roleName = 'serverless-notifications';
+  Observable.bindNodeCallback(iot.describeEndpoint.bind(iot))({})
+  .pluck('endpointAddress')
+  .map(iotEndpoint => [iotEndpoint, iotEndpoint.replace('.amazonaws.com', '')])
+  .map(([iotEndpoint, partial]) => [partial.indexOf('iot'), iotEndpoint, partial])
+  .map(([index, iotEndpoint, partial]) => [partial.substring(index + 4), iotEndpoint])
+  .mergeMap(([region, iotEndpoint]) => 
+    Observable.bindNodeCallback(sts.getCallerIdentity.bind(sts))({})
+    .mergeMap(data => Observable.bindNodeCallback(sts.assumeRole.bind(sts))({
+      RoleArn: `arn:aws:iam::${data.Account}:role/${roleName}`,
+      RoleSessionName: (Math.floor(Math.random() * Number.MAX_SAFE_INTEGER)).toString()
+    })
+    .map(data => ({
+      iotEndpoint,
+      region,
+      accessKey: data.Credentials.AccessKeyId,
+      secretKey: data.Credentials.SecretAccessKey,
+      sessionToken: data.Credentials.SessionToken
+    })))
+  )
+  .catch(err => Observable.of(err))
+  .subscribe(
+      response => cb(null, {body: JSON.stringify(response), statusCode: 200, headers: {'Access-Control-Allow-Origin': '*'}}),
+      error => cb({body: JSON.stringify(error), statusCode: 500, headers: {'Access-Control-Allow-Origin': '*'}})
+  )
 
-
-
+}
 
 export const parseRun = (event, context, cb) => {
   Observable.bindNodeCallback(s3.getObject.bind(s3))({
@@ -202,7 +267,7 @@ export const parseRun = (event, context, cb) => {
   .mergeMap(([battle_id, items]) => (
     Observable.bindNodeCallback(s3.putObject.bind(s3))({
       Bucket: process.env.S3_BUCKET, 
-      Key: event.Records[0].s3.object.key.replace(/raw/,"parsed"), 
+      Key: event.Records[0].s3.object.key.replace(/raw/,"processed"), 
       ACL: 'public-read', 
       Body: JSON.stringify({
         created_at: event.Records[0].eventTime,
@@ -215,7 +280,7 @@ export const parseRun = (event, context, cb) => {
   .catch(err => 
     Observable.bindNodeCallback(s3.putObject.bind(s3))({
       Bucket: process.env.S3_BUCKET, 
-      Key: event.Records[0].s3.object.key.replace(/raw/,"parsed"), 
+      Key: event.Records[0].s3.object.key.replace(/raw/,"processed"), 
       ACL: 'public-read', 
       Body: JSON.stringify({
         created_at: event.Records[0].eventTime,
@@ -230,13 +295,17 @@ export const parseRun = (event, context, cb) => {
   )
 };
 
+
+
+
 export const syndicateRun = (event, context, cb) => {
   Observable.forkJoin(
     Observable.bindNodeCallback(docClient.get.bind(docClient))({
         TableName: process.env.DYNAMODB_TABLE,
         Key: { "denaCode": event.Records[0].s3.object.key.split("/")[1] }
     })
-    .pluck('Item'),
+    .pluck('Item')
+    .defaultIfEmpty({}),
     Observable.bindNodeCallback(s3.getObject.bind(s3))({
       Bucket: event.Records[0].s3.bucket.name, 
       Key: event.Records[0].s3.object.key
@@ -244,11 +313,21 @@ export const syndicateRun = (event, context, cb) => {
     .catch(err => Observable.of({}))
     .map(response => response.Body ? JSON.parse(response.Body.toString('utf-8')) : {})
   )
-  .mergeMap(([user, run]) => !!run && !!run.drops && !!run.drops.filter(drop => (parseInt(drop.rarity) >= 4)).length ? Observable.bindNodeCallback(sns.publish.bind(sns))({
-    Message: run.drops.map(drop => `${drop.name} x${drop.num}`).join('\n'),
-    MessageStructure: 'string',
-    PhoneNumber: user.phone
-  }) : Observable.of({}))
+  .mergeMap(([user, run]) => (
+    (run.drops||[]).filter(drop => (parseInt(drop.rarity) >= 4)).length > 0 
+    ? syndicateRunToSms$([user, run])
+    : Observable.of([user, run])
+  ))
+  .mergeMap(([user, run]) => (
+    !run.error 
+    ? syndicateRunToDynamo$([user, run])
+    : Observable.of([user, run])
+  ))
+  .mergeMap(([user, run]) => (
+    !run.error 
+    ? syndicateRunToIot$([user, run])
+    : Observable.of([user, run])
+  ))
   .subscribe(
       response => cb(null, response),
       error => cb(error)
@@ -393,24 +472,24 @@ export const partyList = (event, context, cb) => {
   )
 };
 
-export const mainLoop = (event, context, cb) => {
-  Observable.bindNodeCallback(docClient.query.bind(docClient))({
-      TableName: process.env.DYNAMODB_TABLE,
-      IndexName: "UsersByValidSessionIndex",
-      KeyConditionExpression: "hasValidSessionId = :vs",
-      ExpressionAttributeValues: {
-          ":vs": 1
-      }
-  })
-  .pluck("Items")
-  .mergeAll()
-  .mergeMap(user => writeCurrentRunToS3$({pathParameters: {denaCode: user.denaCode}, body: "{}"}, {}))
-  .subscribe(
-      console.log,
-      error => cb(error),
-      () => cb(null, "Done")
-  )
-}
+// export const mainLoop = (event, context, cb) => {
+//   Observable.bindNodeCallback(docClient.query.bind(docClient))({
+//       TableName: process.env.DYNAMODB_TABLE,
+//       IndexName: "UsersByValidSessionIndex",
+//       KeyConditionExpression: "hasValidSessionId = :vs",
+//       ExpressionAttributeValues: {
+//           ":vs": 1
+//       }
+//   })
+//   .pluck("Items")
+//   .mergeAll()
+//   .mergeMap(user => writeCurrentRunToS3$({pathParameters: {denaCode: user.denaCode}, body: "{}"}, {}))
+//   .subscribe(
+//       console.log,
+//       error => cb(error),
+//       () => cb(null, "Done")
+//   )
+// }
 
 export const index = (event, context, cb) => {
     Observable.bindNodeCallback(docClient.scan.bind(docClient))({ TableName: process.env.DYNAMODB_TABLE })
@@ -486,7 +565,7 @@ export const signin = (event, context, cb) => {
 
 export const writeCurrentRunToS3 = (event, context, cb) => {
   writeCurrentRunToS3$(event, context)
-  .catch(err => ({
+  .catch(err => {console.log(err); return ({
     statusCode: 400,
     headers: {
       "Access-Control-Allow-Origin" : "*", "Access-Control-Allow-Headers": "Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With"
@@ -495,7 +574,7 @@ export const writeCurrentRunToS3 = (event, context, cb) => {
         err,
         input: event,
     })
-  }))
+  })})
   .map(data => ({
       statusCode: 200,
       headers: {
@@ -509,6 +588,33 @@ export const writeCurrentRunToS3 = (event, context, cb) => {
   .subscribe(
       response => cb(null, response),
       error => cb(error)
+  )
+};
+
+
+export const pushDrops = (message, context, cb) => {
+  console.log(message)
+  // console.log(messageStr.pathParameters)
+  // const message = JSON.parse(messageStr);
+  console.log(message.pathParameters.denaCode);
+  writeCurrentRunToS3$(message, {})
+  .switchMap(data => 
+    Observable.bindNodeCallback(iot.describeEndpoint.bind(iot))({})
+    .pluck('endpointAddress')
+    .map(endpoint => new AWS.IotData({ endpoint }))
+    .mergeMap(iotData => 
+      Observable.bindNodeCallback(iotData.publish.bind(iotData))({
+          topic: `ffrkreeper/${message.pathParameters.denaCode}/get-runs`,
+          payload: JSON.stringify({message: "OK"}),
+          qos: 0
+      })
+      .catch(console.log)
+    )
+  )
+  .catch(console.log)
+  .subscribe(
+    () => cb(null, {}),
+    err => cb(err)
   )
 };
 

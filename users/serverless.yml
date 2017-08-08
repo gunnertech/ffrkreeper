@@ -20,15 +20,31 @@ service: ffrkreeper-users
 provider:
   name: aws
   runtime: nodejs6.10
-  memorySize: 512 # optional, in MB, default is 1024
+  memorySize: 256 # optional, in MB, default is 1024
   timeout: 30 # optional, in seconds, default is 6
   versionFunctions: true # optional, default is true
   region: us-west-2
   environment:
     DYNAMODB_TABLE: ${self:service}-${opt:stage, self:provider.stage}-Users
     ITEMS_DYNAMODB_TABLE: ${self:service}-${opt:stage, self:provider.stage}-Items
+    BATTLES_DYNAMODB_TABLE: ${self:service}-${opt:stage, self:provider.stage}-Battles
+    RUNS_DYNAMODB_TABLE: ${self:service}-${opt:stage, self:provider.stage}-Runs
     S3_BUCKET: com-gunnertech-${opt:stage, self:provider.stage}-${self:service}
   iamRoleStatements:
+    - Effect: "Allow"
+      Action:
+        - 'iot:DescribeEndpoint'
+        - "iot:Connect"
+        - "iot:Publish"
+        - "iot:Subscribe"
+        - "iot:Receive"
+        - "iot:GetThingShadow"
+        - "iot:UpdateThingShadow"
+      Resource: "*"
+    - Effect: "Allow"
+      Action:
+        - 'sts:AssumeRole'
+      Resource: "*"
     - Effect: Allow
       Resource: "*"
       Action:
@@ -55,6 +71,15 @@ provider:
         - dynamodb:UpdateItem
         - dynamodb:DeleteItem
       Resource: "arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:provider.environment.ITEMS_DYNAMODB_TABLE}"
+    - Effect: Allow
+      Action:
+        - dynamodb:Query
+        - dynamodb:Scan
+        - dynamodb:GetItem
+        - dynamodb:PutItem
+        - dynamodb:UpdateItem
+        - dynamodb:DeleteItem
+      Resource: "arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:provider.environment.RUNS_DYNAMODB_TABLE}"
     - Effect: "Allow"
       Action:
        - s3:PutObjectAcl
@@ -136,12 +161,29 @@ plugins:
 #    - exclude-me-dir/**
 
 functions:
-  mainLoop:
-    handler: handler.mainLoop
+  iotAuth:
+    handler: handler.iotAuth
     events:
-      - schedule:
-        rate: rate(2 minutes)
-        enabled: false
+      - http:
+          method: get
+          path: ${self:service}/api/iot-auth
+          cors: 
+            origins:
+              - '*'
+            headers:
+              - Content-Type
+              - X-Amz-Date
+              - Authorization
+              - X-Api-Key
+              - X-Amz-Security-Token
+              - X-Requested-With
+            allowCredentials: false
+  # mainLoop:
+  #   handler: handler.mainLoop
+  #   events:
+  #     - schedule:
+  #       rate: rate(2 minutes)
+  #       enabled: false
   syndicateRun:
     handler: handler.syndicateRun
     events:
@@ -325,6 +367,14 @@ functions:
             parameters: 
               paths: 
                 denaCode: true
+  pushDrops:
+    handler: handler.pushDrops
+    timeout: 30
+    events:
+      - iot:
+          sql: "SELECT * FROM 'ffrkreeper/pushDrops'"
+
+
 
 resources:
   Resources:
@@ -364,9 +414,18 @@ resources:
                   Rules:
                     -
                       Name: prefix
-                      Value: parsed
+                      Value: processed
               Function:
                 "Fn::GetAtt": [ SyndicateRunLambdaFunction, Arn ]
+            # - Event: "s3:ObjectCreated:*"
+            #   Filter:
+            #     S3Key:
+            #       Rules:
+            #         -
+            #           Name: prefix
+            #           Value: processed
+            #   Function:
+            #     "Fn::GetAtt": [ SyndicateRunToDynamoLambdaFunction, Arn ]
 
     ParseRunLambdaPermissionS3Bucket:
       DependsOn:
@@ -389,7 +448,9 @@ resources:
         Action: "lambda:InvokeFunction"
         Principal: "s3.amazonaws.com"
         SourceArn: "arn:aws:s3:::${self:provider.environment.S3_BUCKET}"
-    
+
+
+
     itemsTable:
       Type: AWS::DynamoDB::Table
       Properties:
@@ -403,6 +464,20 @@ resources:
         ProvisionedThroughput:
           ReadCapacityUnits: 5
           WriteCapacityUnits: 5
+
+    # battlesTable:
+    #   Type: AWS::DynamoDB::Table
+    #   Properties:
+    #     TableName: ${self:provider.environment.BATTLES_DYNAMODB_TABLE}
+    #     AttributeDefinitions:
+    #       - AttributeName: battle_id
+    #         AttributeType: N
+    #     KeySchema:
+    #       - AttributeName: battle_id
+    #         KeyType: HASH
+    #     ProvisionedThroughput:
+    #       ReadCapacityUnits: 5
+    #       WriteCapacityUnits: 5
 
     usersTable:
       Type: AWS::DynamoDB::Table
@@ -451,3 +526,37 @@ resources:
             ProvisionedThroughput:
               ReadCapacityUnits: 5
               WriteCapacityUnits: 5
+
+    runsTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:provider.environment.RUNS_DYNAMODB_TABLE}
+        AttributeDefinitions:
+          - AttributeName: created_at
+            AttributeType: S
+          - AttributeName: user_dena_code
+            AttributeType: S
+          - AttributeName: battle_id
+            AttributeType: N
+        KeySchema:
+          - AttributeName: user_dena_code
+            KeyType: HASH
+          - AttributeName: created_at
+            KeyType: RANGE
+        ProvisionedThroughput:
+          ReadCapacityUnits: 5
+          WriteCapacityUnits: 5
+        GlobalSecondaryIndexes:
+          - IndexName: RunsByBattleIndex
+            KeySchema:
+              - AttributeName: battle_id
+                KeyType: HASH
+              - AttributeName: created_at
+                KeyType: RANGE
+            Projection:
+              ProjectionType: ALL
+            ProvisionedThroughput:
+              ReadCapacityUnits: 5
+              WriteCapacityUnits: 5
+        StreamSpecification:
+          StreamViewType: NEW_IMAGE
