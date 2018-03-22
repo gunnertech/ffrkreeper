@@ -1,0 +1,5 @@
+{
+  "terminal.integrated.env.osx": {
+    "PATH": "/Users/cody/.platformio/penv/bin:/Users/cody/.nvm/versions/node/v7.4.0/bin:/Users/cody/.rvm/gems/ruby-2.2.5/bin:/Users/cody/.rvm/gems/ruby-2.2.5@global/bin:/Users/cody/.rvm/rubies/ruby-2.2.5/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Applications/Postgres.app/Contents/Versions/latest/bin:/Applications/Wireshark.app/Contents/MacOS:/Users/cody/.rvm/bin:/Users/cody/.rvm/bin"
+  }
+}

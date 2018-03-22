@@ -30,6 +30,7 @@ provider:
     BATTLES_DYNAMODB_TABLE: ${self:service}-${opt:stage, self:provider.stage}-Battles
     RUNS_DYNAMODB_TABLE: ${self:service}-${opt:stage, self:provider.stage}-Runs
     S3_BUCKET: com-gunnertech-${opt:stage, self:provider.stage}-${self:service}
+    
   iamRoleStatements:
     - Effect: "Allow"
       Action:
@@ -165,69 +166,72 @@ plugins:
 #    - exclude-me-dir/**
 
 functions:
-  parseRunStream:
-    handler: handler.parseRunStream
-    events:
-      - stream: arn:aws:dynamodb:us-west-2:828143319926:table/ffrkreeper-users-dev-Runs/stream/2017-08-08T17:25:50.430
-      - stream:
-        arn:
-          Fn::GetAtt:
-            - ${self:provider.environment.RUNS_DYNAMODB_TABLE}
-            - Arn
-  iotAuth:
-    handler: handler.iotAuth
-    events:
-      - http:
-          method: get
-          path: ${self:service}/api/iot-auth
-          cors: 
-            origins:
-              - '*'
-            headers:
-              - Content-Type
-              - X-Amz-Date
-              - Authorization
-              - X-Api-Key
-              - X-Amz-Security-Token
-              - X-Requested-With
-            allowCredentials: false
+  # loadMagicite:
+  #   handler: handler.loadMagicite
+    
+  # handleRunStream:
+  #   handler: handler.handleRunStream
+  #   events:
+  #     - stream: arn:aws:dynamodb:us-west-2:828143319926:table/ffrkreeper-users-dev-Runs/stream/2017-08-08T17:25:50.430
+  #     - stream:
+  #       arn:
+  #         Fn::GetAtt:
+  #           - ${self:provider.environment.RUNS_DYNAMODB_TABLE}
+  #           - Arn
+  # iotAuth:
+  #   handler: handler.iotAuth
+  #   events:
+  #     - http:
+  #         method: get
+  #         path: ${self:service}/api/iot-auth
+  #         cors: 
+  #           origins:
+  #             - '*'
+  #           headers:
+  #             - Content-Type
+  #             - X-Amz-Date
+  #             - Authorization
+  #             - X-Api-Key
+  #             - X-Amz-Security-Token
+  #             - X-Requested-With
+  #           allowCredentials: false
   # mainLoop:
   #   handler: handler.mainLoop
   #   events:
   #     - schedule:
   #       rate: rate(2 minutes)
   #       enabled: false
-  syndicateRun:
-    handler: handler.syndicateRun
-    events:
-      - s3:
-          bucket: users
-  parseRun:
-    handler: handler.parseRun
-    events:
-      - s3:
-          bucket: users
-          # event: s3:ObjectCreated:*
-          # rules:
-          #   - prefix: raw/
-          #   - suffix: .json
-  index:
-    handler: handler.index
-    events:
-      - http:
-          method: get
-          path: ${self:service}/api/users
-          cors: 
-            origins:
-              - '*'
-            headers:
-              - Content-Type
-              - X-Amz-Date
-              - Authorization
-              - X-Api-Key
-              - X-Amz-Security-Token
-              - X-Requested-With
-            allowCredentials: false
+  # syndicateRun:
+  #   handler: handler.syndicateRun
+  #   events:
+  #     - s3:
+  #         bucket: users
+  # parseRun:
+  #   handler: handler.parseRun
+  #   events:
+  #     - s3:
+  #         bucket: users
+  #         # event: s3:ObjectCreated:*
+  #         # rules:
+  #         #   - prefix: raw/
+  #         #   - suffix: .json
+  # index:
+  #   handler: handler.index
+  #   events:
+  #     - http:
+  #         method: get
+  #         path: ${self:service}/api/users
+  #         cors: 
+  #           origins:
+  #             - '*'
+  #           headers:
+  #             - Content-Type
+  #             - X-Amz-Date
+  #             - Authorization
+  #             - X-Api-Key
+  #             - X-Amz-Security-Token
+  #             - X-Requested-With
+  #           allowCredentials: false
   signin:
     handler: handler.signin
     events:
@@ -265,7 +269,7 @@ functions:
     events:
       - http:
           method: get
-          path: ${self:service}/api/users/{denaCode}/current-run
+          path: ${self:service}/api/users/{denaCode}/current-run-2
           cors: 
             origins:
               - '*'
@@ -280,187 +284,179 @@ functions:
             parameters: 
               paths: 
                 denaCode: true
-  csfrToken:
-    handler: handler.csfrToken
-    events:
-      - http:
-          method: get
-          path: ${self:service}/api/users/{denaCode}/csfr-token
-          cors: 
-            origins:
-              - '*'
-            headers:
-              - Content-Type
-              - X-Amz-Date
-              - Authorization
-              - X-Api-Key
-              - X-Amz-Security-Token
-              - X-Requested-With
-          request: 
-            parameters: 
-              paths: 
-                denaCode: true
-  partyList:
-    handler: handler.partyList
-    events:
-      - http:
-          method: get
-          path: ${self:service}/api/users/{denaCode}/party-list
-          cors: 
-            origins:
-              - '*'
-            headers:
-              - Content-Type
-              - X-Amz-Date
-              - Authorization
-              - X-Api-Key
-              - X-Amz-Security-Token
-              - X-Requested-With
-          request: 
-            parameters: 
-              paths: 
-                denaCode: true
-  parseParty:
-    handler: handler.parseParty
-    events:
-      - http:
-          method: post
-          path: ${self:service}/api/users/{denaCode}/parse-party
-          cors: 
-            origins:
-              - '*'
-            headers:
-              - Content-Type
-              - X-Amz-Date
-              - Authorization
-              - X-Api-Key
-              - X-Amz-Security-Token
-              - X-Requested-With
-          request: 
-            parameters: 
-              paths: 
-                denaCode: true
-  sessionKey:
-    handler: handler.sessionKey
-    events:
-      - http:
-          method: post
-          path: ${self:service}/api/users/{denaCode}/session-key
-          cors: 
-            origins:
-              - '*'
-            headers:
-              - Content-Type
-              - X-Amz-Date
-              - Authorization
-              - X-Api-Key
-              - X-Amz-Security-Token
-              - X-Requested-With
-          request: 
-            parameters: 
-              paths: 
-                denaCode: true
-  writeCurrentRunToS3:
-    handler: handler.writeCurrentRunToS3
-    events:
-      - http:
-          method: post
-          path: ${self:service}/api/users/{denaCode}/write-current-run-to-s3
-          cors: 
-            origins:
-              - '*'
-            headers:
-              - Content-Type
-              - X-Amz-Date
-              - Authorization
-              - X-Api-Key
-              - X-Amz-Security-Token
-              - X-Requested-With
-          request: 
-            parameters: 
-              paths: 
-                denaCode: true
-  pushDrops:
-    handler: handler.pushDrops
-    timeout: 30
-    events:
-      - iot:
-          sql: "SELECT * FROM 'ffrkreeper/pushDrops'"
+  # csfrToken:
+  #   handler: handler.csfrToken
+  #   events:
+  #     - http:
+  #         method: get
+  #         path: ${self:service}/api/users/{denaCode}/csfr-token
+  #         cors: 
+  #           origins:
+  #             - '*'
+  #           headers:
+  #             - Content-Type
+  #             - X-Amz-Date
+  #             - Authorization
+  #             - X-Api-Key
+  #             - X-Amz-Security-Token
+  #             - X-Requested-With
+  #         request: 
+  #           parameters: 
+  #             paths: 
+  #               denaCode: true
+  # partyList:
+  #   handler: handler.partyList
+  #   events:
+  #     - http:
+  #         method: get
+  #         path: ${self:service}/api/users/{denaCode}/party-list
+  #         cors: 
+  #           origins:
+  #             - '*'
+  #           headers:
+  #             - Content-Type
+  #             - X-Amz-Date
+  #             - Authorization
+  #             - X-Api-Key
+  #             - X-Amz-Security-Token
+  #             - X-Requested-With
+  #         request: 
+  #           parameters: 
+  #             paths: 
+  #               denaCode: true
+  # parseParty:
+  #   handler: handler.parseParty
+  #   events:
+  #     - http:
+  #         method: post
+  #         path: ${self:service}/api/users/{denaCode}/parse-party
+  #         cors: 
+  #           origins:
+  #             - '*'
+  #           headers:
+  #             - Content-Type
+  #             - X-Amz-Date
+  #             - Authorization
+  #             - X-Api-Key
+  #             - X-Amz-Security-Token
+  #             - X-Requested-With
+  #         request: 
+  #           parameters: 
+  #             paths: 
+  #               denaCode: true
+  # sessionKey:
+  #   handler: handler.sessionKey
+  #   events:
+  #     - http:
+  #         method: post
+  #         path: ${self:service}/api/users/{denaCode}/session-key
+  #         cors: 
+  #           origins:
+  #             - '*'
+  #           headers:
+  #             - Content-Type
+  #             - X-Amz-Date
+  #             - Authorization
+  #             - X-Api-Key
+  #             - X-Amz-Security-Token
+  #             - X-Requested-With
+  #         request: 
+  #           parameters: 
+  #             paths: 
+  #               denaCode: true
+  # writeCurrentRunToS3:
+  #   handler: handler.writeCurrentRunToS3
+  #   events:
+  #     - http:
+  #         method: post
+  #         path: ${self:service}/api/users/{denaCode}/write-current-run-to-s3
+  #         cors: 
+  #           origins:
+  #             - '*'
+  #           headers:
+  #             - Content-Type
+  #             - X-Amz-Date
+  #             - Authorization
+  #             - X-Api-Key
+  #             - X-Amz-Security-Token
+  #             - X-Requested-With
+  #         request: 
+  #           parameters: 
+  #             paths: 
+  #               denaCode: true
+  # pushDrops:
+  #   handler: handler.pushDrops
+  #   timeout: 30
+  #   events:
+  #     - iot:
+  #         sql: "SELECT * FROM 'ffrkreeper/pushDrops'"
+  #         enabled: false
 
 
 
 resources:
   Resources:
-    S3BucketUsers:
-      DependsOn:
-        - ParseRunLambdaPermissionS3Bucket
-        - SyndicateRunLambdaPermissionS3Bucket
-      Type: AWS::S3::Bucket
-      Properties:
-        BucketName: ${self:provider.environment.S3_BUCKET}
-        AccessControl: PublicRead
-        CorsConfiguration:
-          CorsRules:
-          - AllowedMethods:
-            - GET
-            - PUT
-            - POST
-            - HEAD
-            AllowedOrigins:
-            - "*"
-            AllowedHeaders:
-            - "*"
-        NotificationConfiguration:
-          LambdaConfigurations:
-            - Event: "s3:ObjectCreated:*"
-              Filter:
-                S3Key:
-                  Rules:
-                    -
-                      Name: prefix
-                      Value: raw
-              Function:
-                "Fn::GetAtt": [ ParseRunLambdaFunction, Arn ]
-            - Event: "s3:ObjectCreated:*"
-              Filter:
-                S3Key:
-                  Rules:
-                    -
-                      Name: prefix
-                      Value: processed
-              Function:
-                "Fn::GetAtt": [ SyndicateRunLambdaFunction, Arn ]
-            # - Event: "s3:ObjectCreated:*"
-            #   Filter:
-            #     S3Key:
-            #       Rules:
-            #         -
-            #           Name: prefix
-            #           Value: processed
-            #   Function:
-            #     "Fn::GetAtt": [ SyndicateRunToDynamoLambdaFunction, Arn ]
+    # S3BucketUsers:
+    #   DependsOn:
+    #     - ParseRunLambdaPermissionS3Bucket
+    #     - SyndicateRunLambdaPermissionS3Bucket
+    #   Type: AWS::S3::Bucket
+    #   Properties:
+    #     BucketName: ${self:provider.environment.S3_BUCKET}
+    #     AccessControl: PublicRead
+    #     CorsConfiguration:
+    #       CorsRules:
+    #       - AllowedMethods:
+    #         - GET
+    #         - PUT
+    #         - POST
+    #         - HEAD
+    #         AllowedOrigins:
+    #         - "*"
+    #         AllowedHeaders:
+    #         - "*"
+    #     NotificationConfiguration:
+    #       LambdaConfigurations:
+    #         - Event: "s3:ObjectCreated:*"
+    #           Filter:
+    #             S3Key:
+    #               Rules:
+    #                 -
+    #                   Name: prefix
+    #                   Value: raw
+    #           Function:
+    #             "Fn::GetAtt": [ ParseRunLambdaFunction, Arn ]
+    #         - Event: "s3:ObjectCreated:*"
+    #           Filter:
+    #             S3Key:
+    #               Rules:
+    #                 -
+    #                   Name: prefix
+    #                   Value: processed
+    #           Function:
+    #             "Fn::GetAtt": [ SyndicateRunLambdaFunction, Arn ]
 
-    ParseRunLambdaPermissionS3Bucket:
-      DependsOn:
-        - ParseRunLambdaFunction
-      Type: AWS::Lambda::Permission
-      Properties:
-        FunctionName:
-          "Fn::GetAtt": [ ParseRunLambdaFunction, Arn ]
-        Action: "lambda:InvokeFunction"
-        Principal: "s3.amazonaws.com"
-        SourceArn: "arn:aws:s3:::${self:provider.environment.S3_BUCKET}"
+    # ParseRunLambdaPermissionS3Bucket:
+    #   DependsOn:
+    #     - ParseRunLambdaFunction
+    #   Type: AWS::Lambda::Permission
+    #   Properties:
+    #     FunctionName:
+    #       "Fn::GetAtt": [ ParseRunLambdaFunction, Arn ]
+    #     Action: "lambda:InvokeFunction"
+    #     Principal: "s3.amazonaws.com"
+    #     SourceArn: "arn:aws:s3:::${self:provider.environment.S3_BUCKET}"
 
-    SyndicateRunLambdaPermissionS3Bucket:
-      DependsOn:
-        - SyndicateRunLambdaFunction
-      Type: AWS::Lambda::Permission
-      Properties:
-        FunctionName:
-          "Fn::GetAtt": [ SyndicateRunLambdaFunction, Arn ]
-        Action: "lambda:InvokeFunction"
-        Principal: "s3.amazonaws.com"
-        SourceArn: "arn:aws:s3:::${self:provider.environment.S3_BUCKET}"
+    # SyndicateRunLambdaPermissionS3Bucket:
+    #   DependsOn:
+    #     - SyndicateRunLambdaFunction
+    #   Type: AWS::Lambda::Permission
+    #   Properties:
+    #     FunctionName:
+    #       "Fn::GetAtt": [ SyndicateRunLambdaFunction, Arn ]
+    #     Action: "lambda:InvokeFunction"
+    #     Principal: "s3.amazonaws.com"
+    #     SourceArn: "arn:aws:s3:::${self:provider.environment.S3_BUCKET}"
 
 
 
